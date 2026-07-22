@@ -1,7 +1,8 @@
 {
   "name": "codepilot-ai",
   "version": "1.0.0",
-  "description": "AI-powered engineering workflow toolkit for modern software development.",
+  "description": "面向现代软件开发的基于人工智能的工程工作流程工具包。",
+  "description-en": "AI-powered engineering workflow toolkit for modern software development.",
   "license": "MIT",
   "private": false,
   "bin": {

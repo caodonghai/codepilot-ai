@@ -98,6 +98,40 @@ export function registerChangeCommands(program: Command) {
     .action(listCommand);
 }
 
+interface ChangeBranchOperations {
+  isGitRepo: () => boolean;
+  branchExists: (branchName: string) => boolean;
+  createBranch: (branchName: string) => unknown;
+  checkoutBranch: (branchName: string) => unknown;
+}
+
+const defaultChangeBranchOperations: ChangeBranchOperations = {
+  isGitRepo,
+  branchExists: getBranchExists,
+  createBranch,
+  checkoutBranch,
+};
+
+export function prepareChangeBranch(
+  change: string,
+  type: string,
+  requested: boolean,
+  operations: ChangeBranchOperations = defaultChangeBranchOperations,
+): string | null {
+  if (!requested || !operations.isGitRepo()) return null;
+
+  const branchName = `${type}/${change}`;
+  if (operations.branchExists(branchName)) {
+    logger.info(`Branch ${branchName} exists, checking out...`);
+    operations.checkoutBranch(branchName);
+  } else {
+    logger.info(`Creating branch: ${branchName}`);
+    operations.createBranch(branchName);
+  }
+  logger.success(`Branch ${branchName} ready`);
+  return branchName;
+}
+
 export async function newCommand(
   changeInput: string | undefined,
   options: { type?: string; interactive?: boolean; branch?: boolean } = {},
@@ -150,17 +184,7 @@ export async function newCommand(
   });
   writeRunEvent('change-created', { change, type });
 
-  if (isGitRepo()) {
-    const branchName = `${type}/${change}`;
-    if (getBranchExists(branchName)) {
-      logger.info(`Branch ${branchName} exists, checking out...`);
-      checkoutBranch(branchName);
-    } else {
-      logger.info(`Creating branch: ${branchName}`);
-      createBranch(branchName);
-    }
-    logger.success(`Branch ${branchName} ready`);
-  }
+  prepareChangeBranch(change, type, options.branch === true);
 
   await runHooks('post-change-create', { change, type });
 
