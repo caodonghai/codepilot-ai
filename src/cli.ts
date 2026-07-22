@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { spawnSync } from 'child_process';
 import { Command } from 'commander';
+import { archiveChange, restoreChange, deleteArchivedChange, listChanges, listArchivedChanges, validateChangeStructure } from './lib/change';
 
 type ToolName = 'codex' | 'trae' | 'qoder' | 'cursor';
 type HarnessStatus = 'not_started' | 'in_progress' | 'accepted' | 'partially_accepted' | 'rejected' | 'blocked';
@@ -925,9 +926,31 @@ function syncCommand(options: { tools?: string; skip?: string; toolArgs?: string
   console.log(`AI targets synced: ${tools.join(', ') || 'none'}`);
 }
 
-function newCommand(changeInput: string, options: { type?: string } = {}) {
-  const change = kebabName(changeInput);
-  const type = parseChangeType(options.type);
+function prompt(question: string): Promise<string> {
+  return new Promise((resolve) => {
+    const readline = require('readline').createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+    readline.question(question, (answer: string) => {
+      readline.close();
+      resolve(answer.trim());
+    });
+  });
+}
+
+async function newCommand(changeInput: string | undefined, options: { type?: string; interactive?: boolean } = {}) {
+  let change = changeInput ? kebabName(changeInput) : '';
+  let type = parseChangeType(options.type);
+
+  if (options.interactive) {
+    change = kebabName(await prompt('Enter change name: '));
+    while (!change) {
+      change = kebabName(await prompt('Change name is required. Enter change name: '));
+    }
+    type = parseChangeType(await prompt('Select change type (default/bugfix/feature/ui-change/refactor): ') || 'default');
+  }
+
   if (!change) {
     throw new Error('Change name is required.');
   }
@@ -2591,8 +2614,9 @@ program
 
 program
   .command('new')
-  .argument('<change>', 'Change name')
+  .argument('[change]', 'Change name')
   .option('--type <type>', 'default, bugfix, feature, ui-change, or refactor', 'default')
+  .option('--interactive', 'Interactive mode with prompts')
   .action((change, options) => newCommand(change, options));
 
 program
@@ -2834,5 +2858,86 @@ program
   .option('--strict', 'Also run strict repository checks such as eslint')
   .option('--encoding', 'Also scan OpenSpec change documents for likely mojibake')
   .action((options) => doctorCommand(options));
+
+program
+  .command('archive')
+  .argument('<change>', 'Change name to archive')
+  .description('Archive a completed change to openspec/archive')
+  .action((change) => {
+    try {
+      const result = archiveChange(change);
+      console.log(JSON.stringify({
+        status: 'archived',
+        change,
+        archivedAt: result.archivedAt,
+        target: result.targetDir,
+      }, null, 2));
+    } catch (error) {
+      console.error(JSON.stringify({
+        status: 'error',
+        change,
+        error: (error as Error).message,
+      }, null, 2));
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command('archive:restore')
+  .argument('<change>', 'Change name to restore')
+  .description('Restore an archived change back to openspec/changes')
+  .action((change) => {
+    try {
+      const result = restoreChange(change);
+      console.log(JSON.stringify({
+        status: 'restored',
+        change,
+        restoredAt: result.restoredAt,
+        target: result.targetDir,
+      }, null, 2));
+    } catch (error) {
+      console.error(JSON.stringify({
+        status: 'error',
+        change,
+        error: (error as Error).message,
+      }, null, 2));
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command('archive:delete')
+  .argument('<change>', 'Change name to delete from archive')
+  .description('Permanently delete an archived change')
+  .action((change) => {
+    try {
+      const result = deleteArchivedChange(change);
+      console.log(JSON.stringify({
+        status: 'deleted',
+        change,
+        deletedAt: result.deletedAt,
+      }, null, 2));
+    } catch (error) {
+      console.error(JSON.stringify({
+        status: 'error',
+        change,
+        error: (error as Error).message,
+      }, null, 2));
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command('archive:list')
+  .description('List all active and archived changes')
+  .action(() => {
+    const active = listChanges();
+    const archived = listArchivedChanges();
+    console.log(JSON.stringify({
+      active: active.length,
+      archived: archived.length,
+      changes: [...active, ...archived],
+    }, null, 2));
+  });
 
 program.parse(process.argv);
