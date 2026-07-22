@@ -23,7 +23,7 @@ function getCurrentVersion(): string {
 
 async function fetchLatestVersion(): Promise<string | null> {
   try {
-    const url = 'https://registry.npmjs.org/@msgfi/ai-engineering-kit';
+    const url = 'https://registry.npmjs.org/@codepilot/ai';
     const response = await fetch(url);
     if (!response.ok) {
       return null;
@@ -73,7 +73,7 @@ async function upgradeCheckCommand() {
     console.log(`Latest version: ${latest}`);
 
     if (comparison < 0) {
-      logger.warn(`Update available! Run 'msgfi-ai upgrade install' to update.`);
+      logger.warn(`Update available! Run 'codepilot upgrade install' to update.`);
     } else if (comparison === 0) {
       logger.success('You are running the latest version.');
     } else {
@@ -87,7 +87,7 @@ function upgradeInstallCommand() {
 
   try {
     const { spawnSync } = require('child_process');
-    const result = spawnSync('npm', ['install', '@msgfi/ai-engineering-kit@latest'], {
+    const result = spawnSync('npm', ['install', '@codepilot/ai@latest'], {
       cwd: process.cwd(),
       shell: false,
       stdio: 'inherit',
@@ -111,6 +111,6 @@ function versionCommand() {
   if (isJsonOutput()) {
     console.log(JSON.stringify({ version }));
   } else {
-    console.log(`MsgFi AI Engineering Kit v${version}`);
+    console.log(`CodePilot AI v${version}`);
   }
 }

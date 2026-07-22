@@ -1,16 +1,16 @@
-# MsgFi AI Engineering Kit
+# CodePilot AI
 
-MsgFi AI Engineering Kit 是一套放在项目仓库里的 AI 工程流程工具。它把 OpenSpec 风格的需求优先、Superpowers 风格的技能流程、本地 Harness 验收状态、Knowledge Memory 知识沉淀，以及 Codex / Trae / Qoder / Cursor 多 AI 编辑器规则同步整合到一个命令里。
+CodePilot AI 是一套放在项目仓库里的 AI 工程流程工具。它把 OpenSpec 风格的需求优先、Superpowers 风格的技能流程、本地 Harness 验收状态、Knowledge Memory 知识沉淀，以及 Codex / Trae / Qoder / Cursor 多 AI 编辑器规则同步整合到一个命令里。
 
 第一次使用时，先安装包，然后执行一次初始化：
 
 ```bash
-pnpm add -D "path/to/msgfi-ai-engineering-kit-0.9.1-alpha.0.tgz"
-pnpm exec msgfi-ai init
+pnpm add -D @codepilot/ai
+pnpm exec codepilot init
 pnpm ai validate
 ```
 
-为什么第一次是 `pnpm exec msgfi-ai init`？因为此时项目里还没有 `"scripts": { "ai": "msgfi-ai" }`。`init` 会自动把这个脚本加到 `package.json`，以后就可以直接使用：
+为什么第一次是 `pnpm exec codepilot init`？因为此时项目里还没有 `"scripts": { "ai": "codepilot" }`。`init` 会自动把这个脚本加到 `package.json`，以后就可以直接使用：
 
 ```bash
 pnpm ai init qoder
@@ -22,9 +22,9 @@ pnpm ai knowledge:search 关键字
 如果只想初始化某些 AI 编辑器，可以把名字接在 `init` 后面：
 
 ```bash
-pnpm exec msgfi-ai init qoder
-pnpm exec msgfi-ai init codex cursor
-pnpm exec msgfi-ai init codex trae qoder cursor
+pnpm exec codepilot init qoder
+pnpm exec codepilot init codex cursor
+pnpm exec codepilot init codex trae qoder cursor
 ```
 
 不传工具名时，默认初始化 `codex / trae / qoder / cursor`。
@@ -56,33 +56,29 @@ pnpm exec msgfi-ai init codex trae qoder cursor
 
 ## 推荐使用流程
 
-### 1. 安装测试包
-
-当前版本还是 alpha 测试包，先用本地 tarball 安装：
+### 1. 安装包
 
 ```bash
-pnpm add -D "E:\新中大\dev\msgfi-react\packages\ai-engineering-kit\msgfi-ai-engineering-kit-0.9.1-alpha.0.tgz"
+pnpm add -D @codepilot/ai
 ```
-
-路径里有空格时必须加引号。
 
 ### 2. 第一次初始化
 
 ```bash
-pnpm exec msgfi-ai init
+pnpm exec codepilot init
 ```
 
 这一步会：
 
 - 生成 `.ai / openspec / superpowers / harness`
 - 生成 Codex / Trae / Qoder / Cursor 适配文件
-- 自动给 `package.json` 加 `"ai": "msgfi-ai"`
+- 自动给 `package.json` 加 `"ai": "codepilot"`
 - 不覆盖已有 `scripts.ai`
 
 如果不希望自动改 `package.json`：
 
 ```bash
-pnpm exec msgfi-ai init --no-setup-script
+pnpm exec codepilot init --no-setup-script
 ```
 
 ### 3. 后续统一使用
@@ -328,7 +324,7 @@ pnpm ai knowledge:analyze
 pnpm ai integration:list
 ```
 
-默认是 `lightweight`，即使用 MsgFi 内置轻量兼容流程。
+默认是 `lightweight`，即使用 CodePilot 内置轻量兼容流程。
 
 ### `pnpm ai integration:download <name>`
 
@@ -363,7 +359,7 @@ pnpm ai integration:use superpowers hybrid
 
 支持模式：
 
-- `lightweight`：使用 MsgFi 内置轻量版
+- `lightweight`：使用 CodePilot 内置轻量版
 - `official`：优先使用 repo-local 官方资源
 - `hybrid`：轻量规则 + repo-local 官方资源结合
 
@@ -467,7 +463,7 @@ harness/integrations/*/cache/
 当前版本：
 
 ```text
-0.9.1-alpha
+1.0.0
 ```
 
 适合作为团队试用包。正式发布前建议继续验证：

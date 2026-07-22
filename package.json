@@ -1,11 +1,11 @@
 {
-  "name": "@msgfi/ai-engineering-kit",
-  "version": "0.9.1-alpha.0",
-  "description": "Repo-level AI engineering workflow kit for MsgFi frontend projects.",
+  "name": "@codepilot/ai",
+  "version": "1.0.0",
+  "description": "AI-powered engineering workflow toolkit for modern software development.",
   "license": "MIT",
-  "private": true,
+  "private": false,
   "bin": {
-    "msgfi-ai": "./bin/msgfi-ai.cjs"
+    "codepilot": "./bin/codepilot.cjs"
   },
   "files": [
     "bin",

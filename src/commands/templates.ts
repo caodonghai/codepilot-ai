@@ -23,9 +23,9 @@ export function setupPackageScript(options: { enabled?: boolean } = {}) {
     return `Skipped package.json script setup because scripts.ai already exists: ${packageJson.scripts.ai}`;
   }
 
-  packageJson.scripts.ai = 'msgfi-ai';
+  packageJson.scripts.ai = 'codepilot';
   fs.writeFileSync(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`, 'utf8');
-  return 'Added package.json script: "ai": "msgfi-ai"';
+  return 'Added package.json script: "ai": "codepilot"';
 }
 
 export function findTemplateRoot() {
@@ -155,8 +155,8 @@ export function listTargetFiles(tool: string): string[] {
   const targetFiles: Record<string, string[]> = {
     codex: [
       'AGENTS.md',
-      '.codex/skills/msgfi-ai/SKILL.md',
-      ...flowNames.map((flow) => `.codex/skills/msgfi-ai-${flow}/SKILL.md`),
+      '.codex/skills/codepilot/SKILL.md',
+      ...flowNames.map((flow) => `.codex/skills/codepilot-${flow}/SKILL.md`),
     ],
     trae: [
       '.trae/rules.md',
@@ -168,7 +168,7 @@ export function listTargetFiles(tool: string): string[] {
       '.qoder/commands/ai.md',
       ...flowNames.map((flow) => `.qoder/commands/ai/${flow}.md`),
     ],
-    cursor: ['.cursor/rules/msgfi-ai.mdc', '.cursor/rules/msgfi-frontend.mdc'],
+    cursor: ['.cursor/rules/codepilot.mdc', '.cursor/rules/codepilot-frontend.mdc'],
   };
   return targetFiles[tool] || [];
 }

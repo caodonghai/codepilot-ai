@@ -337,12 +337,12 @@ function doctorCommand(options: { strict?: boolean; encoding?: boolean } = {}) {
   );
 
   const aiScriptExists = fs.existsSync(packageJsonPath)
-    ? JSON.parse(fs.readFileSync(packageJsonPath, 'utf8')).scripts?.ai === 'msgfi-ai'
+    ? JSON.parse(fs.readFileSync(packageJsonPath, 'utf8')).scripts?.ai === 'codepilot'
     : false;
   pushCheck(
     'package.json scripts.ai',
     aiScriptExists,
-    aiScriptExists ? undefined : 'scripts.ai is not set to "msgfi-ai".',
+    aiScriptExists ? undefined : 'scripts.ai is not set to "codepilot".',
   );
 
   const harnessConfigExists = fs.existsSync(resolvePath('harness', 'config.json'));

@@ -7,8 +7,8 @@ import { setLogLevel } from './lib/logger';
 const program = new Command();
 
 program
-  .name('msgfi-ai')
-  .description('MsgFi AI Engineering Kit')
+  .name('codepilot')
+  .description('CodePilot AI - AI-powered engineering workflow toolkit')
   .option('-v, --verbose', 'Enable verbose output', false)
   .option('-q, --quiet', 'Suppress output', false)
   .option('--dry-run', 'Preview changes without applying', false)

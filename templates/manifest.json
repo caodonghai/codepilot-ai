@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "templateSet": "msgfi-lightweight",
-  "description": "Default lightweight MsgFi AI Engineering Kit templates.",
+  "templateSet": "codepilot-lightweight",
+  "description": "Default lightweight CodePilot AI templates.",
   "projectOwned": [
     ".ai/core",
     ".ai/flows",

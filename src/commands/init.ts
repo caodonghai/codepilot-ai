@@ -25,7 +25,7 @@ import type { ProjectFramework, BuildTool, PackageManager } from '../types';
 export function registerInitCommands(program: Command) {
   program
     .command('init')
-    .description('Initialize MsgFi AI harness and integration rules')
+    .description('Initialize CodePilot AI harness and integration rules')
     .option('--profile <profile>', 'Profile: lightweight | official | hybrid', 'lightweight')
     .option('--tools <tools>', 'Comma-separated list of AI tools', defaultTools.join(','))
     .option('--force', 'Overwrite existing files')
@@ -57,7 +57,7 @@ function initHarnessCommand(options: {
   const tools = parseTools(options.tools);
   const profile = options.profile || 'lightweight';
 
-  const spinner = new Spinner('Initializing MsgFi AI harness...');
+  const spinner = new Spinner('Initializing CodePilot AI harness...');
   spinner.start();
 
   try {
