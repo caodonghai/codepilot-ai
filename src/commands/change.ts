@@ -23,10 +23,11 @@ import { kebabName } from '../utils/string';
 import { hasMojibake, fixMojibakeText } from '../utils/encoding';
 import { loadHarnessConfig, saveHarnessConfig, updateHarnessState } from '../lib/state';
 import { templateChangeFile, listTargetFiles } from './templates';
-import { getChangeName, setCurrentChange, writeRunEvent } from './helpers/state';
-import { buildChangeContext } from './helpers/common';
-import { collectEncodingIssues } from './helpers/encoding';
-import { prompt } from './helpers/ui';
+import { getChangeName, setCurrentChange } from '../lib/state';
+import { writeRunEvent } from '../lib/events';
+import { buildChangeContext } from '../lib/state';
+import { collectEncodingIssues } from '../utils/encoding';
+import { prompt } from '../lib/documents';
 import {
   archiveChange,
   restoreChange,

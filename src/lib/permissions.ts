@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { resolvePath } from '../../utils/file';
+import { resolvePath } from '../utils/file';
 
 export function checkWritable(relativePath: string) {
   const filePath = resolvePath(relativePath);

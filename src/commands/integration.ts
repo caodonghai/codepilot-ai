@@ -13,7 +13,7 @@ import {
   loadIntegrationConfig,
   saveIntegrationConfig,
 } from '../lib/integrations';
-import { writeRunEvent } from './helpers/state';
+import { writeRunEvent } from '../lib/events';
 
 export function registerIntegrationCommands(program: Command) {
   const integration = program.command('integration').description('Integration management');

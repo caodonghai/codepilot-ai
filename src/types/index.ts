@@ -116,3 +116,65 @@ export interface KnowledgeIndexRecord extends KnowledgeRecord {
   file: string;
   searchText: string;
 }
+
+export interface AiConfig {
+  enabled: boolean;
+  tools: string[];
+  autoSync: boolean;
+}
+
+export interface WorkflowConfig {
+  phases: string[];
+  autoAdvance: boolean;
+  requireAcceptance: boolean;
+}
+
+export interface KnowledgeConfig {
+  autoIndex: boolean;
+  fuzzySearch: boolean;
+  maxResults: number;
+}
+
+export interface OutputConfig {
+  format: 'text' | 'json';
+  verbose: boolean;
+  quiet: boolean;
+  colors: boolean;
+}
+
+export interface HarnessConfig {
+  version?: number;
+  profile?: string;
+  currentChange?: string | null;
+  tools?: ToolName[];
+  checks?: string[];
+  strictChecks?: string[];
+  defaultFlow?: string;
+  autoSave?: boolean;
+  project?: ProjectInfo;
+  ai?: AiConfig;
+  workflow?: WorkflowConfig;
+  knowledge?: KnowledgeConfig;
+  output?: OutputConfig;
+}
+
+export interface HarnessState {
+  version: number;
+  activeChange: string | null;
+  activeFlow: string | null;
+  status: string;
+  phase: string | null;
+  lastStep: string | null;
+  nextStep: string | null;
+  lastReport: string | null;
+  nextSuggestedFlow: string | null;
+  blockedBy: string[];
+  decisions: Array<{
+    text: string;
+    createdAt: string;
+    change?: string | null;
+    flow?: string | null;
+  }>;
+  context: Record<string, unknown>;
+  updatedAt: string | null;
+}

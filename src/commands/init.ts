@@ -8,13 +8,13 @@ import {
   seedProjectTemplates,
   applyToolSkip,
 } from './templates';
-import { writeRunEvent } from './helpers/state';
+import { writeRunEvent } from '../lib/events';
 import {
   buildRulesDocument,
   buildDispatcherDocument,
   buildCommandDocument,
-} from './helpers/documents';
-import { checkWritable, isActiveCodexSkillLock } from './helpers/permissions';
+} from '../lib/documents';
+import { checkWritable, isActiveCodexSkillLock } from '../lib/permissions';
 import { Spinner } from './progress';
 import { logger } from '../lib/logger';
 import { t } from '../lib/i18n';

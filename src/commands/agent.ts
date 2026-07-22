@@ -3,10 +3,11 @@ import fs from 'fs';
 import type { HarnessResult, HarnessStatus } from '../types';
 import { resolvePath, ensureDir, writeGeneratedFile } from '../utils/file';
 import { loadHarnessConfig, loadHarnessState, updateHarnessState } from '../lib/state';
-import { getChangeName, setCurrentChange, writeRunEvent } from './helpers/state';
-import { buildChangeContext } from './helpers/common';
-import { syncTaskBoard, taskSummary, selectNextTask } from './helpers/task';
-import { buildAgentPrompt } from './helpers/ui';
+import { getChangeName, setCurrentChange } from '../lib/state';
+import { writeRunEvent } from '../lib/events';
+import { buildChangeContext } from '../lib/state';
+import { syncTaskBoard, taskSummary, selectNextTask } from '../lib/task';
+import { buildAgentPrompt } from '../lib/documents';
 import { validateCommand } from './change';
 
 export function registerAgentCommands(program: Command) {

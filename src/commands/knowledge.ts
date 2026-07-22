@@ -14,9 +14,10 @@ import {
   loadKnowledgeIndex,
   scoreKnowledgeRecord,
 } from '../lib/knowledge';
-import { writeRunEvent, getChangeName } from './helpers/state';
-import { readChangeText } from './helpers/encoding';
-import { syncTaskBoard, taskSummary } from './helpers/task';
+import { writeRunEvent } from '../lib/events';
+import { getChangeName } from '../lib/state';
+import { readChangeText } from '../utils/encoding';
+import { syncTaskBoard, taskSummary } from '../lib/task';
 
 export function registerKnowledgeCommands(program: Command) {
   const knowledge = program.command('knowledge').description('Knowledge memory management');

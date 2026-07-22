@@ -15,7 +15,7 @@ import {
 import { logger } from '../lib/logger';
 import { getChangeName, loadHarnessState } from '../lib/state';
 import { isJsonOutput } from '../lib/context';
-import { parseMarkdownTasks } from './helpers/task';
+import { parseMarkdownTasks } from '../lib/task';
 import { t } from '../lib/i18n';
 
 export function registerGitCommands(program: Command) {

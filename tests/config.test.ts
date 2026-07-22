@@ -11,7 +11,7 @@ import {
   saveState,
   updateState,
   isConfigInitialized,
-} from '../src/lib/config';
+} from '../src/lib/state';
 import { resolvePath } from '../src/utils/file';
 
 describe('config module', () => {
@@ -49,7 +49,7 @@ describe('config module', () => {
 
   test('validateConfig returns no errors for valid config', () => {
     const config = getDefaultConfig();
-    const errors = validateConfig(config);
+    const errors = validateConfig(config as Record<string, unknown>);
     expect(errors).toHaveLength(0);
   });
 

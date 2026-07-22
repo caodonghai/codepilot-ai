@@ -1,6 +1,6 @@
 import fs from 'fs';
-import type { HarnessTaskBoard, HarnessTask, HarnessTaskStatus } from '../../types';
-import { resolvePath, writeGeneratedFile, ensureDir } from '../../utils/file';
+import type { HarnessTaskBoard, HarnessTask, HarnessTaskStatus } from '../types';
+import { resolvePath, writeGeneratedFile, ensureDir } from '../utils/file';
 
 export function taskBoardPath(change: string) {
   return `harness/tasks/${change}.json`;

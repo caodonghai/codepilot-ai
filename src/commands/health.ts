@@ -4,9 +4,9 @@ import path from 'path';
 import type { HarnessResult } from '../types';
 import { resolvePath } from '../utils/file';
 import { loadHarnessConfig, loadHarnessState } from '../lib/state';
-import { getChangeName, setCurrentChange } from './helpers/state';
-import { buildChangeContext } from './helpers/common';
-import { collectEncodingIssues } from './helpers/encoding';
+import { getChangeName, setCurrentChange } from '../lib/state';
+import { buildChangeContext } from '../lib/state';
+import { collectEncodingIssues } from '../utils/encoding';
 
 export function registerHealthCommands(program: Command) {
   program.command('status').description('Show current harness state').action(statusCommand);

@@ -3,15 +3,16 @@ import fs from 'fs';
 import type { HarnessTaskStatus } from '../types';
 import { resolvePath } from '../utils/file';
 import { updateHarnessState } from '../lib/state';
-import { getChangeName, setCurrentChange, writeRunEvent } from './helpers/state';
-import { buildChangeContext } from './helpers/common';
+import { getChangeName, setCurrentChange } from '../lib/state';
+import { writeRunEvent } from '../lib/events';
+import { buildChangeContext } from '../lib/state';
 import {
   syncTaskBoard,
   findTask,
   updateMarkdownTaskCheck,
   taskSummary,
   selectNextTask,
-} from './helpers/task';
+} from '../lib/task';
 import { runHooks } from '../lib/hooks';
 import { logger } from '../lib/logger';
 

@@ -2,38 +2,7 @@ import fs from 'fs';
 import { resolvePath, writeGeneratedFile, ensureDir } from '../utils/file';
 import { defaultTools } from '../config/constants';
 import { withLock } from './lock';
-import type { ProjectInfo } from '../types';
-
-export interface HarnessConfig {
-  version?: number;
-  profile?: string;
-  currentChange?: string | null;
-  tools?: string[];
-  checks?: string[];
-  strictChecks?: string[];
-  project?: ProjectInfo;
-}
-
-export interface HarnessState {
-  version: number;
-  activeChange: string | null;
-  activeFlow: string | null;
-  status: string;
-  phase: string | null;
-  lastStep: string | null;
-  nextStep: string | null;
-  lastReport: string | null;
-  nextSuggestedFlow: string | null;
-  blockedBy: string[];
-  decisions: Array<{
-    text: string;
-    createdAt: string;
-    change?: string | null;
-    flow?: string | null;
-  }>;
-  context: Record<string, unknown>;
-  updatedAt: string | null;
-}
+import type { HarnessConfig, HarnessState, ProjectInfo } from '../types';
 
 export function loadHarnessConfig(): HarnessConfig {
   const configPath = resolvePath('harness', 'config.json');
@@ -147,41 +116,105 @@ export function initHarness() {
     currentChange: config.currentChange ?? null,
     tools: config.tools ?? defaultTools,
     checks: config.checks ?? ['eslint', 'ai:validate', 'ai:report'],
-    project: config.project,
+    project: config.project as ProjectInfo | undefined,
   });
   const state = loadHarnessState();
   saveHarnessState(state);
 }
 
-export function writeRunEvent(kind: string, payload: Record<string, unknown>) {
-  const state = loadHarnessState();
-  const createdAt = new Date().toISOString();
-  const event = {
-    createdAt,
-    kind,
-    activeChange: state.activeChange ?? null,
-    activeFlow: state.activeFlow ?? null,
-    status: state.status ?? null,
-    ...payload,
+export function getDefaultConfig(): HarnessConfig {
+  return {
+    version: 1,
+    profile: 'lightweight',
+    currentChange: null,
+    tools: defaultTools,
+    checks: ['ai:validate', 'ai:report'],
+    strictChecks: ['eslint', 'ai:validate', 'ai:report'],
+    defaultFlow: 'ai',
+    autoSave: true,
   };
-  ensureDir('harness', 'runs');
-  const { timestampForFile } = require('./utils');
-  writeGeneratedFile(
-    `harness/runs/${timestampForFile(new Date(createdAt))}-${kind}.json`,
-    `${JSON.stringify(event, null, 2)}\n`,
-  );
-  return event;
 }
 
-export function writeTimestampedMarkdown(directory: string, basename: string, content: string) {
-  const createdAt = new Date().toISOString();
-  const { timestampForFile } = require('./utils');
-  const filePath = `${directory}/${timestampForFile(new Date(createdAt))}-${basename}.md`;
-  ensureDir(...directory.split('/'));
-  writeGeneratedFile(filePath, content);
-  return filePath;
+export function validateConfig(
+  config: Record<string, unknown>,
+): Array<{ key: string; message: string }> {
+  const errors: Array<{ key: string; message: string }> = [];
+  if (config.version !== undefined && typeof config.version !== 'number') {
+    errors.push({ key: 'version', message: 'version must be a number' });
+  }
+  if (
+    config.profile !== undefined &&
+    !['lightweight', 'standard', 'strict'].includes(String(config.profile))
+  ) {
+    errors.push({ key: 'profile', message: 'profile must be lightweight, standard, or strict' });
+  }
+  if (config.tools !== undefined && Array.isArray(config.tools)) {
+    for (const tool of config.tools) {
+      if (!defaultTools.includes(tool as string)) {
+        errors.push({ key: 'tools', message: `invalid tool: ${tool}` });
+      }
+    }
+  }
+  return errors;
 }
 
-export function taskBoardPath(change: string) {
-  return `harness/tasks/${change}.json`;
+export function loadConfig(): HarnessConfig {
+  const config = loadHarnessConfig();
+  return {
+    version: config.version ?? 1,
+    profile: config.profile ?? 'lightweight',
+    currentChange: config.currentChange ?? null,
+    tools: config.tools ?? defaultTools,
+    checks: config.checks ?? ['ai:validate', 'ai:report'],
+    strictChecks: config.strictChecks ?? ['eslint', 'ai:validate', 'ai:report'],
+    defaultFlow: config.defaultFlow ?? 'ai',
+    autoSave: config.autoSave ?? true,
+  };
+}
+
+export function saveConfig(config: HarnessConfig) {
+  saveHarnessConfig(config as Record<string, unknown>);
+}
+
+export function updateConfig(patch: Record<string, unknown>) {
+  withLock('state', () => {
+    const config = loadHarnessConfig();
+    saveHarnessConfig({ ...config, ...patch });
+  });
+}
+
+export function getDefaultState(): HarnessState {
+  return {
+    version: 1,
+    activeChange: null,
+    activeFlow: null,
+    status: 'not_started',
+    phase: null,
+    lastStep: null,
+    nextStep: null,
+    lastReport: null,
+    nextSuggestedFlow: null,
+    blockedBy: [],
+    decisions: [],
+    context: {},
+    updatedAt: null,
+  };
+}
+
+export function loadState(): HarnessState {
+  return loadHarnessState();
+}
+
+export function saveState(state: HarnessState) {
+  saveHarnessState(state);
+}
+
+export function updateState(patch: Record<string, unknown>) {
+  updateHarnessState(patch);
+}
+
+export function isConfigInitialized(): boolean {
+  const configPath = resolvePath('harness', 'config.json');
+  const statePath = resolvePath('harness', 'state.json');
+  return fs.existsSync(configPath) && fs.existsSync(statePath);
 }
