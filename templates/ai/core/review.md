@@ -1,11 +1,11 @@
-# Review Rules
+# 审查规则
 
-Review AI-generated changes with this priority:
+按以下优先级审查 AI 生成的变更：
 
-1. Behavior regressions and scope creep.
-2. Broken imports, routes, models, request contracts, and shared package impact.
-3. Missing loading, empty, permission, validation, and error states.
-4. Missing or insufficient verification.
-5. Formatting and naming consistency.
+1. 行为回归和范围蔓延。
+2. 损坏的导入、路由、模型、请求契约和共享包影响。
+3. 缺失的加载、空状态、权限、验证和错误状态。
+4. 缺失或不足的验证。
+5. 格式和命名一致性。
 
-Do not approve a change that lacks an OpenSpec-compatible change folder unless it is a small maintenance-only edit.
+除非是小型维护性编辑，否则不要批准缺少 OpenSpec 兼容变更文件夹的变更。

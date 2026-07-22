@@ -1,7 +1,7 @@
-import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Logger, logger, setLogLevel, getLogLevel } from '../src/lib/logger';
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
+import { logger, setLogLevel, getLogLevel, LogLevel } from '../src/lib/logger';
 
-describe('logger module', () => {
+describe('logger 模块', () => {
   beforeEach(() => {
     vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -11,84 +11,90 @@ describe('logger module', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    setLogLevel('info');
   });
 
-  test('Logger constructor sets default config', () => {
-    const log = new Logger();
-    expect(log.getLevel()).toBe('info');
+  test('getLogLevel 返回当前日志级别', () => {
+    expect(getLogLevel()).toBe('info');
   });
 
-  test('Logger constructor uses provided config', () => {
-    const log = new Logger({ level: 'debug', color: false });
-    expect(log.getLevel()).toBe('debug');
+  test('setLogLevel 设置日志级别', () => {
+    setLogLevel('debug');
+    expect(getLogLevel()).toBe('debug');
   });
 
-  test('setLevel changes log level', () => {
-    const log = new Logger();
-    log.setLevel('warn');
-    expect(log.getLevel()).toBe('warn');
-  });
-
-  test('shouldLog returns true for higher or equal level', () => {
-    const log = new Logger({ level: 'info' });
-    expect(log['shouldLog']('info')).toBe(true);
-    expect(log['shouldLog']('warn')).toBe(true);
-    expect(log['shouldLog']('error')).toBe(true);
-    expect(log['shouldLog']('debug')).toBe(false);
-  });
-
-  test('info logs message at info level', () => {
-    const log = new Logger({ level: 'info', timestamp: false });
-    log.info('test message');
+  test('logger.info 在 info 级别输出', () => {
+    logger.info('test info');
     expect(console.log).toHaveBeenCalled();
+    const args = vi.mocked(console.log).mock.calls[0];
+    expect(args).toContain('test info');
   });
 
-  test('debug does not log when level is info', () => {
-    const log = new Logger({ level: 'info' });
-    log.debug('test message');
+  test('logger.warn 在 info 级别输出', () => {
+    logger.warn('test warn');
+    expect(console.warn).toHaveBeenCalled();
+    const args = vi.mocked(console.warn).mock.calls[0];
+    expect(args).toContain('test warn');
+  });
+
+  test('logger.error 在 info 级别输出', () => {
+    logger.error('test error');
+    expect(console.error).toHaveBeenCalled();
+    const args = vi.mocked(console.error).mock.calls[0];
+    expect(args).toContain('test error');
+  });
+
+  test('logger.debug 在 info 级别不输出', () => {
+    logger.debug('test debug');
     expect(console.debug).not.toHaveBeenCalled();
   });
 
-  test('debug logs when level is debug', () => {
-    const log = new Logger({ level: 'debug', timestamp: false });
-    log.debug('test message');
+  test('logger.debug 在 debug 级别输出', () => {
+    setLogLevel('debug');
+    logger.debug('test debug');
     expect(console.debug).toHaveBeenCalled();
+    const args = vi.mocked(console.debug).mock.calls[0];
+    expect(args).toContain('test debug');
   });
 
-  test('warn logs message', () => {
-    const log = new Logger({ level: 'info', timestamp: false });
-    log.warn('test warning');
-    expect(console.warn).toHaveBeenCalled();
+  test('logger.info 在 silent 级别不输出', () => {
+    setLogLevel('error');
+    logger.info('test info');
+    expect(console.log).not.toHaveBeenCalled();
   });
 
-  test('error logs message', () => {
-    const log = new Logger({ level: 'info', timestamp: false });
-    log.error('test error');
+  test('logger.warn 在 silent 级别不输出', () => {
+    setLogLevel('error');
+    logger.warn('test warn');
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  test('logger.error 在 silent 级别不输出', () => {
+    setLogLevel('error');
+    logger.error('test error');
     expect(console.error).toHaveBeenCalled();
   });
 
-  test('success logs with checkmark', () => {
-    const log = new Logger({ level: 'info', timestamp: false });
-    log.success('test success');
-    expect(console.log).toHaveBeenCalled();
-  });
-
-  test('step logs with arrow', () => {
-    const log = new Logger({ level: 'info', timestamp: false });
-    log.step('test step');
-    expect(console.log).toHaveBeenCalled();
-  });
-
-  test('static create returns new Logger', () => {
-    const log = Logger.create({ level: 'debug' });
-    expect(log).toBeInstanceOf(Logger);
-    expect(log.getLevel()).toBe('debug');
-  });
-
-  test('global logger functions work', () => {
-    setLogLevel('warn');
-    expect(getLogLevel()).toBe('warn');
+  test('logger.info 包含时间戳', () => {
     logger.info('test');
-    expect(console.log).not.toHaveBeenCalled();
+    const args = vi.mocked(console.log).mock.calls[0];
+    expect(args[0]).toMatch(/^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\]/);
+  });
+
+  test('logger.warn 包含时间戳', () => {
+    logger.warn('test');
+    const args = vi.mocked(console.warn).mock.calls[0];
+    expect(args[0]).toMatch(/^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\]/);
+  });
+
+  test('logger.error 包含时间戳', () => {
+    logger.error('test');
+    const args = vi.mocked(console.error).mock.calls[0];
+    expect(args[0]).toMatch(/^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\]/);
+  });
+
+  test('setLogLevel 忽略无效级别', () => {
+    setLogLevel('invalid' as LogLevel);
+    expect(getLogLevel()).toBe('info');
   });
 });

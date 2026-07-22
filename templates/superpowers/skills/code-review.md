@@ -1,9 +1,9 @@
-# Code Review Skill
+# 代码审查技能
 
-Use this skill before finishing non-trivial changes.
+在完成非平凡变更之前，使用此技能。
 
-1. Compare the implementation with the active proposal and acceptance criteria.
-2. Inspect shared package impact.
-3. Check loading, empty, permission, validation, and error states.
-4. Check import paths, route assumptions, and request payloads.
-5. Run or confirm verification commands.
+1. 将实现与活动提案和验收标准进行比较。
+2. 检查共享包影响。
+3. 检查加载、空状态、权限、验证和错误状态。
+4. 检查导入路径、路由假设和请求 payload。
+5. 运行或确认验证命令。

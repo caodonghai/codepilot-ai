@@ -1,18 +1,18 @@
 # {{change}}
 
-## Background
+## 背景
 
-Describe the problem or opportunity.
+描述问题或机会。
 
-## Goal
+## 目标
 
-Describe the intended outcome.
+描述预期结果。
 
-## Scope
+## 范围
 
-- In scope:
-- Out of scope:
+- 在范围内：
+- 在范围外：
 
-## Impact
+## 影响
 
-List affected apps, packages, routes, APIs, or UI states.
+列出受影响的应用、包、路由、API 或 UI 状态。

@@ -1,33 +1,33 @@
 # /ai:plan
 
-Use this flow to create a decision-complete implementation plan before editing code.
+使用此流程在编辑代码之前创建决策完成的实现计划。
 
-## Inputs
+## 输入
 
-- Required: `<change>` name.
+- 必需：`<change>` 名称。
 
-## Protocol
+## 协议
 
-1. Read `.ai/core/workflow.md`.
-2. If `openspec/changes/<change>` does not exist, stop and ask the user to run `/ai:propose <change>` with a short request.
-3. Read all files under `openspec/changes/<change>`.
-4. Read `.ai/core/project.md`, `.ai/core/frontend.md`, `.ai/core/api.md`, `.ai/core/ui.md`, and `.ai/core/testing.md`.
-5. Search Knowledge Memory for relevant components, functions, patterns, and failures:
+1. 阅读 `.ai/core/workflow.md`。
+2. 如果 `openspec/changes/<change>` 不存在，停止并要求用户使用简短请求运行 `/ai:propose <change>`。
+3. 读取 `openspec/changes/<change>` 下的所有文件。
+4. 阅读 `.ai/core/project.md`、`.ai/core/frontend.md`、`.ai/core/api.md`、`.ai/core/ui.md` 和 `.ai/core/testing.md`。
+5. 搜索知识记忆中的相关组件、函数、模式和失败：
    - `pnpm ai knowledge:search <change> <module-or-domain-keywords> --limit 10`
-   - Read only returned summaries. Do not read the full memory JSONL files.
-   - If no records are found, explicitly say that planning proceeded without prior Knowledge Memory.
-6. Read `superpowers/skills/planning.md`.
-7. Inspect the likely affected files and nearby implementation patterns.
-8. Do not edit code.
-9. Produce an implementation plan that names:
-   - affected app/package
-   - pages/routes/components/models/API modules to modify
-   - data flow and UI states
-   - task order
-   - verification commands
-   - known risks
-10. If the plan needs a product decision, ask before implementation.
+   - 仅读取返回的摘要。不要读取完整的记忆 JSONL 文件。
+   - 如果未找到记录，明确说明计划在没有先前知识记忆的情况下进行。
+6. 阅读 `superpowers/skills/planning.md`。
+7. 检查可能受影响的文件和附近的实现模式。
+8. 不要编辑代码。
+9. 生成实现计划，包括：
+   - 受影响的应用/包
+   - 要修改的页面/路由/组件/模型/API 模块
+   - 数据流和 UI 状态
+   - 任务顺序
+   - 验证命令
+   - 已知风险
+10. 如果计划需要产品决策，在实现之前询问。
 
-## Output
+## 输出
 
-Return a concise implementation plan, Knowledge Memory usage summary, and suggested next command: `/ai:apply <change>`.
+返回简洁的实现计划、知识记忆使用摘要和建议的下一个命令：`/ai:apply <change>`。

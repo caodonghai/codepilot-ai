@@ -1,6 +1,6 @@
-# Acceptance Criteria
+# 验收标准
 
-- [ ] Behavior matches the proposal.
-- [ ] UI states are handled when applicable.
-- [ ] Existing related behavior is not regressed.
-- [ ] `pnpm ai check` passes.
+- [ ] 行为符合提案。
+- [ ] 在适用时处理 UI 状态。
+- [ ] 现有相关行为未回归。
+- [ ] `pnpm ai check` 通过。

@@ -1,12 +1,12 @@
-# CodePilot AI OpenSpec Compatibility
+# CodePilot AI OpenSpec 兼容性
 
-This directory stores OpenSpec-compatible change records for AI-assisted development work.
+此目录存储 AI 辅助开发工作的 OpenSpec 兼容变更记录。
 
-The first version does not require the official `@fission-ai/openspec` CLI. It keeps a compatible structure so the project can adopt the official CLI later.
+第一个版本不需要官方的 `@fission-ai/openspec` CLI。它保持兼容结构，以便项目日后可以采用官方 CLI。
 
-## Change Layout
+## 变更布局
 
-Each change lives under:
+每个变更位于：
 
 ```text
 openspec/changes/<change>/
@@ -16,11 +16,11 @@ openspec/changes/<change>/
   notes.md
 ```
 
-## Lifecycle
+## 生命周期
 
-1. Explore the request.
-2. Propose a scoped change.
-3. Plan the implementation.
-4. Apply tasks.
-5. Verify acceptance criteria.
-6. Finish with `codepilot check` and a harness report.
+1. 探索请求。
+2. 提出范围变更。
+3. 规划实现。
+4. 执行任务。
+5. 验证验收标准。
+6. 使用 `codepilot check` 和 harness 报告完成。

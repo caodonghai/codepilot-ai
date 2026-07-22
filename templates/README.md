@@ -1,16 +1,16 @@
-# Templates
+# 模板
 
-This directory contains the first package-owned default template snapshot.
+此目录包含第一个包拥有的默认模板快照。
 
-Current state:
+当前状态：
 
-- `.ai/core`, `.ai/flows`, `superpowers/skills`, `openspec/project.md`, and `harness/config.json` have been seeded from the current working repository.
-- `manifest.json` records which paths are package templates, generated sync outputs, and project-owned state.
-- The working implementation still keeps some fallback templates embedded in `scripts/ai/cli.ts`.
-- Project-owned generated files remain in the repository root, such as `.ai`, `openspec`, `superpowers`, `harness`, `AGENTS.md`, `.codex`, `.trae`, `.qoder`, and `.cursor`.
-- The next migration step is to extract the embedded default content into this directory without changing generated project behavior.
+- `.ai/core`、`.ai/flows`、`superpowers/skills`、`openspec/project.md` 和 `harness/config.json` 已从当前工作仓库中初始化。
+- `manifest.json` 记录哪些路径是包模板、生成的同步输出和项目拥有的状态。
+- 工作实现仍在 `scripts/ai/cli.ts` 中嵌入了一些回退模板。
+- 项目拥有的生成文件保留在仓库根目录，如 `.ai`、`openspec`、`superpowers`、`harness`、`AGENTS.md`、`.codex`、`.trae`、`.qoder` 和 `.cursor`。
+- 下一步迁移是将嵌入的默认内容提取到此目录，而不改变生成的项目行为。
 
-Target structure:
+目标结构：
 
 ```text
 templates/

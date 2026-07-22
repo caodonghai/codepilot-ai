@@ -1,9 +1,9 @@
-# Debugging Skill
+# 调试技能
 
-Use this skill when behavior is failing or unclear.
+当行为失败或不明确时，使用此技能。
 
-1. Reproduce or inspect the failure before changing code.
-2. Trace data flow through request, model, component, and shared utilities.
-3. Change one cause at a time.
-4. Re-run the smallest useful verification command.
-5. Record important findings in the active change notes.
+1. 在修改代码之前重现或检查失败。
+2. 跟踪数据流，贯穿请求、模型、组件和共享工具。
+3. 一次只改变一个原因。
+4. 重新运行最小有用的验证命令。
+5. 在活动变更 notes 中记录重要发现。

@@ -1,8 +1,8 @@
-# Tasks
+# 任务
 
-- [ ] Document current behavior before changing code.
-- [ ] Identify safe refactor boundaries.
-- [ ] Refactor without changing user-visible behavior.
-- [ ] Update imports/usages if needed.
-- [ ] Run focused regression checks.
-- [ ] Run `pnpm ai check`.
+- [ ] 在修改代码之前记录当前行为。
+- [ ] 识别安全的重构边界。
+- [ ] 在不改变用户可见行为的情况下进行重构。
+- [ ] 如果需要，更新导入/用法。
+- [ ] 运行聚焦回归检查。
+- [ ] 运行 `pnpm ai check`。

@@ -1,5 +1,5 @@
-# Notes
+# 笔记
 
-Change type: {{type}}
+变更类型：{{type}}
 
-Record implementation and verification notes here.
+在此记录实现和验证笔记。

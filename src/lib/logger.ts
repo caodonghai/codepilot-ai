@@ -113,7 +113,9 @@ export class Logger {
 export const logger = new Logger();
 
 export function setLogLevel(level: LogLevel): void {
-  logger.setLevel(level);
+  if (['debug', 'info', 'warn', 'error'].includes(level)) {
+    logger.setLevel(level);
+  }
 }
 
 export function getLogLevel(): LogLevel {

@@ -65,7 +65,7 @@ function tokenizeKnowledgeText(text: string) {
 }
 
 describe('buildKnowledgeSearchText', () => {
-  it('should combine all fields into search text', () => {
+  it('应将所有字段合并为搜索文本', () => {
     const record: KnowledgeRecord = {
       id: 'component:button:ui',
       type: 'component',
@@ -106,38 +106,38 @@ describe('scoreKnowledgeRecord', () => {
     searchText: 'component:my-button:ui component mybutton ui packages/ui a custom button component for the ui button ui component apps/web/src/components',
   };
 
-  it('should score based on multiple field matches', () => {
+  it('应根据多个字段匹配进行评分', () => {
     expect(scoreKnowledgeRecord(record, ['ui'])).toBe(19);
   });
 
-  it('should score name match', () => {
+  it('应评分名称匹配', () => {
     expect(scoreKnowledgeRecord(record, ['mybutton'])).toBe(9);
   });
 
-  it('should score keyword match', () => {
+  it('应评分关键词匹配', () => {
     const record2 = { ...record, searchText: '', summary: '', id: 'test', name: 'Other', scope: 'other', source: 'other' };
     expect(scoreKnowledgeRecord(record2, ['button'])).toBe(7);
   });
 
-  it('should add bonus for active status', () => {
+  it('应为活跃状态加分', () => {
     const inactiveRecord = { ...record, status: 'deprecated' as const };
     expect(scoreKnowledgeRecord(record, ['test'])).toBe(
       scoreKnowledgeRecord(inactiveRecord, ['test']) + 1
     );
   });
 
-  it('should add bonus for confirmed confidence', () => {
+  it('应为已确认置信度加分', () => {
     const uncertainRecord = { ...record, confidence: 'uncertain' as const };
     expect(scoreKnowledgeRecord(record, ['test'])).toBe(
       scoreKnowledgeRecord(uncertainRecord, ['test']) + 1
     );
   });
 
-  it('should return base score for no content match but with status bonuses', () => {
+  it('应返回基本分数（无内容匹配但有状态奖励）', () => {
     expect(scoreKnowledgeRecord(record, ['nonexistent'])).toBe(2);
   });
 
-  it('should accumulate scores for multiple terms', () => {
+  it('应为多个术语累积评分', () => {
     const score = scoreKnowledgeRecord(record, ['button', 'ui']);
     expect(score).toBeGreaterThan(scoreKnowledgeRecord(record, ['button']));
     expect(score).toBeGreaterThan(scoreKnowledgeRecord(record, ['ui']));
@@ -145,26 +145,26 @@ describe('scoreKnowledgeRecord', () => {
 });
 
 describe('tokenizeKnowledgeText', () => {
-  it('should extract English tokens', () => {
+  it('应提取英文 tokens', () => {
     const tokens = tokenizeKnowledgeText('MyButton component for UI');
     expect(tokens).toContain('mybutton');
     expect(tokens).toContain('component');
     expect(tokens).toContain('ui');
   });
 
-  it('should extract Chinese tokens as contiguous blocks', () => {
+  it('应将中文 tokens 提取为连续块', () => {
     const tokens = tokenizeKnowledgeText('用户登录组件 UserLogin');
     expect(tokens).toContain('用户登录组件');
     expect(tokens).toContain('userlogin');
   });
 
-  it('should extract separate Chinese phrases when separated', () => {
+  it('应提取分隔的中文短语', () => {
     const tokens = tokenizeKnowledgeText('用户登录 组件 UserLogin');
     expect(tokens).toContain('用户登录');
     expect(tokens).toContain('组件');
   });
 
-  it('should deduplicate tokens', () => {
+  it('应去重 tokens', () => {
     const tokens = tokenizeKnowledgeText('button button ui ui');
     expect(tokens.filter((t) => t === 'button').length).toBe(1);
     expect(tokens.filter((t) => t === 'ui').length).toBe(1);

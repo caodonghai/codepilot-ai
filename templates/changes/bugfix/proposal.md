@@ -1,26 +1,26 @@
 # {{change}}
 
-## Type
+## 类型
 
 bugfix
 
 ## Bug
 
-Describe the observed incorrect behavior.
+描述观察到的不正确行为。
 
-## Expected Behavior
+## 预期行为
 
-Describe the correct behavior.
+描述正确的行为。
 
-## Root Cause
+## 根本原因
 
-Describe the suspected or confirmed cause.
+描述疑似或已确认的原因。
 
-## Scope
+## 范围
 
-- In scope:
-- Out of scope:
+- 在范围内：
+- 在范围外：
 
-## Impact
+## 影响
 
-List affected routes, components, APIs, data fields, or user flows.
+列出受影响的路由、组件、API、数据字段或用户流程。

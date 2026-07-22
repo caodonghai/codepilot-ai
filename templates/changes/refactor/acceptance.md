@@ -1,7 +1,7 @@
-# Acceptance Criteria
+# 验收标准
 
-- [ ] User-visible behavior remains unchanged.
-- [ ] Public contracts, routes, APIs, and data formats remain compatible unless explicitly proposed.
-- [ ] The refactor reduces meaningful complexity or duplication.
-- [ ] Focused regression checks pass.
-- [ ] `pnpm ai check` passes or unrelated failures are documented.
+- [ ] 用户可见行为保持不变。
+- [ ] 公共契约、路由、API 和数据格式保持兼容，除非明确提议更改。
+- [ ] 重构减少了有意义的复杂性或重复。
+- [ ] 聚焦回归检查通过。
+- [ ] `pnpm ai check` 通过或记录了无关的失败。

@@ -1,28 +1,28 @@
 # /ai:explore
 
-Use this flow to understand a request before creating or changing code.
+使用此流程在创建或修改代码之前理解请求。
 
-## Inputs
+## 输入
 
-- Required: a natural-language request or a change name.
-- Optional: affected app/package names, screenshots, API names, route names, or business module names.
+- 必需：自然语言请求或变更名称。
+- 可选：受影响的应用/包名称、截图、API 名称、路由名称或业务模块名称。
 
-## Protocol
+## 协议
 
-1. Read `.ai/core/workflow.md`.
-2. Read `.ai/core/project.md`, `.ai/core/frontend.md`, `.ai/core/api.md`, and `.ai/core/ui.md`.
-3. Search the repository for terms from the request, including Chinese business names, route names, page titles, model names, API names, and component names.
-4. Identify the likely affected app, page, route, model, request module, shared package, and UI states.
-5. Do not edit code or OpenSpec files.
-6. Ask only for product decisions that cannot be discovered from the repository.
-7. Output a concise exploration summary and a recommended change name.
+1. 阅读 `.ai/core/workflow.md`。
+2. 阅读 `.ai/core/project.md`、`.ai/core/frontend.md`、`.ai/core/api.md` 和 `.ai/core/ui.md`。
+3. 在仓库中搜索请求中的术语，包括中文业务名称、路由名称、页面标题、模型名称、API 名称和组件名称。
+4. 识别可能受影响的应用、页面、路由、模型、请求模块、共享包和 UI 状态。
+5. 不要编辑代码或 OpenSpec 文件。
+6. 只询问无法从仓库中发现的产品决策。
+7. 输出简洁的探索摘要和建议的变更名称。
 
-## Output
+## 输出
 
-Return:
+返回：
 
-- Affected area.
-- Relevant files and why they matter.
-- Known unknowns.
-- Recommended OpenSpec-compatible change scope.
-- Suggested next command, usually `/ai:propose <change>`.
+- 受影响区域。
+- 相关文件及其重要性。
+- 已知未知项。
+- 建议的 OpenSpec 兼容变更范围。
+- 建议的下一个命令，通常是 `/ai:propose <change>`。

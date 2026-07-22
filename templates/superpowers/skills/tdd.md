@@ -1,8 +1,8 @@
-# Test-Driven Development Skill
+# 测试驱动开发技能
 
-Use this skill when behavior is complex, shared, or easy to regress.
+当行为复杂、共享或容易回归时，使用此技能。
 
-1. Identify observable behavior.
-2. Add or update focused tests where the repository already has a suitable test pattern.
-3. Implement the smallest change that satisfies the behavior.
-4. Run focused tests first, then `pnpm ai check`.
+1. 识别可观察的行为。
+2. 在仓库已有合适测试模式的地方添加或更新聚焦测试。
+3. 实现满足行为的最小变更。
+4. 先运行聚焦测试，然后运行 `pnpm ai check`。

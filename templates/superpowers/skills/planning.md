@@ -1,9 +1,9 @@
-# Planning Skill
+# 规划技能
 
-Use this skill when a change requires more than a trivial edit.
+当变更需要的不仅仅是简单编辑时，使用此技能。
 
-1. Read the active change proposal, tasks, and acceptance criteria.
-2. Identify affected apps, shared packages, routes, models, API calls, and UI states.
-3. Keep the plan scoped to the active change.
-4. Prefer existing project patterns over new abstractions.
-5. State verification commands before implementation.
+1. 阅读活动变更的提案、任务和验收标准。
+2. 识别受影响的应用、共享包、路由、模型、API 调用和 UI 状态。
+3. 保持计划范围在活动变更内。
+4. 优先使用现有项目模式而非新抽象。
+5. 在实现之前说明验证命令。

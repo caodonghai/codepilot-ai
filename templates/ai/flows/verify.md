@@ -1,42 +1,42 @@
 # /ai:verify
 
-Use this flow to verify implementation against the active change.
+使用此流程验证实现是否符合活动变更。
 
-## Inputs
+## 输入
 
-- Required: `<change>` name.
+- 必需：`<change>` 名称。
 
-## Protocol
+## 协议
 
-1. Read `.ai/core/workflow.md`.
-2. If `openspec/changes/<change>` does not exist, stop and ask the user to run `/ai:propose <change>` with a short request.
-3. Read all files under `openspec/changes/<change>`.
-4. Inspect the current diff and relevant surrounding code.
-5. Sync and review the task board when tool access is available:
+1. 阅读 `.ai/core/workflow.md`。
+2. 如果 `openspec/changes/<change>` 不存在，停止并要求用户使用简短请求运行 `/ai:propose <change>`。
+3. 读取 `openspec/changes/<change>` 下的所有文件。
+4. 检查当前 diff 和相关的周围代码。
+5. 当工具可用时，同步并审查任务板：
    - `pnpm ai task-board <change>`
-6. Compare implementation with every item in `acceptance.md`.
-7. Check for scope creep against `proposal.md`.
-8. Run `pnpm ai validate <change>` when tool access is available.
-9. Run focused tests, lint, or builds when the changed area warrants it.
-10. Add verification notes to `notes.md`, including commands run and results.
-11. If acceptance is not met, write exact follow-up tasks back to `tasks.md` as unchecked items instead of marking the change complete.
-12. For each verified current task, mark it explicitly:
-   - Done: `pnpm ai task-done <task-id> --change <change>`
-   - Blocked: `pnpm ai task-block <task-id> --change <change> --reason "<reason>"`
-13. Update Harness state when tool access is available:
-   - `pnpm ai verify-state <change> --status accepted`
-   - `pnpm ai verify-state <change> --status partially_accepted`
-   - `pnpm ai verify-state <change> --status rejected`
-   - `pnpm ai verify-state <change> --status blocked`
-14. When adding follow-up tasks from verification, prefer the CLI form:
-   - `pnpm ai verify-state <change> --status partially_accepted --task "Describe the missing acceptance item"`
+6. 将实现与 `acceptance.md` 中的每个项目进行比较。
+7. 对照 `proposal.md` 检查范围蔓延。
+8. 当工具可用时，运行 `pnpm ai validate <change>`。
+9. 当变更区域需要时，运行聚焦测试、lint 或构建。
+10. 在 `notes.md` 中添加验证笔记，包括运行的命令和结果。
+11. 如果验收未满足，将确切的后续任务写回 `tasks.md` 作为未勾选项目，而不是标记变更完成。
+12. 对于每个已验证的当前任务，明确标记：
+    - 完成：`pnpm ai task-done <task-id> --change <change>`
+    - 阻塞：`pnpm ai task-block <task-id> --change <change> --reason "<reason>"`
+13. 当工具可用时，更新 Harness 状态：
+    - `pnpm ai verify-state <change> --status accepted`
+    - `pnpm ai verify-state <change> --status partially_accepted`
+    - `pnpm ai verify-state <change> --status rejected`
+    - `pnpm ai verify-state <change> --status blocked`
+14. 当从验证添加后续任务时，优先使用 CLI 形式：
+    - `pnpm ai verify-state <change> --status partially_accepted --task "描述缺失的验收项"`
 
-## Output
+## 输出
 
-Return:
+返回：
 
-- Acceptance status.
-- Verification commands and results.
-- Issues found.
-- Harness state.
-- Suggested next command: `/ai:finish <change>` if everything is acceptable, otherwise `/ai:apply <change>`.
+- 验收状态。
+- 验证命令和结果。
+- 发现的问题。
+- Harness 状态。
+- 建议的下一个命令：如果一切可接受则 `/ai:finish <change>`，否则 `/ai:apply <change>`。

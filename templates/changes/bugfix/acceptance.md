@@ -1,7 +1,7 @@
-# Acceptance Criteria
+# 验收标准
 
-- [ ] The reported incorrect behavior is fixed.
-- [ ] The expected behavior is verified on the affected path.
-- [ ] Related behavior outside the bug scope is not regressed.
-- [ ] The fix is scoped and does not alter shared helpers unless explicitly justified.
-- [ ] `pnpm ai check` passes or unrelated failures are documented.
+- [ ] 报告的不正确行为已修复。
+- [ ] 在受影响路径上验证了预期行为。
+- [ ] bug 范围外的相关行为未回归。
+- [ ] 修复是有范围的，除非明确说明理由，否则不改变共享助手。
+- [ ] `pnpm ai check` 通过或记录了无关的失败。

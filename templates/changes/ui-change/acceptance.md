@@ -1,7 +1,7 @@
-# Acceptance Criteria
+# 验收标准
 
-- [ ] The UI matches the requested behavior and existing design conventions.
-- [ ] Text, spacing, and controls fit at relevant viewport sizes.
-- [ ] Required states are visually and functionally handled.
-- [ ] Existing interactions are not regressed.
-- [ ] `pnpm ai check` passes or unrelated failures are documented.
+- [ ] UI 符合请求的行为和现有设计约定。
+- [ ] 文本、间距和控件在相关视口尺寸下适配。
+- [ ] 必需状态在视觉和功能上得到处理。
+- [ ] 现有交互未回归。
+- [ ] `pnpm ai check` 通过或记录了无关的失败。

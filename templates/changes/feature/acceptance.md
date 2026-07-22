@@ -1,7 +1,7 @@
-# Acceptance Criteria
+# 验收标准
 
-- [ ] The requested capability works for the primary user flow.
-- [ ] Required UI states are handled where applicable.
-- [ ] Data/API/permission behavior matches the proposal.
-- [ ] Existing related behavior is not regressed.
-- [ ] `pnpm ai check` passes or unrelated failures are documented.
+- [ ] 请求的能力对主要用户流程有效。
+- [ ] 在适用的地方处理了必需的 UI 状态。
+- [ ] 数据/API/权限行为符合提案。
+- [ ] 现有相关行为未回归。
+- [ ] `pnpm ai check` 通过或记录了无关的失败。

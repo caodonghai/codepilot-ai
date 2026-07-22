@@ -14,7 +14,7 @@ import {
 } from '../src/lib/state';
 import { resolvePath } from '../src/utils/file';
 
-describe('config module', () => {
+describe('config 模块', () => {
   beforeEach(() => {
     const configPath = resolvePath('harness', 'config.json');
     const statePath = resolvePath('harness', 'state.json');
@@ -37,7 +37,7 @@ describe('config module', () => {
     }
   });
 
-  test('getDefaultConfig returns default values', () => {
+  test('getDefaultConfig 返回默认值', () => {
     const config = getDefaultConfig();
     expect(config.version).toBe(1);
     expect(config.profile).toBe('lightweight');
@@ -47,36 +47,36 @@ describe('config module', () => {
     expect(config.autoSave).toBe(true);
   });
 
-  test('validateConfig returns no errors for valid config', () => {
+  test('validateConfig 对有效配置不返回错误', () => {
     const config = getDefaultConfig();
     const errors = validateConfig(config as Record<string, unknown>);
     expect(errors).toHaveLength(0);
   });
 
-  test('validateConfig returns errors for invalid version', () => {
+  test('validateConfig 对无效版本返回错误', () => {
     const errors = validateConfig({ version: 'invalid' as any });
     expect(errors).toHaveLength(1);
     expect(errors[0].key).toBe('version');
   });
 
-  test('validateConfig returns errors for invalid profile', () => {
+  test('validateConfig 对无效配置文件返回错误', () => {
     const errors = validateConfig({ profile: 'invalid' });
     expect(errors).toHaveLength(1);
     expect(errors[0].key).toBe('profile');
   });
 
-  test('validateConfig returns errors for invalid tools', () => {
+  test('validateConfig 对无效工具返回错误', () => {
     const errors = validateConfig({ tools: ['invalid-tool'] as any });
     expect(errors.length).toBeGreaterThan(0);
   });
 
-  test('loadConfig returns default when file does not exist', () => {
+  test('loadConfig 在文件不存在时返回默认值', () => {
     const config = loadConfig();
     expect(config.version).toBe(1);
     expect(config.profile).toBe('lightweight');
   });
 
-  test('saveConfig writes config to file', () => {
+  test('saveConfig 将配置写入文件', () => {
     const config = getDefaultConfig();
     config.currentChange = 'test-change';
     saveConfig(config);
@@ -85,7 +85,7 @@ describe('config module', () => {
     expect(loaded.currentChange).toBe('test-change');
   });
 
-  test('updateConfig merges patch with existing config', () => {
+  test('updateConfig 将补丁与现有配置合并', () => {
     const config = getDefaultConfig();
     saveConfig(config);
 
@@ -97,7 +97,7 @@ describe('config module', () => {
     expect(loaded.version).toBe(1);
   });
 
-  test('getDefaultState returns default values', () => {
+  test('getDefaultState 返回默认值', () => {
     const state = getDefaultState();
     expect(state.version).toBe(1);
     expect(state.activeChange).toBe(null);
@@ -105,12 +105,12 @@ describe('config module', () => {
     expect(state.status).toBe('not_started');
   });
 
-  test('loadState returns default when file does not exist', () => {
+  test('loadState 在文件不存在时返回默认值', () => {
     const state = loadState();
     expect(state.status).toBe('not_started');
   });
 
-  test('saveState writes state to file', () => {
+  test('saveState 将状态写入文件', () => {
     const state = getDefaultState();
     state.activeChange = 'test-change';
     saveState(state);
@@ -119,7 +119,7 @@ describe('config module', () => {
     expect(loaded.activeChange).toBe('test-change');
   });
 
-  test('updateState merges patch with existing state', () => {
+  test('updateState 将补丁与现有状态合并', () => {
     const state = getDefaultState();
     saveState(state);
 
@@ -131,11 +131,11 @@ describe('config module', () => {
     expect(loaded.updatedAt).toBeDefined();
   });
 
-  test('isConfigInitialized returns false when files do not exist', () => {
+  test('isConfigInitialized 在文件不存在时返回 false', () => {
     expect(isConfigInitialized()).toBe(false);
   });
 
-  test('isConfigInitialized returns true after saving config and state', () => {
+  test('isConfigInitialized 在保存配置和状态后返回 true', () => {
     saveConfig(getDefaultConfig());
     saveState(getDefaultState());
     expect(isConfigInitialized()).toBe(true);

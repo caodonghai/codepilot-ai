@@ -1,30 +1,30 @@
 # {{change}}
 
-## Type
+## 类型
 
 ui-change
 
-## Background
+## 背景
 
-Describe the UI problem or requested adjustment.
+描述 UI 问题或请求的调整。
 
-## Goal
+## 目标
 
-Describe the desired UI behavior.
+描述期望的 UI 行为。
 
-## States
+## 状态
 
-- Default:
-- Loading:
-- Empty:
-- Error:
-- Disabled:
+- 默认：
+- 加载：
+- 空状态：
+- 错误：
+- 禁用：
 
-## Scope
+## 范围
 
-- In scope:
-- Out of scope:
+- 在范围内：
+- 在范围外：
 
-## Impact
+## 影响
 
-List affected components, routes, responsive states, and visual risks.
+列出受影响的组件、路由、响应状态和视觉风险。

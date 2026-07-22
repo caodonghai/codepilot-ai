@@ -105,50 +105,50 @@ export function templateChangeFile(change: string, kind: string, type: string = 
 
   if (kind === 'proposal.md') {
     if (type === 'bugfix') {
-      return `# ${change}\n\n## Type\n\nbugfix\n\n## Bug\n\nDescribe the observed incorrect behavior.\n\n## Expected Behavior\n\nDescribe the correct behavior.\n\n## Root Cause\n\nDescribe the suspected or confirmed cause.\n\n## Scope\n\n- In scope:\n- Out of scope:\n\n## Impact\n\nList affected routes, components, APIs, data fields, or user flows.\n`;
+      return `# ${change}\n\n## 类型\n\nbugfix\n\n## Bug\n\n描述观察到的不正确行为。\n\n## 预期行为\n\n描述正确的行为。\n\n## 根本原因\n\n描述疑似或已确认的原因。\n\n## 范围\n\n- 在范围内：\n- 在范围外：\n\n## 影响\n\n列出受影响的路由、组件、API、数据字段或用户流程。\n`;
     }
     if (type === 'feature') {
-      return `# ${change}\n\n## Type\n\nfeature\n\n## Background\n\nDescribe the user need or business goal.\n\n## Goal\n\nDescribe the intended capability.\n\n## User Flow\n\nDescribe the target workflow.\n\n## Scope\n\n- In scope:\n- Out of scope:\n\n## Impact\n\nList affected apps, pages, APIs, permissions, states, or data models.\n`;
+      return `# ${change}\n\n## 类型\n\nfeature\n\n## 背景\n\n描述用户需求或业务目标。\n\n## 目标\n\n描述预期的能力。\n\n## 用户流程\n\n描述目标工作流程。\n\n## 范围\n\n- 在范围内：\n- 在范围外：\n\n## 影响\n\n列出受影响的应用、页面、API、权限、状态或数据模型。\n`;
     }
     if (type === 'ui-change') {
-      return `# ${change}\n\n## Type\n\nui-change\n\n## Background\n\nDescribe the UI problem or requested adjustment.\n\n## Goal\n\nDescribe the desired UI behavior.\n\n## States\n\n- Default:\n- Loading:\n- Empty:\n- Error:\n- Disabled:\n\n## Scope\n\n- In scope:\n- Out of scope:\n\n## Impact\n\nList affected components, routes, responsive states, and visual risks.\n`;
+      return `# ${change}\n\n## 类型\n\nui-change\n\n## 背景\n\n描述 UI 问题或请求的调整。\n\n## 目标\n\n描述期望的 UI 行为。\n\n## 状态\n\n- 默认：\n- 加载：\n- 空状态：\n- 错误：\n- 禁用：\n\n## 范围\n\n- 在范围内：\n- 在范围外：\n\n## 影响\n\n列出受影响的组件、路由、响应状态和视觉风险。\n`;
     }
     if (type === 'refactor') {
-      return `# ${change}\n\n## Type\n\nrefactor\n\n## Background\n\nDescribe the maintainability problem.\n\n## Goal\n\nDescribe the intended internal improvement.\n\n## Behavior Contract\n\nDescribe behavior that must remain unchanged.\n\n## Scope\n\n- In scope:\n- Out of scope:\n\n## Impact\n\nList affected modules, exports, tests, and migration risks.\n`;
+      return `# ${change}\n\n## 类型\n\nrefactor\n\n## 背景\n\n描述可维护性问题。\n\n## 目标\n\n描述预期的内部改进。\n\n## 行为契约\n\n描述必须保持不变的行为。\n\n## 范围\n\n- 在范围内：\n- 在范围外：\n\n## 影响\n\n列出受影响的模块、导出、测试和迁移风险。\n`;
     }
-    return `# ${change}\n\n## Background\n\nDescribe the problem or opportunity.\n\n## Goal\n\nDescribe the intended outcome.\n\n## Scope\n\n- In scope:\n- Out of scope:\n\n## Impact\n\nList affected apps, packages, routes, APIs, or UI states.\n`;
+    return `# ${change}\n\n## 背景\n\n描述问题或机会。\n\n## 目标\n\n描述预期结果。\n\n## 范围\n\n- 在范围内：\n- 在范围外：\n\n## 影响\n\n列出受影响的应用、包、路由、API 或 UI 状态。\n`;
   }
   if (kind === 'tasks.md') {
     if (type === 'bugfix') {
-      return `# Tasks\n\n- [ ] Reproduce or inspect the reported bug path.\n- [ ] Locate the smallest affected code path.\n- [ ] Confirm root cause.\n- [ ] Implement the scoped fix.\n- [ ] Verify the expected behavior.\n- [ ] Check related regression paths.\n- [ ] Run \`pnpm ai check\`.\n`;
+      return `# 任务\n\n- [ ] 重现或检查报告的 bug 路径。\n- [ ] 定位最小受影响的代码路径。\n- [ ] 确认根本原因。\n- [ ] 实现范围修复。\n- [ ] 验证预期行为。\n- [ ] 检查相关回归路径。\n- [ ] 运行 \`pnpm ai check\`。\n`;
     }
     if (type === 'feature') {
-      return `# Tasks\n\n- [ ] Confirm affected app/package scope.\n- [ ] Confirm data, API, permission, and UI contracts.\n- [ ] Implement the requested capability.\n- [ ] Handle loading, empty, error, and disabled states where applicable.\n- [ ] Update or add focused verification.\n- [ ] Run \`pnpm ai check\`.\n`;
+      return `# 任务\n\n- [ ] 确认受影响的应用/包范围。\n- [ ] 确认数据、API、权限和 UI 契约。\n- [ ] 实现请求的能力。\n- [ ] 在适用的地方处理加载、空状态、错误和禁用状态。\n- [ ] 更新或添加聚焦验证。\n- [ ] 运行 \`pnpm ai check\`。\n`;
     }
     if (type === 'ui-change') {
-      return `# Tasks\n\n- [ ] Inspect the existing component and design conventions.\n- [ ] Implement the UI adjustment within existing patterns.\n- [ ] Verify responsive layout and text fit.\n- [ ] Verify loading, empty, error, and disabled states where applicable.\n- [ ] Run focused lint or visual checks.\n- [ ] Run \`pnpm ai check\`.\n`;
+      return `# 任务\n\n- [ ] 检查现有组件和设计约定。\n- [ ] 在现有模式内实现 UI 调整。\n- [ ] 验证响应式布局和文本适配。\n- [ ] 在适用的地方验证加载、空状态、错误和禁用状态。\n- [ ] 运行聚焦 lint 或视觉检查。\n- [ ] 运行 \`pnpm ai check\`。\n`;
     }
     if (type === 'refactor') {
-      return `# Tasks\n\n- [ ] Document current behavior before changing code.\n- [ ] Identify safe refactor boundaries.\n- [ ] Refactor without changing user-visible behavior.\n- [ ] Update imports/usages if needed.\n- [ ] Run focused regression checks.\n- [ ] Run \`pnpm ai check\`.\n`;
+      return `# 任务\n\n- [ ] 在修改代码之前记录当前行为。\n- [ ] 识别安全的重构边界。\n- [ ] 在不改变用户可见行为的情况下进行重构。\n- [ ] 如果需要，更新导入/用法。\n- [ ] 运行聚焦回归检查。\n- [ ] 运行 \`pnpm ai check\`。\n`;
     }
-    return `# Tasks\n\n- [ ] Confirm affected app/package scope.\n- [ ] Implement the requested behavior.\n- [ ] Update or add verification where appropriate.\n- [ ] Run \`pnpm ai check\`.\n`;
+    return `# 任务\n\n- [ ] 确认受影响的应用/包范围。\n- [ ] 实现请求的行为。\n- [ ] 在适当的地方更新或添加验证。\n- [ ] 运行 \`pnpm ai check\`。\n`;
   }
   if (kind === 'acceptance.md') {
     if (type === 'bugfix') {
-      return `# Acceptance Criteria\n\n- [ ] The reported incorrect behavior is fixed.\n- [ ] The expected behavior is verified on the affected path.\n- [ ] Related behavior outside the bug scope is not regressed.\n- [ ] The fix is scoped and does not alter shared helpers unless explicitly justified.\n- [ ] \`pnpm ai check\` passes or unrelated failures are documented.\n`;
+      return `# 验收标准\n\n- [ ] 报告的不正确行为已修复。\n- [ ] 在受影响路径上验证了预期行为。\n- [ ] bug 范围外的相关行为未回归。\n- [ ] 修复是有范围的，除非明确说明理由，否则不改变共享助手。\n- [ ] \`pnpm ai check\` 通过或记录了无关的失败。\n`;
     }
     if (type === 'feature') {
-      return `# Acceptance Criteria\n\n- [ ] The requested capability works for the primary user flow.\n- [ ] Required UI states are handled where applicable.\n- [ ] Data/API/permission behavior matches the proposal.\n- [ ] Existing related behavior is not regressed.\n- [ ] \`pnpm ai check\` passes or unrelated failures are documented.\n`;
+      return `# 验收标准\n\n- [ ] 请求的能力对主要用户流程有效。\n- [ ] 在适用的地方处理了必需的 UI 状态。\n- [ ] 数据/API/权限行为符合提案。\n- [ ] 现有相关行为未回归。\n- [ ] \`pnpm ai check\` 通过或记录了无关的失败。\n`;
     }
     if (type === 'ui-change') {
-      return `# Acceptance Criteria\n\n- [ ] The UI matches the requested behavior and existing design conventions.\n- [ ] Text, spacing, and controls fit at relevant viewport sizes.\n- [ ] Required states are visually and functionally handled.\n- [ ] Existing interactions are not regressed.\n- [ ] \`pnpm ai check\` passes or unrelated failures are documented.\n`;
+      return `# 验收标准\n\n- [ ] UI 符合请求的行为和现有设计约定。\n- [ ] 文本、间距和控件在相关视口尺寸下适配。\n- [ ] 必需状态在视觉和功能上得到处理。\n- [ ] 现有交互未回归。\n- [ ] \`pnpm ai check\` 通过或记录了无关的失败。\n`;
     }
     if (type === 'refactor') {
-      return `# Acceptance Criteria\n\n- [ ] User-visible behavior remains unchanged.\n- [ ] Public contracts, routes, APIs, and data formats remain compatible unless explicitly proposed.\n- [ ] The refactor reduces meaningful complexity or duplication.\n- [ ] Focused regression checks pass.\n- [ ] \`pnpm ai check\` passes or unrelated failures are documented.\n`;
+      return `# 验收标准\n\n- [ ] 用户可见行为保持不变。\n- [ ] 公共契约、路由、API 和数据格式保持兼容，除非明确提议更改。\n- [ ] 重构减少了有意义的复杂性或重复。\n- [ ] 聚焦回归检查通过。\n- [ ] \`pnpm ai check\` 通过或记录了无关的失败。\n`;
     }
-    return `# Acceptance Criteria\n\n- [ ] Behavior matches the proposal.\n- [ ] UI states are handled when applicable.\n- [ ] Existing related behavior is not regressed.\n- [ ] \`pnpm ai check\` passes.\n`;
+    return `# 验收标准\n\n- [ ] 行为符合提案。\n- [ ] 在适用时处理 UI 状态。\n- [ ] 现有相关行为未回归。\n- [ ] \`pnpm ai check\` 通过。\n`;
   }
-  return `# Notes\n\nChange type: ${type}\n\nRecord implementation and verification notes here.\n`;
+  return `# 笔记\n\n变更类型：${type}\n\n在此记录实现和验证笔记。\n`;
 }
 
 export function listTargetFiles(tool: string): string[] {

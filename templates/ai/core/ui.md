@@ -1,13 +1,13 @@
-# UI Rules
+# UI 规则
 
-## Design Consistency
+## 设计一致性
 
-- Match the current app's layout density, spacing, and component style.
-- Use existing Ant Design components and local wrapper components first.
-- Avoid decorative redesign unless the active change explicitly asks for visual redesign.
+- 匹配当前应用的布局密度、间距和组件样式。
+- 优先使用现有的 Ant Design 组件和本地包装组件。
+- 除非活动变更明确要求视觉重新设计，否则避免装饰性重新设计。
 
-## Interaction
+## 交互
 
-- Make primary actions, disabled states, validation states, and feedback states explicit.
-- Avoid layout shift caused by dynamic labels, counters, or loading text.
-- Keep table, form, modal, and drawer interactions consistent with nearby screens.
+- 使主要操作、禁用状态、验证状态和反馈状态明确可见。
+- 避免因动态标签、计数器或加载文本导致的布局偏移。
+- 保持表格、表单、模态框和抽屉的交互与附近屏幕一致。

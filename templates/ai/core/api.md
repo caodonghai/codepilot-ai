@@ -1,13 +1,13 @@
-# API Rules
+# API 规则
 
-## Request Handling
+## 请求处理
 
-- Follow each app's existing request utilities and model patterns.
-- Keep request and response types close to existing app conventions.
-- Do not rename backend fields or normalize payload shapes unless the active change requires it.
+- 遵循每个应用现有的请求工具和模型模式。
+- 保持请求和响应类型与现有应用约定一致。
+- 除非活动变更需要，否则不要重命名后端字段或规范化 payload 形状。
 
-## Error Handling
+## 错误处理
 
-- Preserve existing error-message and notification behavior.
-- Add defensive handling for nullable or missing backend fields when rendering UI.
-- Keep mock changes aligned with real API assumptions.
+- 保留现有的错误消息和通知行为。
+- 在渲染 UI 时，为可空或缺失的后端字段添加防御性处理。
+- 保持 mock 变更与真实 API 假设一致。

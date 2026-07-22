@@ -1,8 +1,8 @@
-# Tasks
+# 任务
 
-- [ ] Inspect the existing component and design conventions.
-- [ ] Implement the UI adjustment within existing patterns.
-- [ ] Verify responsive layout and text fit.
-- [ ] Verify loading, empty, error, and disabled states where applicable.
-- [ ] Run focused lint or visual checks.
-- [ ] Run `pnpm ai check`.
+- [ ] 检查现有组件和设计约定。
+- [ ] 在现有模式内实现 UI 调整。
+- [ ] 验证响应式布局和文本适配。
+- [ ] 在适用的地方验证加载、空状态、错误和禁用状态。
+- [ ] 运行聚焦 lint 或视觉检查。
+- [ ] 运行 `pnpm ai check`。

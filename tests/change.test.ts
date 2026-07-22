@@ -13,7 +13,7 @@ import {
 } from '../src/lib/change';
 import { resolvePath, ensureDir, writeGeneratedFile } from '../src/utils/file';
 
-describe('change module', () => {
+describe('change 模块', () => {
   const testChange = 'test-change';
   const testChangeDir = changeDirectoryPath(testChange);
   const testArchiveDir = archiveDirectoryPath(testChange);
@@ -36,21 +36,21 @@ describe('change module', () => {
     }
   });
 
-  test('changeDirectoryPath returns correct path', () => {
+  test('changeDirectoryPath 返回正确路径', () => {
     expect(changeDirectoryPath('test')).toContain('openspec/changes/test');
   });
 
-  test('archiveDirectoryPath returns correct path', () => {
+  test('archiveDirectoryPath 返回正确路径', () => {
     expect(archiveDirectoryPath('test')).toContain('openspec/archive/test');
   });
 
-  test('validateChangeStructure returns error for missing directory', () => {
+  test('validateChangeStructure 对不存在的目录返回错误', () => {
     const result = validateChangeStructure('non-existent-change');
     expect(result.valid).toBe(false);
     expect(result.errors[0]).toContain('Change directory not found');
   });
 
-  test('validateChangeStructure returns error for incomplete change', () => {
+  test('validateChangeStructure 对不完整的变更返回错误', () => {
     ensureDir('openspec', 'changes', testChange);
     writeGeneratedFile(`openspec/changes/${testChange}/proposal.md`, '# Test');
 
@@ -60,7 +60,7 @@ describe('change module', () => {
     expect(result.errors.some((e) => e.includes('acceptance.md'))).toBe(true);
   });
 
-  test('validateChangeStructure returns valid for complete change', () => {
+  test('validateChangeStructure 对完整的变更返回有效', () => {
     ensureDir('openspec', 'changes', testChange);
     writeGeneratedFile(`openspec/changes/${testChange}/proposal.md`, '# Test');
     writeGeneratedFile(`openspec/changes/${testChange}/tasks.md`, '# Tasks');
@@ -71,17 +71,17 @@ describe('change module', () => {
     expect(result.errors).toHaveLength(0);
   });
 
-  test('listChanges returns empty array when no changes exist', () => {
+  test('listChanges 在没有变更时返回空数组', () => {
     const changes = listChanges();
     expect(Array.isArray(changes)).toBe(true);
   });
 
-  test('listArchivedChanges returns empty array when no archived changes exist', () => {
+  test('listArchivedChanges 在没有归档变更时返回空数组', () => {
     const changes = listArchivedChanges();
     expect(Array.isArray(changes)).toBe(true);
   });
 
-  test('archiveChange moves change to archive', () => {
+  test('archiveChange 将变更移动到归档', () => {
     ensureDir('openspec', 'changes', testChange);
     writeGeneratedFile(`openspec/changes/${testChange}/proposal.md`, '# Test');
     writeGeneratedFile(`openspec/changes/${testChange}/tasks.md`, '# Tasks');
@@ -95,7 +95,7 @@ describe('change module', () => {
     expect(fs.existsSync(path.join(testArchiveDir, '.archive-info.json'))).toBe(true);
   });
 
-  test('restoreChange restores change from archive', () => {
+  test('restoreChange 从归档恢复变更', () => {
     ensureDir('openspec', 'archive', testChange);
     writeGeneratedFile(`openspec/archive/${testChange}/proposal.md`, '# Test');
     writeGeneratedFile(`openspec/archive/${testChange}/tasks.md`, '# Tasks');
@@ -109,7 +109,7 @@ describe('change module', () => {
     expect(fs.existsSync(path.join(testChangeDir, '.archive-info.json'))).toBe(false);
   });
 
-  test('deleteArchivedChange removes archived change', () => {
+  test('deleteArchivedChange 删除归档变更', () => {
     ensureDir('openspec', 'archive', testChange);
     writeGeneratedFile(`openspec/archive/${testChange}/proposal.md`, '# Test');
 

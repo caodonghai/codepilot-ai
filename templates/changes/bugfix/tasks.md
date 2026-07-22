@@ -1,9 +1,9 @@
-# Tasks
+# 任务
 
-- [ ] Reproduce or inspect the reported bug path.
-- [ ] Locate the smallest affected code path.
-- [ ] Confirm root cause.
-- [ ] Implement the scoped fix.
-- [ ] Verify the expected behavior.
-- [ ] Check related regression paths.
-- [ ] Run `pnpm ai check`.
+- [ ] 重现或检查报告的 bug 路径。
+- [ ] 定位最小受影响的代码路径。
+- [ ] 确认根本原因。
+- [ ] 实现范围修复。
+- [ ] 验证预期行为。
+- [ ] 检查相关回归路径。
+- [ ] 运行 `pnpm ai check`。

@@ -1,26 +1,26 @@
 # {{change}}
 
-## Type
+## 类型
 
 feature
 
-## Background
+## 背景
 
-Describe the user need or business goal.
+描述用户需求或业务目标。
 
-## Goal
+## 目标
 
-Describe the intended capability.
+描述预期的能力。
 
-## User Flow
+## 用户流程
 
-Describe the target workflow.
+描述目标工作流程。
 
-## Scope
+## 范围
 
-- In scope:
-- Out of scope:
+- 在范围内：
+- 在范围外：
 
-## Impact
+## 影响
 
-List affected apps, pages, APIs, permissions, states, or data models.
+列出受影响的应用、页面、API、权限、状态或数据模型。

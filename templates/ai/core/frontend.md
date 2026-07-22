@@ -1,22 +1,22 @@
-# Frontend Rules
+# 前端规则
 
-## Stack
+## 技术栈
 
-- React 18.
-- Umi Max 4.
-- Ant Design 5 for web UI.
-- Existing app and package conventions take priority over new abstractions.
+- React 18。
+- Umi Max 4。
+- Ant Design 5（Web UI）。
+- 现有应用和包约定优先于新的抽象。
 
-## Implementation Rules
+## 实现规则
 
-- Reuse local components, hooks, request helpers, models, and utilities before adding new ones.
-- Keep changes scoped to the selected application or shared package.
-- Preserve existing route, model, locale, and proxy patterns.
-- Include loading, empty, error, permission, and disabled states when the feature naturally needs them.
-- Do not introduce a new state-management or UI framework without an explicit OpenSpec change.
+- 在添加新组件、钩子、请求助手、模型和工具之前，先复用本地的。
+- 保持变更范围在所选应用或共享包内。
+- 保留现有的路由、模型、国际化和代理模式。
+- 当功能自然需要时，包含加载、空状态、错误、权限和禁用状态。
+- 除非有明确的 OpenSpec 变更，否则不要引入新的状态管理或 UI 框架。
 
-## Review Focus
+## 审查重点
 
-- Business behavior must match the active change.
-- UI text must fit its container and follow existing application language.
-- Shared package edits require extra caution because they affect multiple apps.
+- 业务行为必须与活动变更匹配。
+- UI 文本必须适合其容器并遵循现有应用语言。
+- 共享包编辑需要格外谨慎，因为它们影响多个应用。

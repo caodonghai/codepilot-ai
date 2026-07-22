@@ -1,22 +1,22 @@
-# Testing And Verification
+# 测试与验证
 
-## Default AI Gate
+## 默认 AI 门禁
 
-Run:
+运行：
 
 ```bash
 pnpm ai check
 ```
 
-This runs the lightweight AI workflow gate for local development.
+这将运行轻量级 AI 工作流门禁，用于本地开发。
 
-## Existing Project Checks
+## 现有项目检查
 
-- `pnpm eslint`: repository ESLint check.
-- `pnpm test`: Umi test runner.
-- `pnpm build`: full project build, use when explicitly requested or before high-risk release work.
+- `pnpm eslint`：仓库 ESLint 检查。
+- `pnpm test`：Umi 测试运行器。
+- `pnpm build`：完整项目构建，仅在明确请求或高风险发布工作之前使用。
 
-## Expectations
+## 期望
 
-- Add or update tests when behavior is complex, shared, or easy to regress.
-- For UI-only changes without tests, document manual verification in the active change notes.
+- 当行为复杂、共享或容易回归时，添加或更新测试。
+- 对于没有测试的纯 UI 变更，在活动变更 notes 中记录手动验证。

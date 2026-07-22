@@ -1,47 +1,47 @@
 # /ai:finish
 
-Use this flow to close out an active change.
+使用此流程结束活动变更。
 
-## Inputs
+## 输入
 
-- Required: `<change>` name.
+- 必需：`<change>` 名称。
 
-## Protocol
+## 协议
 
-1. Read `.ai/core/workflow.md`.
-2. If `openspec/changes/<change>` does not exist, stop and ask the user to run `/ai:propose <change>` with a short request.
-3. Read all files under `openspec/changes/<change>`.
-4. Read `superpowers/skills/finishing.md`.
-5. Sync the local task board:
+1. 阅读 `.ai/core/workflow.md`。
+2. 如果 `openspec/changes/<change>` 不存在，停止并要求用户使用简短请求运行 `/ai:propose <change>`。
+3. 读取 `openspec/changes/<change>` 下的所有文件。
+4. 阅读 `superpowers/skills/finishing.md`。
+5. 同步本地任务板：
    - `pnpm ai task-board <change>`
-6. Confirm completed tasks are checked and incomplete tasks remain unchecked.
-7. Confirm acceptance criteria reflect the actual implementation.
-8. Run the agent finish evaluator when tool access is available:
-   - Lightweight: `pnpm ai agent-finish <change>`
-   - With local check: `pnpm ai agent-finish <change> --check`
-   - Strict, only when the repository ESLint environment is healthy or CI is running: `pnpm ai agent-finish <change> --check --strict`
-9. If `agent-finish` is unavailable, fall back to:
+6. 确认已完成的任务已勾选，未完成的任务保持未勾选。
+7. 确认验收标准反映实际实现。
+8. 当工具可用时，运行代理完成评估器：
+   - 轻量版：`pnpm ai agent-finish <change>`
+   - 带本地检查：`pnpm ai agent-finish <change> --check`
+   - 严格模式，仅在仓库 ESLint 环境健康或 CI 运行时使用：`pnpm ai agent-finish <change> --check --strict`
+9. 如果 `agent-finish` 不可用，回退到：
    - `pnpm ai validate <change>`
    - `pnpm ai report <change>`
    - `pnpm ai check <change>`
    - `pnpm ai finish-state <change>`
-10. Update `notes.md` with final verification details and known risks.
-11. Generate Knowledge Memory suggestions when tool access is available:
-   - `pnpm ai knowledge:suggest <change> --write`
-   - Treat suggestions as candidates, not facts.
-   - If no reusable candidates are found, say so explicitly in the final report.
-12. Add only confirmed reusable knowledge to Knowledge Memory when the change reveals a component, function, pattern, decision, or failure that future work should reuse:
-   - `pnpm ai knowledge:add --type <type> --name "<name>" --summary "<short-summary>" --keywords "<keyword1>,<keyword2>" --used-in "<path>"`
-   - Do not add uncertain guesses as confirmed facts.
-13. Do not claim the change is complete if required checks fail for implementation reasons, if tasks remain todo/doing/blocked, or if `agent-finish` reports `partially_accepted` or `blocked`.
+10. 在 `notes.md` 中更新最终验证细节和已知风险。
+11. 当工具可用时，生成知识记忆建议：
+    - `pnpm ai knowledge:suggest <change> --write`
+    - 将建议视为候选，而非事实。
+    - 如果未找到可复用候选，在最终报告中明确说明。
+12. 仅将已确认的可复用知识添加到知识记忆中，当变更揭示未来工作应复用的组件、函数、模式、决策或失败时：
+    - `pnpm ai knowledge:add --type <type> --name "<name>" --summary "<short-summary>" --keywords "<keyword1>,<keyword2>" --used-in "<path>"`
+    - 不要将不确定的猜测作为已确认事实添加。
+13. 如果必需检查因实现原因失败、任务仍为 todo/doing/blocked 或 `agent-finish` 报告 `partially_accepted` 或 `blocked`，不要声称变更已完成。
 
-## Output
+## 输出
 
-Return:
+返回：
 
-- What changed.
-- What was verified.
-- Harness report path.
-- Knowledge Memory searched terms, suggestion path if generated, added records if any, or reason skipped.
-- Remaining risks.
-- Whether the change is ready for review.
+- 变更内容。
+- 验证内容。
+- Harness 报告路径。
+- 搜索的知识记忆术语、生成的建议路径（如有）、添加的记录（如有）或跳过原因。
+- 剩余风险。
+- 变更是否准备好审查。

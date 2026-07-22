@@ -1,9 +1,9 @@
-# Finishing Skill
+# 完成技能
 
-Use this skill before handing off a change.
+在交接变更之前，使用此技能。
 
-1. Confirm all required tasks are complete.
-2. Run `pnpm ai check`.
-3. Confirm a harness report exists.
-4. Update notes with verification details if useful.
-5. Summarize completed work and remaining risks.
+1. 确认所有必需任务已完成。
+2. 运行 `pnpm ai check`。
+3. 确认存在 harness 报告。
+4. 如果有用，用验证细节更新 notes。
+5. 总结已完成的工作和剩余风险。

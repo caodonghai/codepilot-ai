@@ -1,8 +1,8 @@
-# Tasks
+# 任务
 
-- [ ] Confirm affected app/package scope.
-- [ ] Confirm data, API, permission, and UI contracts.
-- [ ] Implement the requested capability.
-- [ ] Handle loading, empty, error, and disabled states where applicable.
-- [ ] Update or add focused verification.
-- [ ] Run `pnpm ai check`.
+- [ ] 确认受影响的应用/包范围。
+- [ ] 确认数据、API、权限和 UI 契约。
+- [ ] 实现请求的能力。
+- [ ] 在适用的地方处理加载、空状态、错误和禁用状态。
+- [ ] 更新或添加聚焦验证。
+- [ ] 运行 `pnpm ai check`。

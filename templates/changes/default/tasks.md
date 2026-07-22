@@ -1,6 +1,6 @@
-# Tasks
+# 任务
 
-- [ ] Confirm affected app/package scope.
-- [ ] Implement the requested behavior.
-- [ ] Update or add verification where appropriate.
-- [ ] Run `pnpm ai check`.
+- [ ] 确认受影响的应用/包范围。
+- [ ] 实现请求的行为。
+- [ ] 在适当的地方更新或添加验证。
+- [ ] 运行 `pnpm ai check`。

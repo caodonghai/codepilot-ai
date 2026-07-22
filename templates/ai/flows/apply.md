@@ -1,48 +1,48 @@
 # /ai:apply
 
-Use this flow to implement unfinished tasks for an active change.
+使用此流程为活动变更实现未完成的任务。
 
-## Inputs
+## 输入
 
-- Required: `<change>` name.
+- 必需：`<change>` 名称。
 
-## Protocol
+## 协议
 
-1. Read `.ai/core/workflow.md`.
-2. If `openspec/changes/<change>` does not exist, stop and ask the user to run `/ai:propose <change>` with a short request.
-3. Read all files under `openspec/changes/<change>`.
-4. Read `.ai/core/project.md`, `.ai/core/frontend.md`, `.ai/core/api.md`, `.ai/core/ui.md`, and `.ai/core/testing.md`.
-5. Search Knowledge Memory for relevant usage examples and known failures:
+1. 阅读 `.ai/core/workflow.md`。
+2. 如果 `openspec/changes/<change>` 不存在，停止并要求用户使用简短请求运行 `/ai:propose <change>`。
+3. 读取 `openspec/changes/<change>` 下的所有文件。
+4. 阅读 `.ai/core/project.md`、`.ai/core/frontend.md`、`.ai/core/api.md`、`.ai/core/ui.md` 和 `.ai/core/testing.md`。
+5. 搜索知识记忆中的相关用法示例和已知失败：
    - `pnpm ai knowledge:search <change> <module-or-domain-keywords> --limit 10`
-   - Use only returned summaries. Do not read `harness/memory/knowledge` directly.
-   - If no records are found, state that no reusable knowledge was available before editing.
-6. Read `superpowers/skills/planning.md`; read `tdd.md`, `debugging.md`, or `code-review.md` when relevant.
-7. Sync the local task board when tool access is available:
+   - 仅使用返回的摘要。不要直接读取 `harness/memory/knowledge`。
+   - 如果未找到记录，在编辑前说明没有可用的可复用知识。
+6. 阅读 `superpowers/skills/planning.md`；在相关时阅读 `tdd.md`、`debugging.md` 或 `code-review.md`。
+7. 当工具可用时，同步本地任务板：
    - `pnpm ai task-board <change>`
-8. Prepare or claim the next task before editing:
-   - Prompt only: `pnpm ai agent-run <change>`
-   - Claim next task: `pnpm ai agent-run <change> --claim`
-9. Inspect affected files before editing.
-10. If `tasks.md` is still generic or underspecified, refine it from `proposal.md` before editing code.
-11. Implement only the current task or unchecked tasks in `openspec/changes/<change>/tasks.md`.
-12. Keep edits inside the proposal scope. If implementation requires scope expansion, stop and update the proposal first.
-13. Reuse existing components, request helpers, models, permissions, routes, and styles before adding new patterns.
-14. Mark task state explicitly when tool access is available:
-   - Done: `pnpm ai task-done <task-id> --change <change>`
-   - Blocked: `pnpm ai task-block <task-id> --change <change> --reason "<reason>"`
-15. Update `tasks.md` checkboxes only for tasks actually completed.
-16. Add useful implementation notes to `notes.md`.
-17. Run `pnpm ai validate <change>` when tool access is available.
-18. If validation fails, fix the issue and rerun validation.
-19. Run focused tests or builds only when the change risk requires them or the user asks.
+8. 在编辑之前准备或认领下一个任务：
+   - 仅提示：`pnpm ai agent-run <change>`
+   - 认领下一个任务：`pnpm ai agent-run <change> --claim`
+9. 在编辑之前检查受影响的文件。
+10. 如果 `tasks.md` 仍然通用或规格不足，在编辑代码之前从 `proposal.md` 完善它。
+11. 仅实现 `openspec/changes/<change>/tasks.md` 中的当前任务或未勾选任务。
+12. 保持编辑在提案范围内。如果实现需要范围扩展，停止并先更新提案。
+13. 在添加新模式之前，先复用现有组件、请求助手、模型、权限、路由和样式。
+14. 当工具可用时，明确标记任务状态：
+    - 完成：`pnpm ai task-done <task-id> --change <change>`
+    - 阻塞：`pnpm ai task-block <task-id> --change <change> --reason "<reason>"`
+15. 仅为实际完成的任务更新 `tasks.md` 复选框。
+16. 向 `notes.md` 添加有用的实现笔记。
+17. 当工具可用时，运行 `pnpm ai validate <change>`。
+18. 如果验证失败，修复问题并重跑验证。
+19. 仅在变更风险需要或用户要求时运行聚焦测试或构建。
 
-## Output
+## 输出
 
-Return:
+返回：
 
-- Completed tasks.
-- Files changed.
-- Verification result.
-- Knowledge Memory records used or "none found".
-- Remaining risks or blocked items.
-- Suggested next command: `/ai:verify <change>`.
+- 已完成的任务。
+- 已更改的文件。
+- 验证结果。
+- 使用的知识记忆记录或"未找到"。
+- 剩余风险或阻塞项。
+- 建议的下一个命令：`/ai:verify <change>`。

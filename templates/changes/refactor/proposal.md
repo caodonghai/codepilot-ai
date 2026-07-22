@@ -1,26 +1,26 @@
 # {{change}}
 
-## Type
+## 类型
 
 refactor
 
-## Background
+## 背景
 
-Describe the maintainability problem.
+描述可维护性问题。
 
-## Goal
+## 目标
 
-Describe the intended internal improvement.
+描述预期的内部改进。
 
-## Behavior Contract
+## 行为契约
 
-Describe behavior that must remain unchanged.
+描述必须保持不变的行为。
 
-## Scope
+## 范围
 
-- In scope:
-- Out of scope:
+- 在范围内：
+- 在范围外：
 
-## Impact
+## 影响
 
-List affected modules, exports, tests, and migration risks.
+列出受影响的模块、导出、测试和迁移风险。
