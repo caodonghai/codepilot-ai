@@ -13,6 +13,10 @@ jobs:
       # Avoid runner- or organization-level npm cache paths leaking across jobs,
       # especially the unstable shared C:\npm\cache path on Windows runners.
       npm_config_cache: ${{ github.workspace }}/.npm-cache
+      # Repository/organization npm settings must not omit tooling or disable
+      # Windows .cmd shims used by npm scripts.
+      NODE_ENV: development
+      npm_config_bin_links: 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -37,7 +41,10 @@ jobs:
         # CI may inherit NODE_ENV=production or npm omit=dev from repository/org settings.
         # Retry once with a clean cache for npm's intermittent "Exit handler never called" bug.
         shell: bash
-        run: npm ci --include=dev || { npm cache clean --force && npm ci --include=dev; }
+        run: |
+          npm ci --include=dev || { npm cache clean --force && npm ci --include=dev; }
+          node -e "require.resolve('eslint/package.json')"
+          npm exec --yes=false -- eslint --version
 
       - name: Lint
         run: npm run lint:check
