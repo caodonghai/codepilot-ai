@@ -9,6 +9,10 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    env:
+      # Avoid runner- or organization-level npm cache paths leaking across jobs,
+      # especially the unstable shared C:\npm\cache path on Windows runners.
+      npm_config_cache: ${{ runner.temp }}/npm-cache
     strategy:
       fail-fast: false
       matrix:
@@ -30,7 +34,10 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        # CI may inherit NODE_ENV=production or npm omit=dev from repository/org settings.
+        # Retry once with a clean cache for npm's intermittent "Exit handler never called" bug.
+        shell: bash
+        run: npm ci --include=dev || { npm cache clean --force && npm ci --include=dev; }
 
       - name: Lint
         run: npm run lint:check
