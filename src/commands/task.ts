@@ -128,7 +128,7 @@ async function updateTaskCommand(
     nextStep:
       action === 'done' ? 'Continue the next task or verify acceptance criteria' : task.title,
     nextSuggestedFlow: action === 'done' ? 'verify' : 'apply',
-    blockedBy: action === 'blocked' ? [task.blockedBy] : [],
+    blockedBy: action === 'blocked' && task.blockedBy ? [task.blockedBy] : [],
     context: buildChangeContext(change),
   });
   writeRunEvent(`task-${action}`, { change, task });

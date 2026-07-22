@@ -2,89 +2,77 @@ import fs from 'fs';
 import { resolvePath, writeGeneratedFile, ensureDir } from '../utils/file';
 import { defaultTools } from '../config/constants';
 import { withLock } from './lock';
+import { logger } from './logger';
 import type { HarnessConfig, HarnessState, ProjectInfo } from '../types';
 
-export function loadHarnessConfig(): HarnessConfig {
+export function loadConfig(): HarnessConfig {
   const configPath = resolvePath('harness', 'config.json');
   if (!fs.existsSync(configPath)) {
-    return { currentChange: null, tools: defaultTools };
+    return getDefaultConfig();
   }
   try {
-    return JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    const raw = JSON.parse(fs.readFileSync(configPath, 'utf8')) as Record<string, unknown>;
+    const errors = validateConfig(raw);
+    if (errors.length > 0) {
+      logger.warn(`Invalid harness/config.json: ${errors.map((e) => e.message).join(', ')}`);
+      return getDefaultConfig();
+    }
+    return {
+      version: (raw.version as number) ?? 1,
+      profile: (raw.profile as string) ?? 'lightweight',
+      currentChange: (raw.currentChange as string) ?? null,
+      tools: (raw.tools as string[]) ?? defaultTools,
+      checks: (raw.checks as string[]) ?? ['ai:validate', 'ai:report'],
+      strictChecks: (raw.strictChecks as string[]) ?? ['eslint', 'ai:validate', 'ai:report'],
+      defaultFlow: (raw.defaultFlow as string) ?? 'ai',
+      autoSave: (raw.autoSave as boolean) ?? true,
+      project: raw.project as ProjectInfo | undefined,
+      ai: raw.ai as HarnessConfig['ai'],
+      workflow: raw.workflow as HarnessConfig['workflow'],
+      knowledge: raw.knowledge as HarnessConfig['knowledge'],
+      output: raw.output as HarnessConfig['output'],
+    };
   } catch (error) {
-    console.error(`Invalid harness/config.json: ${(error as Error).message}`);
-    return { currentChange: null, tools: defaultTools };
+    logger.warn(`Invalid harness/config.json: ${(error as Error).message}`);
+    return getDefaultConfig();
   }
 }
 
-export function saveHarnessConfig(config: Record<string, unknown>) {
+export function saveConfig(config: HarnessConfig): void {
   writeGeneratedFile('harness/config.json', `${JSON.stringify(config, null, 2)}\n`);
 }
 
-export function setCurrentChange(change: string) {
+export function setCurrentChange(change: string): void {
   withLock('state', () => {
-    const config = loadHarnessConfig();
-    saveHarnessConfig({
-      version: config.version ?? 1,
-      profile: config.profile ?? 'lightweight',
+    const config = loadConfig();
+    saveConfig({
+      ...config,
       currentChange: change,
-      tools: config.tools ?? defaultTools,
-      checks: config.checks ?? ['ai:validate', 'ai:report'],
-      strictChecks: config.strictChecks ?? ['eslint', 'ai:validate', 'ai:report'],
-      project: config.project,
     });
   });
 }
 
-export function loadHarnessState(): HarnessState {
+export function loadState(): HarnessState {
   const statePath = resolvePath('harness', 'state.json');
   if (!fs.existsSync(statePath)) {
-    return {
-      version: 1,
-      activeChange: null,
-      activeFlow: null,
-      status: 'not_started',
-      phase: null,
-      lastStep: null,
-      nextStep: null,
-      lastReport: null,
-      nextSuggestedFlow: null,
-      blockedBy: [],
-      decisions: [],
-      context: {},
-      updatedAt: null,
-    };
+    return getDefaultState();
   }
   try {
-    return JSON.parse(fs.readFileSync(statePath, 'utf8'));
+    return JSON.parse(fs.readFileSync(statePath, 'utf8')) as HarnessState;
   } catch (error) {
-    console.error(`Invalid harness/state.json: ${(error as Error).message}`);
-    return {
-      version: 1,
-      activeChange: null,
-      activeFlow: null,
-      status: 'not_started',
-      phase: null,
-      lastStep: null,
-      nextStep: null,
-      lastReport: null,
-      nextSuggestedFlow: null,
-      blockedBy: [],
-      decisions: [],
-      context: {},
-      updatedAt: null,
-    };
+    logger.warn(`Invalid harness/state.json: ${(error as Error).message}`);
+    return getDefaultState();
   }
 }
 
-export function saveHarnessState(state: HarnessState | Record<string, unknown>) {
+export function saveState(state: HarnessState): void {
   writeGeneratedFile('harness/state.json', `${JSON.stringify(state, null, 2)}\n`);
 }
 
-export function updateHarnessState(patch: Record<string, unknown>) {
+export function updateState(patch: Partial<HarnessState>): void {
   withLock('state', () => {
-    const state = loadHarnessState();
-    saveHarnessState({
+    const state = loadState();
+    saveState({
       ...state,
       ...patch,
       updatedAt: new Date().toISOString(),
@@ -103,23 +91,16 @@ export function buildChangeContext(change: string) {
 
 export function getChangeName(input?: string): string | null {
   if (input) return input;
-  const config = loadHarnessConfig();
+  const config = loadConfig();
   return typeof config.currentChange === 'string' ? config.currentChange : null;
 }
 
-export function initHarness() {
+export function initHarness(): void {
   ensureDir('harness');
-  const config = loadHarnessConfig();
-  saveHarnessConfig({
-    version: config.version ?? 1,
-    profile: config.profile ?? 'lightweight',
-    currentChange: config.currentChange ?? null,
-    tools: config.tools ?? defaultTools,
-    checks: config.checks ?? ['eslint', 'ai:validate', 'ai:report'],
-    project: config.project as ProjectInfo | undefined,
-  });
-  const state = loadHarnessState();
-  saveHarnessState(state);
+  const config = loadConfig();
+  saveConfig(config);
+  const state = loadState();
+  saveState(state);
 }
 
 export function getDefaultConfig(): HarnessConfig {
@@ -158,28 +139,10 @@ export function validateConfig(
   return errors;
 }
 
-export function loadConfig(): HarnessConfig {
-  const config = loadHarnessConfig();
-  return {
-    version: config.version ?? 1,
-    profile: config.profile ?? 'lightweight',
-    currentChange: config.currentChange ?? null,
-    tools: config.tools ?? defaultTools,
-    checks: config.checks ?? ['ai:validate', 'ai:report'],
-    strictChecks: config.strictChecks ?? ['eslint', 'ai:validate', 'ai:report'],
-    defaultFlow: config.defaultFlow ?? 'ai',
-    autoSave: config.autoSave ?? true,
-  };
-}
-
-export function saveConfig(config: HarnessConfig) {
-  saveHarnessConfig(config as Record<string, unknown>);
-}
-
-export function updateConfig(patch: Record<string, unknown>) {
+export function updateConfig(patch: Partial<HarnessConfig>): void {
   withLock('state', () => {
-    const config = loadHarnessConfig();
-    saveHarnessConfig({ ...config, ...patch });
+    const config = loadConfig();
+    saveConfig({ ...config, ...patch });
   });
 }
 
@@ -201,20 +164,14 @@ export function getDefaultState(): HarnessState {
   };
 }
 
-export function loadState(): HarnessState {
-  return loadHarnessState();
-}
-
-export function saveState(state: HarnessState) {
-  saveHarnessState(state);
-}
-
-export function updateState(patch: Record<string, unknown>) {
-  updateHarnessState(patch);
-}
-
 export function isConfigInitialized(): boolean {
   const configPath = resolvePath('harness', 'config.json');
   const statePath = resolvePath('harness', 'state.json');
   return fs.existsSync(configPath) && fs.existsSync(statePath);
 }
+
+export const loadHarnessConfig = loadConfig;
+export const saveHarnessConfig = saveConfig;
+export const loadHarnessState = loadState;
+export const saveHarnessState = saveState;
+export const updateHarnessState = updateState;

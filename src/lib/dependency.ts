@@ -123,8 +123,8 @@ export function getDependencyGraph(change?: string): Record<string, Dependency[]
     const queue = [change];
 
     while (queue.length > 0) {
-      const current = queue.shift()!;
-      if (visited.has(current)) continue;
+      const current = queue.shift();
+      if (!current || visited.has(current)) continue;
       visited.add(current);
 
       if (graph[current]) {

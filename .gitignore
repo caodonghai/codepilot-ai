@@ -1,17 +1,37 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-### IntelliJ IDEA ###
 .idea
+
+### VSCode ###
+.vscode/
+*.swp
+*.swo
+*~
+
+### macOS ###
+.DS_Store
+
+### Windows ###
+Thumbs.db
+Desktop.ini
 
 # dependencies
 node_modules
 
-/npm-debug.log*
-/yarn-error.log
+# logs
+npm-debug.log*
+yarn-error.log
+*.log
 
 # production
 /dist
 
+# bun
+bun.lockb
+
+# temp files
+*.tmp
+
+# agents
 .agents
 
+# trae
 .trae/

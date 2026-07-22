@@ -71,7 +71,7 @@ export function getGlobalOptions(): GlobalOptions {
   return { ...globalOptions };
 }
 
-export function getOption<K extends keyof GlobalOptions>(key: K): GlobalOptions[K] {
+export function getOption<K extends keyof GlobalOptions>(key: K): GlobalOptions[K] | undefined {
   return globalOptions[key];
 }
 

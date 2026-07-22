@@ -1,40 +1,6 @@
 import { describe, it, expect } from 'vitest';
-
-function kebabName(value: string) {
-  return value.trim().replace(/[^a-zA-Z0-9\u4e00-\u9fa5]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase();
-}
-
-function quoteShellArg(value: string) {
-  if (/^[A-Za-z0-9_./:@\\-]+$/.test(value)) return value;
-  return `"${value.replace(/"/g, '\\"')}"`;
-}
-
-const mojibakePatterns = [
-  '\u7ead',
-  '\u93c4',
-  '\u95be\u6735',
-  '\u7035\u7858',
-  '\u8dfa\u5ba0',
-  '\u7a0b\u5b2a',
-  '\u9286?',
-  '\u9225?',
-  '\u20ac?',
-  '\u951f',
-  '\ufffd',
-];
-
-function textCorruptionScore(text: string) {
-  const patternScore = mojibakePatterns.reduce((score, pattern) => {
-    const matches = text.split(pattern).length - 1;
-    return score + matches * 10;
-  }, 0);
-  const controlScore = (text.match(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g) ?? []).length * 20;
-  return patternScore + controlScore;
-}
-
-function hasMojibake(text: string) {
-  return textCorruptionScore(text) > 0;
-}
+import { kebabName, quoteShellArg } from '../src/utils/string';
+import { textCorruptionScore, hasMojibake } from '../src/utils/encoding';
 
 describe('kebabName', () => {
   it('should convert to kebab-case', () => {

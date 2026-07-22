@@ -43,8 +43,11 @@ export function registerHook(name: HookName, handler: HookHandler, priority: num
   if (!hooks.has(name)) {
     hooks.set(name, []);
   }
-  hooks.get(name)!.push({ handler, priority });
-  hooks.get(name)!.sort((a, b) => a.priority - b.priority);
+  const entries = hooks.get(name);
+  if (entries) {
+    entries.push({ handler, priority });
+    entries.sort((a, b) => a.priority - b.priority);
+  }
   logger.debug(`Registered hook: ${name} (priority: ${priority})`);
 }
 

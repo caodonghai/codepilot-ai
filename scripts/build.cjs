@@ -2,86 +2,41 @@
 
 const fs = require('fs');
 const path = require('path');
-const ts = require('typescript');
+const { spawnSync } = require('child_process');
 
 const packageRoot = path.dirname(__dirname);
-const sourcePath = path.join(packageRoot, 'src', 'cli.ts');
-const outputPath = path.join(packageRoot, 'dist', 'cli.cjs');
+const tsconfigPath = path.join(packageRoot, 'tsconfig.json');
 
 console.log('Running type check...');
-const srcDir = path.join(packageRoot, 'src');
-const tsFiles = [];
-function collectTsFiles(dir) {
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      collectTsFiles(fullPath);
-    } else if (entry.name.endsWith('.ts')) {
-      tsFiles.push(fullPath);
-    }
-  }
-}
-collectTsFiles(srcDir);
-
-const program = ts.createProgram(tsFiles, {
-  noEmit: true,
-  skipLibCheck: true,
-  esModuleInterop: true,
-  moduleResolution: ts.ModuleResolutionKind.NodeJs,
-  target: ts.ScriptTarget.ES2019,
-  module: ts.ModuleKind.CommonJS,
+const typeCheckResult = spawnSync('npx', ['tsc', '--noEmit', '-p', tsconfigPath], {
+  cwd: packageRoot,
+  stdio: 'inherit',
 });
-const diagnostics = ts.getPreEmitDiagnostics(program);
 
-if (diagnostics.length > 0) {
-  const host = {
-    getCanonicalFileName: (fileName) => fileName,
-    getCurrentDirectory: () => packageRoot,
-    getNewLine: () => '\n',
-  };
-  console.error(ts.formatDiagnosticsWithColorAndContext(diagnostics, host));
-  process.exit(1);
+if (typeCheckResult.status !== 0) {
+  process.exit(typeCheckResult.status);
 }
 
 console.log('Type check passed.');
 
 const distDir = path.join(packageRoot, 'dist');
-fs.rmSync(distDir, { recursive: true, force: true });
-fs.mkdirSync(distDir, { recursive: true });
-
-function compileFile(filePath) {
-  const source = fs.readFileSync(filePath, 'utf8');
-  const result = ts.transpileModule(source, {
-    compilerOptions: {
-      module: ts.ModuleKind.CommonJS,
-      target: ts.ScriptTarget.ES2019,
-      esModuleInterop: true,
-      moduleResolution: ts.ModuleResolutionKind.NodeJs,
-      skipLibCheck: true,
-    },
-    fileName: filePath,
-  });
-  const relativePath = path.relative(srcDir, filePath);
-  const outputFilePath = path.join(distDir, relativePath.replace('.ts', '.js'));
-  fs.mkdirSync(path.dirname(outputFilePath), { recursive: true });
-  fs.writeFileSync(outputFilePath, result.outputText, 'utf8');
+if (fs.existsSync(distDir)) {
+  fs.rmSync(distDir, { recursive: true, force: true });
 }
 
-for (const tsFile of tsFiles) {
-  compileFile(tsFile);
-}
-
-const cliSource = fs.readFileSync(sourcePath, 'utf8');
-const cliResult = ts.transpileModule(cliSource, {
-  compilerOptions: {
-    module: ts.ModuleKind.CommonJS,
-    target: ts.ScriptTarget.ES2019,
-    esModuleInterop: true,
-    moduleResolution: ts.ModuleResolutionKind.NodeJs,
-    skipLibCheck: true,
-  },
-  fileName: sourcePath,
+console.log('Compiling TypeScript...');
+const compileResult = spawnSync('npx', ['tsc', '-p', tsconfigPath], {
+  cwd: packageRoot,
+  stdio: 'inherit',
 });
 
-fs.writeFileSync(outputPath, `#!/usr/bin/env node\n${cliResult.outputText}`, 'utf8');
-console.log(`Built dist/cli.cjs and dist/lib/`);
+if (compileResult.status !== 0) {
+  process.exit(compileResult.status);
+}
+
+const cliSource = fs.readFileSync(path.join(distDir, 'cli.js'), 'utf8');
+fs.writeFileSync(path.join(distDir, 'cli.cjs'), `#!/usr/bin/env node\n${cliSource}`, 'utf8');
+
+fs.unlinkSync(path.join(distDir, 'cli.js'));
+
+console.log('Built dist/cli.cjs and dist/');
