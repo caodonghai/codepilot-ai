@@ -19,6 +19,8 @@ import { Spinner } from './progress';
 import { logger } from '../lib/logger';
 import { t } from '../lib/i18n';
 import { isJsonOutput } from '../lib/context';
+import { detectProjectInfo } from '../lib/project';
+import type { ProjectFramework, BuildTool, PackageManager } from '../types';
 
 export function registerInitCommands(program: Command) {
   program
@@ -27,6 +29,12 @@ export function registerInitCommands(program: Command) {
     .option('--profile <profile>', 'Profile: lightweight | official | hybrid', 'lightweight')
     .option('--tools <tools>', 'Comma-separated list of AI tools', defaultTools.join(','))
     .option('--force', 'Overwrite existing files')
+    .option(
+      '--framework <framework>',
+      'Project framework (react/vue/angular/svelte/next/nuxt/remix/solid)',
+    )
+    .option('--build-tool <buildTool>', 'Build tool (webpack/vite/rollup/esbuild/parcel)')
+    .option('--pm <packageManager>', 'Package manager (npm/yarn/pnpm/bun)')
     .action(initHarnessCommand);
 
   program
@@ -38,7 +46,14 @@ export function registerInitCommands(program: Command) {
     .action(syncCommand);
 }
 
-function initHarnessCommand(options: { profile?: string; tools?: string; force?: boolean }) {
+function initHarnessCommand(options: {
+  profile?: string;
+  tools?: string;
+  force?: boolean;
+  framework?: string;
+  buildTool?: string;
+  pm?: string;
+}) {
   const tools = parseTools(options.tools);
   const profile = options.profile || 'lightweight';
 
@@ -46,6 +61,18 @@ function initHarnessCommand(options: { profile?: string; tools?: string; force?:
   spinner.start();
 
   try {
+    const detected = detectProjectInfo();
+    const projectInfo = {
+      ...detected,
+      framework: (options.framework as ProjectFramework) || detected.framework,
+      buildTool: (options.buildTool as BuildTool) || detected.buildTool,
+      packageManager: (options.pm as PackageManager) || detected.packageManager,
+    };
+
+    logger.info(
+      `Detected project: ${projectInfo.framework} + ${projectInfo.buildTool} + ${projectInfo.packageManager}`,
+    );
+
     seedProjectTemplates();
     logger.debug('Seeded project templates');
 
@@ -73,6 +100,7 @@ function initHarnessCommand(options: { profile?: string; tools?: string; force?:
       tools,
       checks: ['ai:validate', 'ai:report'],
       strictChecks: ['eslint', 'ai:validate', 'ai:report'],
+      project: projectInfo,
     });
     logger.debug('Saved harness config');
 
@@ -85,10 +113,14 @@ function initHarnessCommand(options: { profile?: string; tools?: string; force?:
           message: t('init.completed'),
           profile,
           tools,
+          project: projectInfo,
         }),
       );
     } else {
       logger.success(`${t('init.completed')} profile=${profile}`);
+      logger.info(`Framework: ${projectInfo.framework}`);
+      logger.info(`Build Tool: ${projectInfo.buildTool}`);
+      logger.info(`Package Manager: ${projectInfo.packageManager}`);
       logger.info(`Tools: ${tools.join(', ')}`);
     }
 

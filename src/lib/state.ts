@@ -2,6 +2,7 @@ import fs from 'fs';
 import { resolvePath, writeGeneratedFile, ensureDir } from '../utils/file';
 import { defaultTools } from '../config/constants';
 import { withLock } from './lock';
+import type { ProjectInfo } from '../types';
 
 export interface HarnessConfig {
   version?: number;
@@ -10,6 +11,7 @@ export interface HarnessConfig {
   tools?: string[];
   checks?: string[];
   strictChecks?: string[];
+  project?: ProjectInfo;
 }
 
 export interface HarnessState {
@@ -60,6 +62,7 @@ export function setCurrentChange(change: string) {
       tools: config.tools ?? defaultTools,
       checks: config.checks ?? ['ai:validate', 'ai:report'],
       strictChecks: config.strictChecks ?? ['eslint', 'ai:validate', 'ai:report'],
+      project: config.project,
     });
   });
 }
@@ -144,6 +147,7 @@ export function initHarness() {
     currentChange: config.currentChange ?? null,
     tools: config.tools ?? defaultTools,
     checks: config.checks ?? ['eslint', 'ai:validate', 'ai:report'],
+    project: config.project,
   });
   const state = loadHarnessState();
   saveHarnessState(state);

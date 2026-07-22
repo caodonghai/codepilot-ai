@@ -1,4 +1,42 @@
-export type ToolName = 'codex' | 'trae' | 'qoder' | 'cursor';
+export type ToolName =
+  | 'codex'
+  | 'trae'
+  | 'qoder'
+  | 'cursor'
+  | 'copilot'
+  | 'codeium'
+  | 'codewhisperer'
+  | 'claude'
+  | string;
+
+export type ProjectFramework =
+  'react' | 'vue' | 'angular' | 'svelte' | 'next' | 'nuxt' | 'remix' | 'solid' | 'other';
+
+export type BuildTool = 'webpack' | 'vite' | 'rollup' | 'esbuild' | 'parcel' | 'other';
+
+export type PackageManager = 'npm' | 'yarn' | 'pnpm' | 'bun';
+
+export type ProjectType = 'spa' | 'ssr' | 'static' | 'monorepo' | 'library';
+
+export interface ProjectInfo {
+  name: string;
+  framework: ProjectFramework;
+  buildTool: BuildTool;
+  packageManager: PackageManager;
+  projectType: ProjectType;
+  language: 'typescript' | 'javascript';
+  version?: string;
+}
+
+export interface ToolConfig {
+  name: string;
+  id: string;
+  rulesPath: string;
+  commandsPath: string;
+  enabled: boolean;
+  description?: string;
+}
+
 export type HarnessStatus =
   'not_started' | 'in_progress' | 'accepted' | 'partially_accepted' | 'rejected' | 'blocked';
 export type HarnessPhase =

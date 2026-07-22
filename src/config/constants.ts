@@ -6,10 +6,17 @@ import type {
   IntegrationName,
   IntegrationMode,
 } from '../types';
+import { getDefaultToolIds, getAllTools, getToolConfig } from './tools';
 
 export const root = process.cwd();
 
-export const defaultTools: ToolName[] = ['codex', 'trae', 'qoder', 'cursor'];
+export const defaultTools: ToolName[] = getDefaultToolIds();
+
+export const supportedTools: ToolName[] = getAllTools().map((t) => t.id as ToolName);
+
+export function getToolInfo(toolName: string) {
+  return getToolConfig(toolName);
+}
 
 export const coreFiles = [
   'project.md',
@@ -100,10 +107,10 @@ export function parseTools(value?: string): ToolName[] {
     .split(',')
     .map((item) => item.trim())
     .filter(Boolean) as ToolName[];
-  const unsupported = tools.filter((tool) => !defaultTools.includes(tool));
+  const unsupported = tools.filter((tool) => !supportedTools.includes(tool));
   if (unsupported.length) {
     throw new Error(
-      `Unsupported tools: ${unsupported.join(', ')}. Supported tools: ${defaultTools.join(', ')}`,
+      `Unsupported tools: ${unsupported.join(', ')}. Supported tools: ${supportedTools.join(', ')}`,
     );
   }
   return Array.from(new Set(tools));

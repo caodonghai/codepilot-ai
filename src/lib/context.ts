@@ -5,6 +5,11 @@ export interface GlobalOptions {
   json?: boolean;
   locale?: string;
   configPath?: string;
+  framework?: string;
+  buildTool?: string;
+  packageManager?: string;
+  skipAi?: boolean;
+  skipGit?: boolean;
 }
 
 let globalOptions: GlobalOptions = {};
@@ -39,6 +44,21 @@ export function loadFromEnv(): void {
 
   const configPath = getEnvString('MSGFI_AI_CONFIG');
   if (configPath !== undefined) envOptions.configPath = configPath;
+
+  const framework = getEnvString('MSGFI_AI_FRAMEWORK');
+  if (framework !== undefined) envOptions.framework = framework;
+
+  const buildTool = getEnvString('MSGFI_AI_BUILD_TOOL');
+  if (buildTool !== undefined) envOptions.buildTool = buildTool;
+
+  const packageManager = getEnvString('MSGFI_AI_PACKAGE_MANAGER');
+  if (packageManager !== undefined) envOptions.packageManager = packageManager;
+
+  const skipAi = getEnvBool('MSGFI_AI_SKIP_AI');
+  if (skipAi !== undefined) envOptions.skipAi = skipAi;
+
+  const skipGit = getEnvBool('MSGFI_AI_SKIP_GIT');
+  if (skipGit !== undefined) envOptions.skipGit = skipGit;
 
   globalOptions = { ...globalOptions, ...envOptions };
 }
@@ -77,6 +97,26 @@ export function getLocale(): string | undefined {
 
 export function getConfigPath(): string | undefined {
   return globalOptions.configPath;
+}
+
+export function getFramework(): string | undefined {
+  return globalOptions.framework;
+}
+
+export function getBuildTool(): string | undefined {
+  return globalOptions.buildTool;
+}
+
+export function getPackageManager(): string | undefined {
+  return globalOptions.packageManager;
+}
+
+export function isSkipAi(): boolean {
+  return globalOptions.skipAi ?? false;
+}
+
+export function isSkipGit(): boolean {
+  return globalOptions.skipGit ?? false;
 }
 
 export function resetGlobalOptions(): void {

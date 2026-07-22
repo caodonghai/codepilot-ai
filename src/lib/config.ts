@@ -1,11 +1,36 @@
 import fs from 'fs';
-import type { ToolName } from '../types';
+import type { ToolName, ProjectInfo } from '../types';
 import { resolvePath, writeGeneratedFile, ensureDir } from '../utils/file';
-import { defaultTools } from '../config/constants';
+import { defaultTools, supportedTools } from '../config/constants';
 
 export interface ConfigValidationError {
   key: string;
   message: string;
+}
+
+export interface AiConfig {
+  enabled: boolean;
+  tools: string[];
+  autoSync: boolean;
+}
+
+export interface WorkflowConfig {
+  phases: string[];
+  autoAdvance: boolean;
+  requireAcceptance: boolean;
+}
+
+export interface KnowledgeConfig {
+  autoIndex: boolean;
+  fuzzySearch: boolean;
+  maxResults: number;
+}
+
+export interface OutputConfig {
+  format: 'text' | 'json';
+  verbose: boolean;
+  quiet: boolean;
+  colors: boolean;
 }
 
 export interface HarnessConfig {
@@ -17,6 +42,11 @@ export interface HarnessConfig {
   strictChecks?: string[];
   defaultFlow?: string;
   autoSave?: boolean;
+  project?: ProjectInfo;
+  ai?: AiConfig;
+  workflow?: WorkflowConfig;
+  knowledge?: KnowledgeConfig;
+  output?: OutputConfig;
 }
 
 export interface HarnessState {
@@ -109,7 +139,7 @@ export function validateConfig(config: Partial<HarnessConfig>): ConfigValidation
       errors.push({ key: 'tools', message: 'tools must be an array' });
     } else {
       for (const tool of config.tools) {
-        if (!defaultTools.includes(tool)) {
+        if (!supportedTools.includes(tool)) {
           errors.push({ key: 'tools', message: `invalid tool: ${tool}` });
         }
       }
@@ -155,6 +185,27 @@ export function getDefaultConfig(): HarnessConfig {
     strictChecks: ['eslint', 'ai:validate', 'ai:report'],
     defaultFlow: 'ai',
     autoSave: true,
+    ai: {
+      enabled: true,
+      tools: [...defaultTools],
+      autoSync: true,
+    },
+    workflow: {
+      phases: ['explore', 'propose', 'plan', 'apply', 'verify', 'review', 'finish'],
+      autoAdvance: false,
+      requireAcceptance: true,
+    },
+    knowledge: {
+      autoIndex: true,
+      fuzzySearch: true,
+      maxResults: 20,
+    },
+    output: {
+      format: 'text',
+      verbose: false,
+      quiet: false,
+      colors: true,
+    },
   };
 }
 
