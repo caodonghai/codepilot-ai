@@ -101,6 +101,41 @@ pnpm exec codepilot init \
 - `--build-tool <buildTool>`：webpack、vite、rollup、esbuild 或 parcel。
 - `--pm <packageManager>`：npm、yarn、pnpm 或 bun。
 
+## 集成模型
+
+CodePilot 采用“包内模板 + 项目内状态”的集成方式，不依赖后台服务或数据库：
+
+```text
+codepilot-ai 包
+  ├─ templates/  ──init/sync──> 业务项目的规则、流程和变更模板
+  ├─ dist/cli.cjs ──命令操作──> openspec/、harness/ 和编辑器目录
+  └─ bin/codepilot.cjs ───────> codepilot CLI
+```
+
+各部分职责如下：
+
+- `.ai` 和 `superpowers` 保存 AI 可读取的规则、流程与技能说明。
+- `openspec/changes/<change>` 是需求、任务、验收标准和实现笔记的事实来源。
+- `harness/tasks` 将 Markdown checkbox 同步为带 ID、owner 和阻塞信息的 JSON 任务板。
+- `harness/state.json` 保存当前变更、阶段、下一步、决策和阻塞状态。
+- `harness/prompts`、`reports` 和 `runs` 保存 Agent 提示、检查报告和操作事件。
+- `harness/memory` 保存可搜索、索引和去重的 Knowledge Memory。
+- `harness/integrations` 保存导入到当前仓库的 OpenSpec 或 Superpowers 官方资源。
+
+完整需求生命周期是：
+
+```text
+init/sync
+  → new
+  → proposal + tasks + acceptance
+  → task-board / agent-run
+  → apply
+  → validate / check / verify
+  → agent-finish
+  → archive
+  → knowledge suggest/add
+```
+
 ## 推荐工作流
 
 创建变更：
@@ -110,6 +145,14 @@ pnpm ai new bank-reconciliation --type feature
 ```
 
 支持的类型为 `default`、`bugfix`、`feature`、`ui-change` 和 `refactor`。变更名只允许小写字母、数字、中文和单个连字符。
+
+默认情况下，`new` 只创建变更文件，不修改当前 Git 分支。需要同时创建或切换到 `<type>/<change>` 分支时，显式传入 `--branch`：
+
+```bash
+pnpm ai new bank-reconciliation --type feature --branch
+```
+
+如果 `feature/bank-reconciliation` 已存在，命令会切换到该分支；否则创建新分支。非 Git 仓库中传入 `--branch` 不会执行分支操作。
 
 生成目录：
 
@@ -261,6 +304,8 @@ pnpm ai integration remove openspec
 
 `download` 默认要求目标位于当前仓库外；`install` 和 `remove` 只允许操作 `harness/integrations/<name>` 内的目录，并拒绝通过符号链接越界。
 
+当前集成模式和安装状态保存在各集成的 `config.json` 中；这些命令负责官方资源的下载、导入、健康检查和模式声明，不会全局安装工具或替换系统命令。
+
 ### 配置、诊断和流程
 
 ```bash
@@ -370,6 +415,8 @@ harness/integrations/*/cache/
 
 ## 本项目开发
 
+### 本地质量链路
+
 ```bash
 npm ci
 npm run lint:check
@@ -379,7 +426,26 @@ npm run build
 npm run smoke
 ```
 
-测试在独立临时项目根目录运行，不会修改当前仓库的真实 Harness 数据。CI 在 Node.js 18 和 20 上执行 lint、格式、覆盖率、构建和 smoke test。
+构建脚本先使用本地 TypeScript 执行类型检查，再清理并编译 `dist/`，最后生成带 Node shebang 的 `dist/cli.cjs`。测试在独立临时项目根目录运行，不会修改当前仓库的真实 Harness 数据。
+
+当前覆盖率门禁为：行和语句 10%、函数 25%、分支 20%。测试重点覆盖变更生命周期、路径边界、Harness 状态、Knowledge 搜索、日志和工具函数。
+
+### CI 与发布
+
+CI 在 Node.js 18 和 20 上依次执行依赖安装、lint、格式检查、构建、覆盖率测试和 CLI smoke test。
+
+推送 `v*` Tag 后，发布工作流使用 Node.js 20 完成构建、覆盖率测试和 smoke test，然后执行带 provenance 的 npm 发布并创建 GitHub Release。发布需要配置 `NPM_TOKEN`。
+
+npm 包通过 `prepack` 再次构建，发布内容限制为：
+
+```text
+bin/
+dist/
+templates/
+README.md
+README.en.md
+package.json
+```
 
 ## License
 

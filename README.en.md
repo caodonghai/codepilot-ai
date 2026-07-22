@@ -101,6 +101,41 @@ Initialization options:
 - `--build-tool <buildTool>`: webpack, vite, rollup, esbuild, or parcel.
 - `--pm <packageManager>`: npm, yarn, pnpm, or bun.
 
+## Integration model
+
+CodePilot uses package-owned templates and project-owned state. It does not require a background service or database:
+
+```text
+codepilot-ai package
+  ├─ templates/  ──init/sync──> rules, flows, and change templates in the project
+  ├─ dist/cli.cjs ──commands──> openspec/, harness/, and editor directories
+  └─ bin/codepilot.cjs ───────> codepilot CLI
+```
+
+Responsibilities are divided as follows:
+
+- `.ai` and `superpowers` contain AI-readable rules, flows, and skill instructions.
+- `openspec/changes/<change>` is the source of truth for requirements, tasks, acceptance criteria, and implementation notes.
+- `harness/tasks` synchronizes Markdown checkboxes into JSON task boards with IDs, owners, and blockers.
+- `harness/state.json` stores the active change, phase, next step, decisions, and blockers.
+- `harness/prompts`, `reports`, and `runs` store Agent prompts, check reports, and operation events.
+- `harness/memory` stores searchable, indexable, and deduplicated Knowledge Memory.
+- `harness/integrations` stores official OpenSpec or Superpowers resources imported into the repository.
+
+The complete change lifecycle is:
+
+```text
+init/sync
+  → new
+  → proposal + tasks + acceptance
+  → task-board / agent-run
+  → apply
+  → validate / check / verify
+  → agent-finish
+  → archive
+  → knowledge suggest/add
+```
+
 ## Recommended workflow
 
 Create a change:
@@ -110,6 +145,14 @@ pnpm ai new bank-reconciliation --type feature
 ```
 
 Supported types are `default`, `bugfix`, `feature`, `ui-change`, and `refactor`. Change names may contain lowercase letters, numbers, Chinese characters, and single hyphens.
+
+By default, `new` only creates change files and does not modify the current Git branch. Pass `--branch` explicitly to create or check out `<type>/<change>`:
+
+```bash
+pnpm ai new bank-reconciliation --type feature --branch
+```
+
+If `feature/bank-reconciliation` exists, the command checks it out; otherwise it creates the branch. Passing `--branch` outside a Git repository performs no branch operation.
 
 Generated files:
 
@@ -261,6 +304,8 @@ Supported integrations are `openspec` and `superpowers`. Available modes:
 
 `download` requires a destination outside the repository by default. `install` and `remove` can only operate inside `harness/integrations/<name>` and reject symlink escapes.
 
+Each integration stores its current mode and installation state in its own `config.json`. These commands manage download, import, health checks, and mode declaration without globally installing tools or replacing system commands.
+
 ### Configuration, diagnostics, and flows
 
 ```bash
@@ -370,6 +415,8 @@ harness/integrations/*/cache/
 
 ## Developing this project
 
+### Local quality pipeline
+
 ```bash
 npm ci
 npm run lint:check
@@ -379,7 +426,26 @@ npm run build
 npm run smoke
 ```
 
-Tests use an isolated temporary project root and do not modify real Harness data in the repository. CI runs lint, formatting, coverage, build, and smoke tests on Node.js 18 and 20.
+The build script first runs type checking with the local TypeScript installation, then cleans and compiles `dist/`, and finally generates `dist/cli.cjs` with a Node shebang. Tests use an isolated temporary project root and do not modify real Harness data in the repository.
+
+Current coverage thresholds are 10% for lines and statements, 25% for functions, and 20% for branches. Tests primarily cover the change lifecycle, path boundaries, Harness state, Knowledge search, logging, and utilities.
+
+### CI and release
+
+CI runs dependency installation, lint, formatting, build, coverage tests, and a CLI smoke test on Node.js 18 and 20.
+
+When a `v*` tag is pushed, the release workflow uses Node.js 20 to build, run coverage tests, and run the smoke test. It then publishes to npm with provenance and creates a GitHub Release. Publishing requires `NPM_TOKEN`.
+
+The npm package runs another build through `prepack` and limits published files to:
+
+```text
+bin/
+dist/
+templates/
+README.md
+README.en.md
+package.json
+```
 
 ## License
 
