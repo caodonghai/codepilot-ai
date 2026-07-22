@@ -1,0 +1,3 @@
+# Keep source and generated templates stable across Windows, macOS and Linux.
+* text=auto eol=lf
+

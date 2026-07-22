@@ -12,7 +12,7 @@ import {
   archiveDirectoryPath,
   createChange,
 } from '../src/lib/change';
-import { ensureDir, writeGeneratedFile } from '../src/utils/file';
+import { ensureDir, resolvePath, writeGeneratedFile } from '../src/utils/file';
 
 describe('change 模块', () => {
   const testChange = 'test-change';
@@ -38,11 +38,11 @@ describe('change 模块', () => {
   });
 
   test('changeDirectoryPath 返回正确路径', () => {
-    expect(changeDirectoryPath('test')).toContain('openspec/changes/test');
+    expect(changeDirectoryPath('test')).toBe(resolvePath('openspec', 'changes', 'test'));
   });
 
   test('archiveDirectoryPath 返回正确路径', () => {
-    expect(archiveDirectoryPath('test')).toContain('openspec/archive/test');
+    expect(archiveDirectoryPath('test')).toBe(resolvePath('openspec', 'archive', 'test'));
   });
 
   test.each(['../outside', '../../outside', '/tmp/outside', 'invalid/name', 'UPPERCASE'])(
