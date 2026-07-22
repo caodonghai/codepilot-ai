@@ -8,6 +8,15 @@
   "bin": {
     "codepilot": "./bin/codepilot.cjs"
   },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
   "files": [
     "bin",
     "dist",
@@ -23,7 +32,7 @@
   },
   "scripts": {
     "build": "node ./scripts/build.cjs",
-    "publish": "node ./scripts/publish.cjs",
+    "release": "node ./scripts/publish.cjs",
     "prepack": "npm run build",
     "smoke": "node ./dist/cli.cjs --help",
     "test": "vitest",

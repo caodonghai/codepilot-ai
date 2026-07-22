@@ -1,6 +1,7 @@
 import fs from 'fs';
-import path from 'path';
+import crypto from 'crypto';
 import { logger } from './logger';
+import { resolvePath } from '../utils/file';
 
 const LOCK_FILE = '.harness.lock';
 
@@ -8,10 +9,13 @@ export interface LockInfo {
   pid: number;
   timestamp: number;
   owner: string;
+  token?: string;
 }
 
+let heldLock: LockInfo | null = null;
+
 export function acquireLock(owner: string, timeout: number = 5000): boolean {
-  const lockPath = path.resolve(process.cwd(), LOCK_FILE);
+  const lockPath = resolvePath(LOCK_FILE);
   const startTime = Date.now();
 
   while (Date.now() - startTime < timeout) {
@@ -20,9 +24,11 @@ export function acquireLock(owner: string, timeout: number = 5000): boolean {
         pid: process.pid,
         timestamp: Date.now(),
         owner,
+        token: crypto.randomUUID(),
       };
 
       fs.writeFileSync(lockPath, JSON.stringify(lockInfo), { flag: 'wx' });
+      heldLock = lockInfo;
       logger.debug(`Lock acquired by ${owner} (pid: ${process.pid})`);
       return true;
     } catch (error) {
@@ -34,7 +40,7 @@ export function acquireLock(owner: string, timeout: number = 5000): boolean {
       const existingLock = readLockFile(lockPath);
       if (existingLock && isStaleLock(existingLock)) {
         logger.warn(`Detected stale lock, removing...`);
-        releaseLock();
+        removeLockIfUnchanged(lockPath, existingLock);
         continue;
       }
 
@@ -48,9 +54,12 @@ export function acquireLock(owner: string, timeout: number = 5000): boolean {
 }
 
 export function releaseLock(): void {
-  const lockPath = path.resolve(process.cwd(), LOCK_FILE);
+  const lockPath = resolvePath(LOCK_FILE);
+  const expected = heldLock;
+  if (!expected) return;
   try {
-    fs.unlinkSync(lockPath);
+    if (!removeLockIfUnchanged(lockPath, expected)) return;
+    heldLock = null;
     logger.debug(`Lock released by pid: ${process.pid}`);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
@@ -60,12 +69,12 @@ export function releaseLock(): void {
 }
 
 export function isLocked(): boolean {
-  const lockPath = path.resolve(process.cwd(), LOCK_FILE);
+  const lockPath = resolvePath(LOCK_FILE);
   return fs.existsSync(lockPath);
 }
 
 export function getLockOwner(): string | null {
-  const lockPath = path.resolve(process.cwd(), LOCK_FILE);
+  const lockPath = resolvePath(LOCK_FILE);
   const lockInfo = readLockFile(lockPath);
   return lockInfo?.owner ?? null;
 }
@@ -94,8 +103,25 @@ function isStaleLock(lockInfo: LockInfo, maxAge: number = 30000): boolean {
 }
 
 function sleep(ms: number): void {
-  const start = Date.now();
-  while (Date.now() - start < ms) {}
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+function sameLock(left: LockInfo | null, right: LockInfo): boolean {
+  if (!left) return false;
+  if (left.token || right.token) return left.token === right.token;
+  return left.pid === right.pid && left.timestamp === right.timestamp && left.owner === right.owner;
+}
+
+function removeLockIfUnchanged(lockPath: string, expected: LockInfo): boolean {
+  const current = readLockFile(lockPath);
+  if (!sameLock(current, expected)) return false;
+  try {
+    fs.unlinkSync(lockPath);
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false;
+    throw error;
+  }
 }
 
 export function withLock<T>(owner: string, fn: () => T): T | null {

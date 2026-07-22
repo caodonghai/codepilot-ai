@@ -9,14 +9,10 @@ const packageRoot = path.dirname(__dirname);
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const allowedReleases = new Set(['patch', 'minor', 'major']);
 
-// `publish` is also an npm lifecycle event. The child marker prevents the
-// orchestrator from recursively running when this script invokes `npm publish`.
-if (process.env.CODEPILOT_PUBLISH_CHILD === '1') process.exit(0);
-
 if (process.argv.includes('--help') || process.argv.includes('-h')) {
-  console.log('用法: npm run publish [-- patch|minor|major] [--yes]');
+  console.log('用法: npm run release [-- patch|minor|major] [--yes]');
   console.log('交互模式使用上下方向键选择版本，默认 patch，按回车确认。');
-  console.log('依次执行构建、打包检查、版本升级、Git 提交/推送和 npm 发布。');
+  console.log('依次执行构建、打包检查、版本升级和 Git 提交/推送，并触发 CI 发布。');
   process.exit(0);
 }
 
@@ -39,7 +35,7 @@ function run(command, args, options = {}) {
 
 function ask(question) {
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
-    throw new Error('非交互环境必须传入版本类型，例如：npm run publish -- patch');
+    throw new Error('非交互环境必须传入版本类型，例如：npm run release -- patch');
   }
   const terminal = readline.createInterface({ input: process.stdin, output: process.stdout });
   return new Promise((resolve) =>
@@ -52,7 +48,7 @@ function ask(question) {
 
 function selectWithArrows() {
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
-    throw new Error('非交互环境必须传入版本类型，例如：npm run publish -- patch --yes');
+    throw new Error('非交互环境必须传入版本类型，例如：npm run release -- patch --yes');
   }
   const choices = ['patch', 'minor', 'major'];
   let selectedIndex = 0;
@@ -121,28 +117,19 @@ async function main() {
   const status = run('git', ['status', '--porcelain'], { capture: true });
   if (status) throw new Error('Git 工作区存在未提交变更，请先提交或暂存处理后再发布。');
   run('git', ['remote', 'get-url', 'origin'], { capture: true });
-  run(npmCommand, ['whoami'], { capture: true });
-
   const packageJson = JSON.parse(fs.readFileSync(path.join(packageRoot, 'package.json'), 'utf8'));
   const release = await selectRelease();
   const targetVersion = nextVersion(packageJson.version, release);
   const confirmation = process.argv.includes('--yes')
     ? 'yes'
     : await ask(
-        `将 ${packageJson.name} 从 ${packageJson.version} 升级到 ${targetVersion}，提交并推送到 origin/${branch} 后发布 npm。输入 yes/y 继续：`,
+        `将 ${packageJson.name} 从 ${packageJson.version} 升级到 ${targetVersion}，提交并推送到 origin/${branch}，由 GitHub Actions 发布 npm。输入 yes/y 继续：`,
       );
   if (!['yes', 'y'].includes(confirmation)) throw new Error('已取消发布。');
 
   run(npmCommand, ['version', release, '-m', 'chore(release): v%s']);
   run('git', ['push', 'origin', 'HEAD', '--follow-tags']);
-  // npm can only generate provenance inside a supported CI identity provider.
-  // Local interactive releases publish normally; the GitHub release workflow
-  // keeps using --provenance.
-  run(npmCommand, ['publish', '--access', 'public'], {
-    env: { CODEPILOT_PUBLISH_CHILD: '1' },
-  });
-
-  console.log(`\n发布完成：${packageJson.name}@${targetVersion}`);
+  console.log(`\n版本已推送：${packageJson.name}@${targetVersion}，npm 发布由 GitHub Actions 执行。`);
 }
 
 main().catch((error) => {

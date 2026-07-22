@@ -1,5 +1,11 @@
 import fs from 'fs';
-import { resolvePath, writeGeneratedFile, ensureDir, resolveInsideRoot } from '../utils/file';
+import {
+  resolvePath,
+  writeGeneratedFile,
+  ensureDir,
+  resolveInsideRoot,
+  writeFileAtomic,
+} from '../utils/file';
 import { configSchemaVersion, defaultTools, supportedTools } from '../config/constants';
 import { withLock } from './lock';
 import { logger } from './logger';
@@ -74,7 +80,7 @@ export function saveConfig(config: HarnessConfig): void {
     writeGeneratedFile('harness/config.json', content);
   } else {
     fs.mkdirSync(require('path').dirname(target), { recursive: true });
-    fs.writeFileSync(target, content, 'utf8');
+    writeFileAtomic(target, content);
   }
 }
 
@@ -94,7 +100,10 @@ export function loadState(): HarnessState {
     return getDefaultState();
   }
   try {
-    return JSON.parse(fs.readFileSync(statePath, 'utf8')) as HarnessState;
+    const raw = JSON.parse(fs.readFileSync(statePath, 'utf8')) as Record<string, unknown>;
+    const errors = validateState(raw);
+    if (errors.length) throw new Error(errors.join(', '));
+    return { ...getDefaultState(), ...(raw as unknown as HarnessState) };
   } catch (error) {
     logger.warn(`Invalid harness/state.json: ${(error as Error).message}`);
     return getDefaultState();
@@ -168,13 +177,98 @@ export function validateConfig(
       message: 'profile must be lightweight, official, hybrid, standard, or strict',
     });
   }
-  if (config.tools !== undefined && Array.isArray(config.tools)) {
-    for (const tool of config.tools) {
-      if (!supportedTools.includes(tool as string)) {
-        errors.push({ key: 'tools', message: `invalid tool: ${tool}` });
+  if (config.tools !== undefined) {
+    if (!isStringArray(config.tools)) {
+      errors.push({ key: 'tools', message: 'tools must be an array of strings' });
+    } else
+      for (const tool of config.tools) {
+        if (!supportedTools.includes(tool as string)) {
+          errors.push({ key: 'tools', message: `invalid tool: ${tool}` });
+        }
       }
+  }
+  for (const key of ['checks', 'strictChecks'] as const) {
+    if (config[key] !== undefined && !isStringArray(config[key])) {
+      errors.push({ key, message: `${key} must be an array of strings` });
     }
   }
+  for (const key of ['currentChange', 'defaultFlow'] as const) {
+    const value = config[key];
+    if (value !== undefined && value !== null && typeof value !== 'string') {
+      errors.push({
+        key,
+        message: `${key} must be a string${key === 'currentChange' ? ' or null' : ''}`,
+      });
+    }
+  }
+  if (config.autoSave !== undefined && typeof config.autoSave !== 'boolean') {
+    errors.push({ key: 'autoSave', message: 'autoSave must be a boolean' });
+  }
+  validateNestedObject(config, 'ai', errors, {
+    enabled: 'boolean',
+    tools: 'string[]',
+    autoSync: 'boolean',
+  });
+  validateNestedObject(config, 'workflow', errors, {
+    phases: 'string[]',
+    autoAdvance: 'boolean',
+    requireAcceptance: 'boolean',
+  });
+  validateNestedObject(config, 'knowledge', errors, {
+    autoIndex: 'boolean',
+    fuzzySearch: 'boolean',
+    maxResults: 'number',
+  });
+  validateNestedObject(config, 'output', errors, {
+    format: 'string',
+    verbose: 'boolean',
+    quiet: 'boolean',
+    colors: 'boolean',
+  });
+  return errors;
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string');
+}
+
+type ExpectedType = 'string' | 'number' | 'boolean' | 'string[]';
+
+function validateNestedObject(
+  config: Record<string, unknown>,
+  key: string,
+  errors: Array<{ key: string; message: string }>,
+  fields: Record<string, ExpectedType>,
+) {
+  const value = config[key];
+  if (value === undefined) return;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    errors.push({ key, message: `${key} must be an object` });
+    return;
+  }
+  const record = value as Record<string, unknown>;
+  for (const [field, expected] of Object.entries(fields)) {
+    if (record[field] === undefined) continue;
+    const valid =
+      expected === 'string[]' ? isStringArray(record[field]) : typeof record[field] === expected;
+    if (!valid)
+      errors.push({ key: `${key}.${field}`, message: `${key}.${field} must be ${expected}` });
+  }
+}
+
+function validateState(state: Record<string, unknown>): string[] {
+  const errors: string[] = [];
+  if (state.version !== undefined && typeof state.version !== 'number')
+    errors.push('version must be a number');
+  if (state.blockedBy !== undefined && !isStringArray(state.blockedBy))
+    errors.push('blockedBy must be an array of strings');
+  if (state.decisions !== undefined && !Array.isArray(state.decisions))
+    errors.push('decisions must be an array');
+  if (
+    state.context !== undefined &&
+    (!state.context || typeof state.context !== 'object' || Array.isArray(state.context))
+  )
+    errors.push('context must be an object');
   return errors;
 }
 

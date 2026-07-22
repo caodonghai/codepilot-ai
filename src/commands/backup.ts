@@ -124,6 +124,29 @@ export function validateBackupArchive(backupPath: string): string[] {
   return entries;
 }
 
+function validateExtractedBackup(directory: string) {
+  let files = 0;
+  let bytes = 0;
+  const visit = (current: string) => {
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const entryPath = path.join(current, entry.name);
+      const stats = fs.lstatSync(entryPath);
+      if (stats.isSymbolicLink()) throw new Error(`Backup contains a symbolic link: ${entry.name}`);
+      if (stats.isDirectory()) visit(entryPath);
+      else if (stats.isFile()) {
+        files += 1;
+        bytes += stats.size;
+      } else {
+        throw new Error(`Backup contains an unsupported file type: ${entry.name}`);
+      }
+      if (files > 10_000 || bytes > 100 * 1024 * 1024) {
+        throw new Error('Backup exceeds the restore safety limit (10000 files or 100 MB).');
+      }
+    }
+  };
+  visit(directory);
+}
+
 function backupRestoreCommand(file: string) {
   let backupPath = file;
   if (!path.isAbsolute(file)) {
@@ -136,22 +159,50 @@ function backupRestoreCommand(file: string) {
     return;
   }
 
+  let restoreDirectory: string | null = null;
   try {
     const { spawnSync } = require('child_process');
     validateBackupArchive(backupPath);
+    restoreDirectory = fs.mkdtempSync(resolvePath('.codepilot-restore-'));
     const result = spawnSync('tar', ['-xzf', backupPath], {
-      cwd: process.cwd(),
+      cwd: restoreDirectory,
       shell: false,
       stdio: 'pipe',
     });
 
     if (result.status === 0) {
+      const stagedHarness = path.join(restoreDirectory, 'harness');
+      if (!fs.existsSync(stagedHarness) || !fs.statSync(stagedHarness).isDirectory()) {
+        throw new Error('Backup does not contain a harness directory.');
+      }
+      validateExtractedBackup(stagedHarness);
+      const currentHarness = resolvePath('harness');
+      const currentBackups = path.join(currentHarness, 'backups');
+      if (fs.existsSync(currentBackups)) {
+        fs.cpSync(currentBackups, path.join(stagedHarness, 'backups'), { recursive: true });
+      }
+      const rollbackPath = resolvePath(`.harness-rollback-${process.pid}-${Date.now()}`);
+      try {
+        if (fs.existsSync(currentHarness)) fs.renameSync(currentHarness, rollbackPath);
+        fs.renameSync(stagedHarness, currentHarness);
+        fs.rmSync(rollbackPath, { recursive: true, force: true });
+      } catch (error) {
+        if (!fs.existsSync(currentHarness) && fs.existsSync(rollbackPath)) {
+          fs.renameSync(rollbackPath, currentHarness);
+        }
+        throw error;
+      } finally {
+        fs.rmSync(restoreDirectory, { recursive: true, force: true });
+        restoreDirectory = null;
+      }
       if (isJsonOutput()) {
         console.log(JSON.stringify({ status: 'success', file }));
       } else {
         logger.success(`Backup restored: ${file}`);
       }
     } else {
+      fs.rmSync(restoreDirectory, { recursive: true, force: true });
+      restoreDirectory = null;
       const error = result.stderr?.toString('utf8') || 'Unknown error';
       logger.error(`Restore failed: ${error}`);
       process.exitCode = 1;
@@ -159,6 +210,8 @@ function backupRestoreCommand(file: string) {
   } catch (error) {
     logger.error(`Restore failed: ${(error as Error).message}`);
     process.exitCode = 1;
+  } finally {
+    if (restoreDirectory) fs.rmSync(restoreDirectory, { recursive: true, force: true });
   }
 }
 

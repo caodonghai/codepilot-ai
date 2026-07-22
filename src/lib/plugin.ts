@@ -34,6 +34,29 @@ function assertPluginName(name: string) {
   return name;
 }
 
+function readManifest(manifestPath: string): PluginManifest {
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as Partial<PluginManifest>;
+  assertPluginName(String(manifest.name ?? ''));
+  for (const key of ['version', 'description'] as const) {
+    if (typeof manifest[key] !== 'string' || !manifest[key]) {
+      throw new Error(`Plugin manifest ${key} must be a non-empty string.`);
+    }
+  }
+  if (manifest.main !== undefined && (typeof manifest.main !== 'string' || !manifest.main)) {
+    throw new Error('Plugin manifest main must be a non-empty string.');
+  }
+  return manifest as PluginManifest;
+}
+
+function assertNoSymbolicLinks(directory: string) {
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const entryPath = path.join(directory, entry.name);
+    if (entry.isSymbolicLink())
+      throw new Error(`Plugin must not contain symbolic links: ${entry.name}`);
+    if (entry.isDirectory()) assertNoSymbolicLinks(entryPath);
+  }
+}
+
 export function loadPlugins(): Plugin[] {
   const plugins: Plugin[] = [];
   const pluginDir = resolvePath(PLUGIN_DIR);
@@ -56,8 +79,9 @@ export function loadPlugins(): Plugin[] {
     }
 
     try {
-      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as PluginManifest;
-      assertPluginName(manifest.name);
+      const manifest = readManifest(manifestPath);
+      if (manifest.name !== entry.name)
+        throw new Error('Plugin name must match its directory name.');
       const mainPath = path.resolve(pluginPath, manifest.main || 'index.js');
       if (!mainPath.startsWith(`${path.resolve(pluginPath)}${path.sep}`)) {
         throw new Error('Plugin main must stay inside its plugin directory.');
@@ -66,6 +90,12 @@ export function loadPlugins(): Plugin[] {
       if (!fs.existsSync(mainPath)) {
         logger.warn(`Plugin ${manifest.name} missing main file`);
         continue;
+      }
+      if (!fs.statSync(mainPath).isFile()) throw new Error('Plugin main must be a file.');
+      const realPluginPath = fs.realpathSync(pluginPath);
+      const realMainPath = fs.realpathSync(mainPath);
+      if (!realMainPath.startsWith(`${realPluginPath}${path.sep}`)) {
+        throw new Error('Plugin main resolves outside its plugin directory.');
       }
 
       const plugin = require(mainPath) as Plugin;
@@ -91,6 +121,15 @@ export function registerPluginCommands(program: Command, plugins: Plugin[]): voi
     if (!plugin.commands) continue;
 
     for (const cmd of plugin.commands) {
+      if (
+        !cmd ||
+        typeof cmd.name !== 'string' ||
+        typeof cmd.description !== 'string' ||
+        typeof cmd.action !== 'function'
+      ) {
+        logger.error(`Skipped invalid command from plugin ${plugin.name}`);
+        continue;
+      }
       const command = program.command(cmd.name).description(cmd.description);
       command.action((...args) => {
         const options = args.pop() as Record<string, unknown>;
@@ -127,8 +166,8 @@ export function installPlugin(pluginPath: string): boolean {
   }
   const manifestPath = path.join(pluginPath, 'plugin.json');
   if (!fs.existsSync(manifestPath)) throw new Error('Plugin source is missing plugin.json.');
-  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as PluginManifest;
-  assertPluginName(manifest.name);
+  const manifest = readManifest(manifestPath);
+  assertNoSymbolicLinks(pluginPath);
   const pluginDir = resolvePath(PLUGIN_DIR);
   const destPath = path.join(pluginDir, manifest.name);
 

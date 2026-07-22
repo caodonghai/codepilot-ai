@@ -437,10 +437,10 @@ npm run format:check
 npm run test:coverage
 npm run build
 npm run smoke
-npm run publish
+npm run release
 ```
 
-`npm run publish` builds the project and validates the npm package contents before showing an arrow-key menu for a `patch`, `minor`, or `major` bump. `patch` is selected by default and Enter confirms it. The final commit-and-push confirmation accepts `yes` or `y`. The command then creates the version commit and Git tag, pushes them to `origin`, and runs local `npm publish --access public`. Use `npm run publish -- patch --yes` in non-interactive environments. The Git worktree must be clean and npm authentication must already be configured. Provenance remains enabled only in the GitHub release workflow because local terminals do not provide a supported CI identity provider.
+`npm run release` builds the project and validates the npm package contents before showing an arrow-key menu for a `patch`, `minor`, or `major` bump. `patch` is selected by default and Enter confirms it. The command creates the version commit and Git tag, then pushes them to `origin`. npm publishing, provenance, the SBOM, and the GitHub Release are handled only by GitHub Actions to avoid duplicate local and CI publication. Use `npm run release -- patch --yes` in non-interactive environments. The Git worktree must be clean.
 
 The build script first runs type checking with the local TypeScript installation, then cleans and compiles `dist/`, and finally generates `dist/cli.cjs` with a Node shebang. Tests use an isolated temporary project root and do not modify real Harness data in the repository.
 

@@ -71,6 +71,19 @@ describe('config 模块', () => {
     expect(errors.length).toBeGreaterThan(0);
   });
 
+  test('validateConfig 拒绝错误的数组、布尔值和嵌套配置', () => {
+    const errors = validateConfig({
+      tools: 'codex',
+      checks: ['valid', 1],
+      autoSave: 'yes',
+      ai: { enabled: 'yes' },
+      knowledge: { maxResults: 'ten' },
+    });
+    expect(errors.map((error) => error.key)).toEqual(
+      expect.arrayContaining(['tools', 'checks', 'autoSave', 'ai.enabled', 'knowledge.maxResults']),
+    );
+  });
+
   test('loadConfig 在文件不存在时返回默认值', () => {
     const config = loadConfig();
     expect(config.version).toBe(2);
@@ -109,6 +122,13 @@ describe('config 模块', () => {
   test('loadState 在文件不存在时返回默认值', () => {
     const state = loadState();
     expect(state.status).toBe('not_started');
+  });
+
+  test('loadState 对结构损坏的状态回退到默认值', () => {
+    const statePath = resolvePath('harness', 'state.json');
+    fs.mkdirSync(resolvePath('harness'), { recursive: true });
+    fs.writeFileSync(statePath, JSON.stringify({ blockedBy: 'invalid' }));
+    expect(loadState()).toEqual(getDefaultState());
   });
 
   test('saveState 将状态写入文件', () => {

@@ -437,10 +437,10 @@ npm run format:check
 npm run test:coverage
 npm run build
 npm run smoke
-npm run publish
+npm run release
 ```
 
-`npm run publish` 会先构建并检查 npm 打包内容，然后通过上下方向键选择 `patch`、`minor` 或 `major`（默认选择 `patch`，回车确认），自动更新版本、创建 `chore(release): v<version>` 提交和 Git Tag、推送到 `origin`，最后执行本地 `npm publish --access public`。提交和推送确认支持输入 `yes` 或 `y`。非交互环境可使用 `npm run publish -- patch --yes`。发布前必须保证 Git 工作区干净并已登录 npm。Provenance 只在 GitHub Release 工作流中生成，本地终端不会传入 `--provenance`。
+`npm run release` 会先构建并检查 npm 打包内容，然后通过上下方向键选择 `patch`、`minor` 或 `major`（默认选择 `patch`，回车确认），自动更新版本、创建 `chore(release): v<version>` 提交和 Git Tag，并推送到 `origin`。npm 包、Provenance、SBOM 和 GitHub Release 统一由 GitHub Actions 发布，避免本地与 CI 重复发布。提交和推送确认支持输入 `yes` 或 `y`。非交互环境可使用 `npm run release -- patch --yes`。发布前必须保证 Git 工作区干净。
 
 构建脚本先使用本地 TypeScript 执行类型检查，再清理并编译 `dist/`，最后生成带 Node shebang 的 `dist/cli.cjs`。测试在独立临时项目根目录运行，不会修改当前仓库的真实 Harness 数据。
 
