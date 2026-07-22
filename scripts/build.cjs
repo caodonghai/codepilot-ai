@@ -6,9 +6,10 @@ const { spawnSync } = require('child_process');
 
 const packageRoot = path.dirname(__dirname);
 const tsconfigPath = path.join(packageRoot, 'tsconfig.json');
+const tscPath = path.join(packageRoot, 'node_modules', 'typescript', 'bin', 'tsc');
 
 console.log('Running type check...');
-const typeCheckResult = spawnSync('npx', ['tsc', '--noEmit', '-p', tsconfigPath], {
+const typeCheckResult = spawnSync(process.execPath, [tscPath, '--noEmit', '-p', tsconfigPath], {
   cwd: packageRoot,
   stdio: 'inherit',
 });
@@ -25,7 +26,7 @@ if (fs.existsSync(distDir)) {
 }
 
 console.log('Compiling TypeScript...');
-const compileResult = spawnSync('npx', ['tsc', '-p', tsconfigPath], {
+const compileResult = spawnSync(process.execPath, [tscPath, '-p', tsconfigPath], {
   cwd: packageRoot,
   stdio: 'inherit',
 });

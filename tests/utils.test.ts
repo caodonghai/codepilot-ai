@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { kebabName, quoteShellArg } from '../src/utils/string';
-import { textCorruptionScore, hasMojibake } from '../src/utils/encoding';
+import { hasMojibake } from '../src/utils/encoding';
 
 describe('kebabName', () => {
   it('should convert to kebab-case', () => {

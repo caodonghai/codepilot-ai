@@ -1,3 +1,4 @@
+import path from 'path';
 import type {
   ToolName,
   HarnessPhase,
@@ -8,7 +9,9 @@ import type {
 } from '../types';
 import { getDefaultToolIds, getAllTools, getToolConfig } from './tools';
 
-export const root = process.cwd();
+export const root = process.env.CODEPILOT_ROOT
+  ? path.resolve(process.env.CODEPILOT_ROOT)
+  : process.cwd();
 
 export const defaultTools: ToolName[] = getDefaultToolIds();
 

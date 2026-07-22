@@ -6,7 +6,7 @@ const prettier = require('eslint-plugin-prettier');
 
 module.exports = [
   {
-    files: ['src/**/*.ts'],
+    files: ['src/**/*.ts', 'tests/**/*.ts', 'vitest.config.mts'],
     languageOptions: {
       globals: {
         ...globals.node,
@@ -16,7 +16,7 @@ module.exports = [
       parserOptions: {
         ecmaVersion: 'latest',
         sourceType: 'module',
-        project: './tsconfig.json',
+        project: './tsconfig.eslint.json',
       },
     },
     plugins: {

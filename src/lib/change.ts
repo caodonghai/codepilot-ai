@@ -3,6 +3,7 @@ import path from 'path';
 import type { ChangeType } from '../types';
 import { resolvePath, ensureDir, writeGeneratedFile } from '../utils/file';
 import { requiredChangeFiles, changeTypes } from '../config/constants';
+import { templateChangeFile } from '../commands/templates';
 
 export interface ChangeInfo {
   name: string;
@@ -12,12 +13,36 @@ export interface ChangeInfo {
   status: 'active' | 'completed' | 'archived';
 }
 
+const changeNamePattern = /^[a-z0-9\u4e00-\u9fa5]+(?:-[a-z0-9\u4e00-\u9fa5]+)*$/;
+
+export function assertSafeChangeName(change: string): string {
+  if (!changeNamePattern.test(change)) {
+    throw new Error(
+      `Invalid change name: ${change}. Use lowercase letters, numbers, Chinese characters, and single hyphens only.`,
+    );
+  }
+  return change;
+}
+
+function resolveChangePath(kind: 'changes' | 'archive', change: string): string {
+  assertSafeChangeName(change);
+  const parent = path.resolve(resolvePath('openspec', kind));
+  const target = path.resolve(parent, change);
+  if (!target.startsWith(`${parent}${path.sep}`)) {
+    throw new Error(`Refusing change path outside openspec/${kind}: ${change}`);
+  }
+  if (fs.existsSync(target) && fs.lstatSync(target).isSymbolicLink()) {
+    throw new Error(`Refusing symbolic-link change directory: ${change}`);
+  }
+  return target;
+}
+
 export function changeDirectoryPath(change: string) {
-  return resolvePath('openspec', 'changes', change);
+  return resolveChangePath('changes', change);
 }
 
 export function archiveDirectoryPath(change: string) {
-  return resolvePath('openspec', 'archive', change);
+  return resolveChangePath('archive', change);
 }
 
 export function validateChangeStructure(change: string) {
@@ -62,7 +87,7 @@ export function listChanges(): ChangeInfo[] {
 
     if (fs.existsSync(proposalPath)) {
       const content = fs.readFileSync(proposalPath, 'utf8');
-      const typeMatch = content.match(/^## Type\s*\n\s*(\w+)/m);
+      const typeMatch = content.match(/^## (?:Type|类型)\s*\n\s*([\w-]+)/m);
       if (typeMatch) type = typeMatch[1];
 
       const stats = fs.statSync(proposalPath);
@@ -95,7 +120,7 @@ export function listArchivedChanges(): ChangeInfo[] {
 
     if (fs.existsSync(proposalPath)) {
       const content = fs.readFileSync(proposalPath, 'utf8');
-      const typeMatch = content.match(/^## Type\s*\n\s*(\w+)/m);
+      const typeMatch = content.match(/^## (?:Type|类型)\s*\n\s*([\w-]+)/m);
       if (typeMatch) type = typeMatch[1];
 
       const stats = fs.statSync(proposalPath);
@@ -216,7 +241,6 @@ export function createChange(change: string, type: string = 'default') {
 
   ensureDir('openspec', 'changes', change);
 
-  const { templateChangeFile } = require('./templates');
   for (const file of requiredChangeFiles) {
     writeGeneratedFile(
       path.join('openspec', 'changes', change, file),

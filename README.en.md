@@ -1,5 +1,7 @@
 # CodePilot AI
 
+[English](README.en.md) | [中文](README.md)
+
 CodePilot AI is an AI-powered engineering workflow toolkit designed to live in your project repository. It unifies OpenSpec-style requirement-first methodology, Superpowers-style skill workflows, local Harness acceptance status tracking, Knowledge Memory for knowledge accumulation, and multi-AI-editor rule synchronization (Codex/Trae/Qoder/Cursor) into a single command.
 
 First-time setup: install the package and run initialization:

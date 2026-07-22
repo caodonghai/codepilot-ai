@@ -54,7 +54,7 @@ describe('config 模块', () => {
   });
 
   test('validateConfig 对无效版本返回错误', () => {
-    const errors = validateConfig({ version: 'invalid' as any });
+    const errors = validateConfig({ version: 'invalid' });
     expect(errors).toHaveLength(1);
     expect(errors[0].key).toBe('version');
   });
@@ -66,7 +66,7 @@ describe('config 模块', () => {
   });
 
   test('validateConfig 对无效工具返回错误', () => {
-    const errors = validateConfig({ tools: ['invalid-tool'] as any });
+    const errors = validateConfig({ tools: ['invalid-tool'] });
     expect(errors.length).toBeGreaterThan(0);
   });
 

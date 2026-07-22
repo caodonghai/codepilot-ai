@@ -23,6 +23,7 @@ yarn-error.log
 
 # production
 /dist
+/coverage
 
 # bun
 bun.lockb

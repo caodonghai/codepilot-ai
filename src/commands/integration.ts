@@ -9,9 +9,13 @@ import { quoteShellArg } from '../utils/string';
 import {
   loadIntegrations,
   inspectIntegrationHealth,
-  defaultIntegrationConfig,
   loadIntegrationConfig,
   saveIntegrationConfig,
+  assertIntegrationTargetPath,
+  parseIntegrationSource,
+  clearDirectoryContents,
+  copyDirectoryRecursive,
+  assertDownloadOutsideRepo,
 } from '../lib/integrations';
 import { writeRunEvent } from '../lib/events';
 
@@ -117,47 +121,6 @@ function integrationUseCommand(nameInput: string, modeInput: string) {
   );
 }
 
-function assertIntegrationTargetPath(name: IntegrationName, targetPath?: string) {
-  if (!targetPath) {
-    const config = defaultIntegrationConfig(name);
-    return config.officialPath;
-  }
-  return targetPath;
-}
-
-function parseIntegrationSource(value: string) {
-  const match = value.match(/^local:(.+)$/);
-  if (!match) {
-    throw new Error('Unsupported source format. Use local:<path>.');
-  }
-  return resolvePath(match[1]);
-}
-
-function clearDirectoryContents(dirPath: string) {
-  if (!fs.existsSync(dirPath)) return;
-  for (const item of fs.readdirSync(dirPath)) {
-    const fullPath = path.join(dirPath, item);
-    if (fs.lstatSync(fullPath).isDirectory()) {
-      fs.rmSync(fullPath, { recursive: true, force: true });
-    } else {
-      fs.unlinkSync(fullPath);
-    }
-  }
-}
-
-function copyDirectoryRecursive(src: string, dest: string) {
-  fs.mkdirSync(dest, { recursive: true });
-  for (const item of fs.readdirSync(src)) {
-    const srcPath = path.join(src, item);
-    const destPath = path.join(dest, item);
-    if (fs.lstatSync(srcPath).isDirectory()) {
-      copyDirectoryRecursive(srcPath, destPath);
-    } else {
-      fs.copyFileSync(srcPath, destPath);
-    }
-  }
-}
-
 function integrationInstallCommand(
   nameInput: string,
   options: { source?: string; dryRun?: boolean } = {},
@@ -171,7 +134,7 @@ function integrationInstallCommand(
   const current = loadIntegrationConfig(name);
   const officialPath = assertIntegrationTargetPath(name, current.officialPath);
   const cachePath = assertIntegrationTargetPath(name, current.cachePath);
-  const sourcePath = options.source ? parseIntegrationSource(options.source) : null;
+  const sourcePath = parseIntegrationSource(options.source);
   const now = new Date().toISOString();
 
   if (options.dryRun) {
@@ -307,14 +270,6 @@ function integrationRemoveCommand(nameInput: string, options: { dryRun?: boolean
 function resolveDownloadTarget(name: IntegrationName, to?: string) {
   if (to) return resolvePath(to);
   return path.join(process.cwd(), '..', `msgfi-${name}`);
-}
-
-function assertDownloadOutsideRepo(target: string, allowInsideRepo?: boolean) {
-  if (!allowInsideRepo && target.startsWith(process.cwd())) {
-    throw new Error(
-      `Download target must be outside the repo. Use --allow-inside-repo to override, or specify a different --to path.`,
-    );
-  }
 }
 
 function integrationDownloadCommand(

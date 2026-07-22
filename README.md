@@ -1,5 +1,7 @@
 # CodePilot AI
 
+[English](README.en.md) | [中文](README.md)
+
 CodePilot AI 是一套放在项目仓库里的 AI 工程流程工具。它把 OpenSpec 风格的需求优先、Superpowers 风格的技能流程、本地 Harness 验收状态、Knowledge Memory 知识沉淀，以及 Codex / Trae / Qoder / Cursor 多 AI 编辑器规则同步整合到一个命令里。
 
 第一次使用时，先安装包，然后执行一次初始化：

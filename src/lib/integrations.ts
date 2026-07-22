@@ -135,7 +135,25 @@ export function assertIntegrationTargetPath(name: IntegrationName, relativePath:
       `Refusing integration path outside harness/integrations/${name}: ${relativePath}`,
     );
   }
+  const existingParent = findExistingParent(fullPath);
+  const realParent = fs.realpathSync(existingParent);
+  const expectedRoot = fs.realpathSync(path.resolve(resolvePath('.')));
+  if (realParent !== expectedRoot && !realParent.startsWith(`${expectedRoot}${path.sep}`)) {
+    throw new Error(
+      `Refusing integration path through symlink outside repository: ${relativePath}`,
+    );
+  }
   return fullPath;
+}
+
+function findExistingParent(targetPath: string): string {
+  let current = targetPath;
+  while (!fs.existsSync(current)) {
+    const parent = path.dirname(current);
+    if (parent === current) return current;
+    current = parent;
+  }
+  return current;
 }
 
 export function parseIntegrationSource(source?: string) {

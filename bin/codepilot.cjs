@@ -14,7 +14,7 @@ function runNode(scriptPath, args, cwd) {
   });
 
   if (result.error) {
-    console.error(`Failed to start MsgFi AI CLI: ${result.error.message}`);
+    console.error(`Failed to start CodePilot AI CLI: ${result.error.message}`);
     process.exit(1);
   }
 

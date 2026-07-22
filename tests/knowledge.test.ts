@@ -34,7 +34,9 @@ function buildKnowledgeSearchText(record: KnowledgeRecord) {
     record.summary,
     ...record.keywords,
     ...record.usedIn,
-  ].join(' ').toLowerCase();
+  ]
+    .join(' ')
+    .toLowerCase();
 }
 
 function scoreKnowledgeRecord(record: KnowledgeIndexRecord, terms: string[]) {
@@ -103,7 +105,8 @@ describe('scoreKnowledgeRecord', () => {
     createdAt: '2024-01-01',
     updatedAt: '2024-01-01',
     file: 'knowledge/components.jsonl',
-    searchText: 'component:my-button:ui component mybutton ui packages/ui a custom button component for the ui button ui component apps/web/src/components',
+    searchText:
+      'component:my-button:ui component mybutton ui packages/ui a custom button component for the ui button ui component apps/web/src/components',
   };
 
   it('应根据多个字段匹配进行评分', () => {
@@ -115,21 +118,29 @@ describe('scoreKnowledgeRecord', () => {
   });
 
   it('应评分关键词匹配', () => {
-    const record2 = { ...record, searchText: '', summary: '', id: 'test', name: 'Other', scope: 'other', source: 'other' };
+    const record2 = {
+      ...record,
+      searchText: '',
+      summary: '',
+      id: 'test',
+      name: 'Other',
+      scope: 'other',
+      source: 'other',
+    };
     expect(scoreKnowledgeRecord(record2, ['button'])).toBe(7);
   });
 
   it('应为活跃状态加分', () => {
     const inactiveRecord = { ...record, status: 'deprecated' as const };
     expect(scoreKnowledgeRecord(record, ['test'])).toBe(
-      scoreKnowledgeRecord(inactiveRecord, ['test']) + 1
+      scoreKnowledgeRecord(inactiveRecord, ['test']) + 1,
     );
   });
 
   it('应为已确认置信度加分', () => {
     const uncertainRecord = { ...record, confidence: 'uncertain' as const };
     expect(scoreKnowledgeRecord(record, ['test'])).toBe(
-      scoreKnowledgeRecord(uncertainRecord, ['test']) + 1
+      scoreKnowledgeRecord(uncertainRecord, ['test']) + 1,
     );
   });
 

@@ -10,8 +10,9 @@ import {
   validateChangeStructure,
   changeDirectoryPath,
   archiveDirectoryPath,
+  createChange,
 } from '../src/lib/change';
-import { resolvePath, ensureDir, writeGeneratedFile } from '../src/utils/file';
+import { ensureDir, writeGeneratedFile } from '../src/utils/file';
 
 describe('change 模块', () => {
   const testChange = 'test-change';
@@ -42,6 +43,22 @@ describe('change 模块', () => {
 
   test('archiveDirectoryPath 返回正确路径', () => {
     expect(archiveDirectoryPath('test')).toContain('openspec/archive/test');
+  });
+
+  test.each(['../outside', '../../outside', '/tmp/outside', 'invalid/name', 'UPPERCASE'])(
+    '拒绝不安全的变更名 %s',
+    (change) => {
+      expect(() => changeDirectoryPath(change)).toThrow('Invalid change name');
+      expect(() => archiveDirectoryPath(change)).toThrow('Invalid change name');
+    },
+  );
+
+  test('中文模板创建后仍能识别变更类型', () => {
+    createChange(testChange, 'feature');
+
+    expect(listChanges()).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: testChange, type: 'feature' })]),
+    );
   });
 
   test('validateChangeStructure 对不存在的目录返回错误', () => {
@@ -100,7 +117,10 @@ describe('change 模块', () => {
     writeGeneratedFile(`openspec/archive/${testChange}/proposal.md`, '# Test');
     writeGeneratedFile(`openspec/archive/${testChange}/tasks.md`, '# Tasks');
     writeGeneratedFile(`openspec/archive/${testChange}/acceptance.md`, '# Acceptance');
-    writeGeneratedFile(`openspec/archive/${testChange}/.archive-info.json`, '{"completedAt": "2024-01-01"}');
+    writeGeneratedFile(
+      `openspec/archive/${testChange}/.archive-info.json`,
+      '{"completedAt": "2024-01-01"}',
+    );
 
     restoreChange(testChange);
 
