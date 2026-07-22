@@ -16,7 +16,7 @@ import {
   kebabName,
   uniqueValues,
   parseKnowledgeType,
-} from './utils';
+} from '../lib/utils';
 
 export function normalizeKnowledgeRecord(record: Partial<KnowledgeRecord>): KnowledgeRecord {
   const now = new Date().toISOString().slice(0, 10);

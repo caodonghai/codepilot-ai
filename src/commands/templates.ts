@@ -8,7 +8,7 @@ import {
   dispatcherFlow,
   flowNames,
   skillFiles,
-} from './utils';
+} from '../lib/utils';
 
 export function setupPackageScript(options: { enabled?: boolean } = {}) {
   if (options.enabled === false) return 'Skipped package.json script setup by option.';

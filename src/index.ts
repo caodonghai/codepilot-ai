@@ -85,7 +85,7 @@ export {
   loadKnowledgeIndex,
   scoreKnowledgeRecord,
   searchKnowledge,
-} from './lib/knowledge';
+} from './commands/knowledge-core';
 
 export {
   archiveChange,
@@ -113,7 +113,7 @@ export {
   assertDownloadOutsideRepo,
   clearDirectoryContents,
   copyDirectoryRecursive,
-} from './lib/integrations';
+} from './commands/integrations-core';
 
 export {
   templateChangeFile,
@@ -124,11 +124,18 @@ export {
   collectCoreSummary,
   collectFlowSummary,
   collectSkillSummary,
-} from './lib/templates';
+} from './commands/templates';
 
 export { setLocale, getLocale, t, detectLocale } from './lib/i18n';
 
-export { Spinner, ProgressBar, logStep, logSuccess, logError, logWarning } from './lib/progress';
+export {
+  Spinner,
+  ProgressBar,
+  logStep,
+  logSuccess,
+  logError,
+  logWarning,
+} from './commands/progress';
 
 export type { LogLevel } from './lib/logger';
 
@@ -178,7 +185,7 @@ export type {
   KnowledgeCommandOptions,
   IntegrationCommandOptions,
   FlowCommandOptions,
-} from './lib/commands';
+} from './commands/registry';
 
 export {
   CommandRegistry,
@@ -187,7 +194,7 @@ export {
   createIntegrationCommand,
   createFlowCommand,
   createArchiveCommand,
-} from './lib/commands';
+} from './commands/registry';
 
 export type { Factory, ContainerConfig } from './lib/di';
 
