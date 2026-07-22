@@ -23,6 +23,7 @@
   },
   "scripts": {
     "build": "node ./scripts/build.cjs",
+    "publish": "node ./scripts/publish.cjs",
     "prepack": "npm run build",
     "smoke": "node ./dist/cli.cjs --help",
     "test": "vitest",

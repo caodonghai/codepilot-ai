@@ -437,11 +437,14 @@ npm run format:check
 npm run test:coverage
 npm run build
 npm run smoke
+npm run publish
 ```
+
+`npm run publish` builds the project and validates the npm package contents before prompting for a `patch`, `minor`, or `major` bump. It then creates the version commit and Git tag, pushes them to `origin`, and publishes to npm. Use `npm run publish -- patch --yes` in non-interactive environments. The Git worktree must be clean and npm authentication must already be configured.
 
 The build script first runs type checking with the local TypeScript installation, then cleans and compiles `dist/`, and finally generates `dist/cli.cjs` with a Node shebang. Tests use an isolated temporary project root and do not modify real Harness data in the repository.
 
-Current coverage thresholds are 10% for lines and statements, 25% for functions, and 20% for branches. Tests primarily cover the change lifecycle, path boundaries, Harness state, Knowledge search, logging, and utilities.
+Current coverage thresholds are 20% for lines and statements, 40% for functions, and 60% for branches. Tests primarily cover the change lifecycle, path boundaries, Harness state, Knowledge search, logging, plugins, and utilities.
 
 ### CI and release
 
