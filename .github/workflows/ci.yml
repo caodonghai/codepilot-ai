@@ -37,6 +37,12 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
+      - name: Set up pnpm for Windows
+        if: runner.os == 'Windows'
+        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+        with:
+          version: 7.33.7
+
       - name: Install dependencies (Linux/macOS)
         if: runner.os != 'Windows'
         # CI may inherit NODE_ENV=production or npm omit=dev from repository/org settings.
@@ -45,13 +51,13 @@ jobs:
           node -e "require.resolve('eslint/package.json')"
           npm exec --yes=false -- eslint --version
 
-      - name: Install dependencies (Windows npm workaround)
+      - name: Install dependencies (Windows pnpm fallback)
         if: runner.os == 'Windows'
-        # npm ci can print "Exit handler never called" but incorrectly return exit code 0 on
-        # Windows. npm install avoids that npm CLI clean-install failure mode.
+        # npm install/ci both crash on the hosted Windows image with "Exit handler never
+        # called". Use the committed pnpm lockfile so this job does not invoke npm's installer.
         shell: pwsh
         run: |
-          npm install --include=dev --no-audit --no-fund
+          pnpm install --frozen-lockfile
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node -e "require.resolve('eslint/package.json')"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
