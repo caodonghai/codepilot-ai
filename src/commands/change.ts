@@ -27,6 +27,13 @@ import { getChangeName, setCurrentChange, writeRunEvent } from './helpers/state'
 import { buildChangeContext } from './helpers/common';
 import { collectEncodingIssues } from './helpers/encoding';
 import { prompt } from './helpers/ui';
+import {
+  archiveChange,
+  restoreChange,
+  deleteArchivedChange,
+  listChanges,
+  listArchivedChanges,
+} from '../lib/change';
 
 export function registerChangeCommands(program: Command) {
   program
@@ -66,6 +73,24 @@ export function registerChangeCommands(program: Command) {
     .description('Generate a harness report')
     .argument('[change]', 'Change name')
     .action(reportCommand);
+
+  program
+    .command('archive <change>')
+    .description('Archive a completed change')
+    .action(archiveCommand);
+
+  program
+    .command('restore <change>')
+    .description('Restore an archived change')
+    .action(restoreCommand);
+
+  program.command('delete <change>').description('Delete an archived change').action(deleteCommand);
+
+  program
+    .command('list')
+    .description('List all changes')
+    .option('--archived', 'Show archived changes')
+    .action(listCommand);
 }
 
 export async function newCommand(
@@ -336,4 +361,51 @@ function checkCommand(
   if (finalStatus === 'failed') {
     process.exitCode = 1;
   }
+}
+
+function archiveCommand(change: string) {
+  try {
+    const result = archiveChange(change);
+    console.log(`Change archived: ${change}`);
+    console.log(`Target: ${result.targetDir}`);
+    console.log(`Archived at: ${result.archivedAt}`);
+    writeRunEvent('change-archived', { change, ...result });
+  } catch (error) {
+    console.error(`Error archiving change: ${(error as Error).message}`);
+    process.exitCode = 1;
+  }
+}
+
+function restoreCommand(change: string) {
+  try {
+    const result = restoreChange(change);
+    console.log(`Change restored: ${change}`);
+    console.log(`Target: ${result.targetDir}`);
+    console.log(`Restored at: ${result.restoredAt}`);
+    writeRunEvent('change-restored', { change, ...result });
+  } catch (error) {
+    console.error(`Error restoring change: ${(error as Error).message}`);
+    process.exitCode = 1;
+  }
+}
+
+function deleteCommand(change: string) {
+  try {
+    const result = deleteArchivedChange(change);
+    console.log(`Archived change deleted: ${change}`);
+    console.log(`Deleted at: ${result.deletedAt}`);
+    writeRunEvent('change-deleted', { change, ...result });
+  } catch (error) {
+    console.error(`Error deleting archived change: ${(error as Error).message}`);
+    process.exitCode = 1;
+  }
+}
+
+function listCommand(options: { archived?: boolean }) {
+  const changes = options.archived ? listArchivedChanges() : listChanges();
+  if (!changes.length) {
+    console.log(options.archived ? 'No archived changes found.' : 'No changes found.');
+    return;
+  }
+  console.log(JSON.stringify(changes, null, 2));
 }

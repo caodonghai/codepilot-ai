@@ -6,6 +6,7 @@ import { registerFlowCommands } from './flow';
 import { registerTaskCommands } from './task';
 import { registerAgentCommands } from './agent';
 import { registerHealthCommands } from './health';
+import { registerConfigCommands } from './config';
 import type { Command } from 'commander';
 
 export function registerAllCommands(program: Command) {
@@ -17,4 +18,5 @@ export function registerAllCommands(program: Command) {
   registerTaskCommands(program);
   registerAgentCommands(program);
   registerHealthCommands(program);
+  registerConfigCommands(program);
 }

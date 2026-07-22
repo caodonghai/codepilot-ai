@@ -15,6 +15,10 @@ import {
   buildCommandDocument,
 } from './helpers/documents';
 import { checkWritable, isActiveCodexSkillLock } from './helpers/permissions';
+import { Spinner } from './progress';
+import { logger } from '../lib/logger';
+import { t } from '../lib/i18n';
+import { isJsonOutput } from '../lib/context';
 
 export function registerInitCommands(program: Command) {
   program
@@ -38,31 +42,62 @@ function initHarnessCommand(options: { profile?: string; tools?: string; force?:
   const tools = parseTools(options.tools);
   const profile = options.profile || 'lightweight';
 
-  seedProjectTemplates();
-  setupPackageScript();
+  const spinner = new Spinner('Initializing MsgFi AI harness...');
+  spinner.start();
 
-  ensureDir('openspec', 'changes');
-  ensureDir('harness', 'memory', 'knowledge');
-  ensureDir('harness', 'tasks');
-  ensureDir('harness', 'runs');
+  try {
+    seedProjectTemplates();
+    logger.debug('Seeded project templates');
 
-  for (const file of requiredChangeFiles) {
-    writeFileIfMissing(`openspec/changes/.template/${file}`, templateChangeFile('.template', file));
+    setupPackageScript();
+    logger.debug('Set up package script');
+
+    ensureDir('openspec', 'changes');
+    ensureDir('harness', 'memory', 'knowledge');
+    ensureDir('harness', 'tasks');
+    ensureDir('harness', 'runs');
+    logger.debug('Created directories');
+
+    for (const file of requiredChangeFiles) {
+      writeFileIfMissing(
+        `openspec/changes/.template/${file}`,
+        templateChangeFile('.template', file),
+      );
+    }
+    logger.debug('Created template files');
+
+    saveHarnessConfig({
+      version: 1,
+      profile,
+      currentChange: null,
+      tools,
+      checks: ['ai:validate', 'ai:report'],
+      strictChecks: ['eslint', 'ai:validate', 'ai:report'],
+    });
+    logger.debug('Saved harness config');
+
+    spinner.stop(true);
+
+    if (isJsonOutput()) {
+      console.log(
+        JSON.stringify({
+          status: 'success',
+          message: t('init.completed'),
+          profile,
+          tools,
+        }),
+      );
+    } else {
+      logger.success(`${t('init.completed')} profile=${profile}`);
+      logger.info(`Tools: ${tools.join(', ')}`);
+    }
+
+    syncCommand({ tools: options.tools, force: options.force });
+  } catch (error) {
+    spinner.stop(false);
+    logger.error(`Initialization failed: ${(error as Error).message}`);
+    process.exitCode = 1;
   }
-
-  saveHarnessConfig({
-    version: 1,
-    profile,
-    currentChange: null,
-    tools,
-    checks: ['ai:validate', 'ai:report'],
-    strictChecks: ['eslint', 'ai:validate', 'ai:report'],
-  });
-
-  console.log(`[OK] Initialized MsgFi AI harness with profile=${profile}`);
-  console.log(`[OK] Tools: ${tools.join(', ')}`);
-
-  syncCommand({ tools: options.tools, force: options.force });
 }
 
 function syncCommand(options: { tools?: string; force?: boolean; dryRun?: boolean }) {
