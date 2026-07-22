@@ -1,13 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import type { ChangeType } from '../types';
-import {
-  resolvePath,
-  ensureDir,
-  writeGeneratedFile,
-  requiredChangeFiles,
-  changeTypes,
-} from './utils';
+import { resolvePath, ensureDir, writeGeneratedFile } from '../utils/file';
+import { requiredChangeFiles, changeTypes } from '../config/constants';
 
 export interface ChangeInfo {
   name: string;

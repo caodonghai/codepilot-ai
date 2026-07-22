@@ -34,28 +34,33 @@ export {
   integrationGitSources,
   knowledgeFiles,
   phaseByFlow,
-  resolvePath,
-  exists,
-  ensureDir,
-  writeFileIfMissing,
-  writeGeneratedFile,
-  readText,
   parseTools,
   parseToolArgs,
   parseIntegrationName,
   parseIntegrationMode,
   parseChangeType,
   parseKnowledgeType,
+} from './config/constants';
+
+export {
+  resolvePath,
+  exists,
+  ensureDir,
+  writeFileIfMissing,
+  writeGeneratedFile,
+  readText,
+  resolveInsideRoot,
+} from './utils/file';
+
+export {
   splitList,
   uniqueValues,
   kebabName,
   quoteShellArg,
   timestampForFile,
-  textCorruptionScore,
-  hasMojibake,
-  fixMojibakeText,
-  resolveInsideRoot,
-} from './lib/utils';
+} from './utils/string';
+
+export { textCorruptionScore, hasMojibake, fixMojibakeText } from './utils/encoding';
 
 export {
   loadHarnessConfig,
@@ -141,22 +146,14 @@ export type { LogLevel } from './lib/logger';
 
 export { Logger, logger, setLogLevel, getLogLevel } from './lib/logger';
 
-export type { ErrorHandlerOptions } from './lib/errors';
-
 export {
+  ErrorCode,
   HarnessError,
-  ConfigError,
-  ChangeError,
-  IntegrationError,
-  KnowledgeError,
-  TemplateError,
   ValidationError,
-  LockError,
-  ErrorHandler,
-  errorHandler,
+  FileError,
+  ChangeError,
   handleError,
-  wrapAsync,
-  wrapSync,
+  safeExecute,
 } from './lib/errors';
 
 export type { ConfigValidationError, HarnessConfig, HarnessState } from './lib/config';

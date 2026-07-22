@@ -1,14 +1,13 @@
 import fs from 'fs';
 import path from 'path';
+import { resolvePath, writeFileIfMissing } from '../utils/file';
 import {
-  resolvePath,
-  writeFileIfMissing,
   defaultTools,
   coreFiles,
   dispatcherFlow,
   flowNames,
   skillFiles,
-} from '../lib/utils';
+} from '../config/constants';
 
 export function setupPackageScript(options: { enabled?: boolean } = {}) {
   if (options.enabled === false) return 'Skipped package.json script setup by option.';

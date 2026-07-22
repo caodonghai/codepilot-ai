@@ -11,7 +11,7 @@ import {
   changeDirectoryPath,
   archiveDirectoryPath,
 } from '../src/lib/change';
-import { resolvePath, ensureDir, writeGeneratedFile } from '../src/lib/utils';
+import { resolvePath, ensureDir, writeGeneratedFile } from '../src/utils/file';
 
 describe('change module', () => {
   const testChange = 'test-change';

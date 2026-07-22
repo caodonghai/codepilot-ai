@@ -1,12 +1,6 @@
 import { Command } from 'commander';
-import {
-  defaultTools,
-  requiredChangeFiles,
-  ensureDir,
-  writeFileIfMissing,
-  writeGeneratedFile,
-  parseTools,
-} from '../lib/utils';
+import { defaultTools, requiredChangeFiles, parseTools } from '../config/constants';
+import { ensureDir, writeFileIfMissing, writeGeneratedFile } from '../utils/file';
 import { saveHarnessConfig } from '../lib/state';
 import {
   templateChangeFile,
@@ -14,14 +8,13 @@ import {
   seedProjectTemplates,
   applyToolSkip,
 } from './templates';
+import { writeRunEvent } from './helpers/state';
 import {
-  writeRunEvent,
   buildRulesDocument,
   buildDispatcherDocument,
   buildCommandDocument,
-  checkWritable,
-  isActiveCodexSkillLock,
-} from './helpers';
+} from './helpers/documents';
+import { checkWritable, isActiveCodexSkillLock } from './helpers/permissions';
 
 export function registerInitCommands(program: Command) {
   program

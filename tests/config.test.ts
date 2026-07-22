@@ -12,7 +12,7 @@ import {
   updateState,
   isConfigInitialized,
 } from '../src/lib/config';
-import { resolvePath } from '../src/lib/utils';
+import { resolvePath } from '../src/utils/file';
 
 describe('config module', () => {
   beforeEach(() => {

@@ -7,16 +7,9 @@ import type {
   KnowledgeStatus,
   KnowledgeConfidence,
 } from '../types';
-import {
-  resolvePath,
-  writeGeneratedFile,
-  ensureDir,
-  knowledgeFiles,
-  knowledgeTypes,
-  kebabName,
-  uniqueValues,
-  parseKnowledgeType,
-} from '../lib/utils';
+import { resolvePath, writeGeneratedFile, ensureDir } from '../utils/file';
+import { knowledgeFiles, knowledgeTypes, parseKnowledgeType } from '../config/constants';
+import { kebabName, uniqueValues } from '../utils/string';
 
 export function normalizeKnowledgeRecord(record: Partial<KnowledgeRecord>): KnowledgeRecord {
   const now = new Date().toISOString().slice(0, 10);

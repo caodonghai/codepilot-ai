@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import type { IntegrationConfig, IntegrationName } from '../types';
-import { resolvePath, writeGeneratedFile, exists, readText, integrationNames } from '../lib/utils';
+import { resolvePath, writeGeneratedFile, exists, readText } from '../utils/file';
+import { integrationNames } from '../config/constants';
 
 export function defaultIntegrationConfig(name: IntegrationName): IntegrationConfig {
   return {

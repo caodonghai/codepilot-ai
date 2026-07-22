@@ -1,5 +1,6 @@
 import fs from 'fs';
-import { resolvePath, writeGeneratedFile, defaultTools, ensureDir } from './utils';
+import { resolvePath, writeGeneratedFile, ensureDir } from '../utils/file';
+import { defaultTools } from '../config/constants';
 
 export interface HarnessConfig {
   version?: number;

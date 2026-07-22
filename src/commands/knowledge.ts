@@ -1,7 +1,8 @@
 import { Command } from 'commander';
 import fs from 'fs';
 import type { KnowledgeStatus, KnowledgeConfidence, KnowledgeType } from '../types';
-import { resolvePath, splitList, uniqueValues } from '../lib/utils';
+import { resolvePath } from '../utils/file';
+import { splitList, uniqueValues } from '../utils/string';
 import {
   normalizeKnowledgeRecord,
   readKnowledgeFile,
@@ -13,13 +14,9 @@ import {
   loadKnowledgeIndex,
   scoreKnowledgeRecord,
 } from './knowledge-core';
-import {
-  writeRunEvent,
-  getChangeName,
-  readChangeText,
-  syncTaskBoard,
-  taskSummary,
-} from './helpers';
+import { writeRunEvent, getChangeName } from './helpers/state';
+import { readChangeText } from './helpers/encoding';
+import { syncTaskBoard, taskSummary } from './helpers/task';
 
 export function registerKnowledgeCommands(program: Command) {
   const knowledge = program.command('knowledge').description('Knowledge memory management');

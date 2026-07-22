@@ -3,13 +3,9 @@ import fs from 'fs';
 import path from 'path';
 import { spawnSync } from 'child_process';
 import type { IntegrationName } from '../types';
-import {
-  integrationNames,
-  integrationGitSources,
-  resolvePath,
-  writeFileIfMissing,
-  quoteShellArg,
-} from '../lib/utils';
+import { integrationNames, integrationGitSources } from '../config/constants';
+import { resolvePath, writeFileIfMissing } from '../utils/file';
+import { quoteShellArg } from '../utils/string';
 import {
   loadIntegrations,
   inspectIntegrationHealth,
@@ -17,7 +13,7 @@ import {
   loadIntegrationConfig,
   saveIntegrationConfig,
 } from './integrations-core';
-import { writeRunEvent } from './helpers';
+import { writeRunEvent } from './helpers/state';
 
 export function registerIntegrationCommands(program: Command) {
   const integration = program.command('integration').description('Integration management');

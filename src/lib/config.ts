@@ -1,6 +1,7 @@
 import fs from 'fs';
 import type { ToolName } from '../types';
-import { resolvePath, writeGeneratedFile, ensureDir, defaultTools } from './utils';
+import { resolvePath, writeGeneratedFile, ensureDir } from '../utils/file';
+import { defaultTools } from '../config/constants';
 
 export interface ConfigValidationError {
   key: string;

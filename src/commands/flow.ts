@@ -1,5 +1,6 @@
 import { Command } from 'commander';
-import { flowNames, dispatcherFlow, readText, writeGeneratedFile } from '../lib/utils';
+import { flowNames, dispatcherFlow } from '../config/constants';
+import { readText, writeGeneratedFile } from '../utils/file';
 
 export function registerFlowCommands(program: Command) {
   const flow = program.command('flow').description('Workflow management');
