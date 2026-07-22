@@ -7,6 +7,10 @@ import { registerTaskCommands } from './task';
 import { registerAgentCommands } from './agent';
 import { registerHealthCommands } from './health';
 import { registerConfigCommands } from './config';
+import { registerGitCommands } from './git';
+import { registerTemplateCommands } from './template';
+import { registerBackupCommands } from './backup';
+import { registerUpgradeCommands } from './upgrade';
 import type { Command } from 'commander';
 
 export function registerAllCommands(program: Command) {
@@ -19,4 +23,8 @@ export function registerAllCommands(program: Command) {
   registerAgentCommands(program);
   registerHealthCommands(program);
   registerConfigCommands(program);
+  registerGitCommands(program);
+  registerTemplateCommands(program);
+  registerBackupCommands(program);
+  registerUpgradeCommands(program);
 }

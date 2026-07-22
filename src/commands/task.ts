@@ -12,6 +12,8 @@ import {
   taskSummary,
   selectNextTask,
 } from './helpers/task';
+import { runHooks } from '../lib/hooks';
+import { logger } from '../lib/logger';
 
 export function registerTaskCommands(program: Command) {
   program
@@ -77,7 +79,7 @@ function taskNextCommand(changeInput?: string) {
   if (task.blockedBy) console.log(`Blocked by: ${task.blockedBy}`);
 }
 
-function updateTaskCommand(
+async function updateTaskCommand(
   action: HarnessTaskStatus,
   taskId: string,
   options: { change?: string; owner?: string; reason?: string } = {},
@@ -88,6 +90,11 @@ function updateTaskCommand(
   const board = syncTaskBoard(change);
   const task = findTask(board, taskId);
   if (!task) throw new Error(`Task not found: ${taskId}`);
+
+  const hookAction = action === 'blocked' ? 'block' : action;
+  const hookName = `pre-task-${hookAction}` as const;
+  await runHooks(hookName, { change, taskId: task.id, taskTitle: task.title });
+
   const now = new Date().toISOString();
   task.status = action;
   task.updatedAt = now;
@@ -124,5 +131,10 @@ function updateTaskCommand(
     context: buildChangeContext(change),
   });
   writeRunEvent(`task-${action}`, { change, task });
-  console.log(`Task ${task.id} marked ${action}: ${task.title}`);
+
+  const postHookAction = action === 'blocked' ? 'block' : action;
+  const postHookName = `post-task-${postHookAction}` as const;
+  await runHooks(postHookName, { change, taskId: task.id, taskTitle: task.title, status: action });
+
+  logger.success(`Task ${task.id} marked ${action}: ${task.title}`);
 }

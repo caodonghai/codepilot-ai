@@ -15,6 +15,8 @@ export type HookName =
   | 'post-task-doing'
   | 'pre-task-block'
   | 'post-task-block'
+  | 'pre-task-todo'
+  | 'post-task-todo'
   | 'pre-finish'
   | 'post-finish'
   | 'pre-verify'

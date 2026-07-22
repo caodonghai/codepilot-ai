@@ -34,6 +34,9 @@ import {
   listChanges,
   listArchivedChanges,
 } from '../lib/change';
+import { isGitRepo, createBranch, getBranchExists, checkoutBranch } from '../lib/git';
+import { runHooks } from '../lib/hooks';
+import { logger } from '../lib/logger';
 
 export function registerChangeCommands(program: Command) {
   program
@@ -41,6 +44,7 @@ export function registerChangeCommands(program: Command) {
     .description('Create a new OpenSpec change')
     .option('--type <type>', 'Change type', 'default')
     .option('--interactive', 'Interactive mode')
+    .option('--branch', 'Auto create git branch')
     .action(newCommand);
 
   program
@@ -95,10 +99,12 @@ export function registerChangeCommands(program: Command) {
 
 export async function newCommand(
   changeInput: string | undefined,
-  options: { type?: string; interactive?: boolean } = {},
+  options: { type?: string; interactive?: boolean; branch?: boolean } = {},
 ) {
   let change = changeInput ? kebabName(changeInput) : '';
   let type = parseChangeType(options.type);
+
+  await runHooks('pre-change-create', { change, type });
 
   if (options.interactive) {
     change = kebabName(await prompt('Enter change name: '));
@@ -143,7 +149,21 @@ export async function newCommand(
   });
   writeRunEvent('change-created', { change, type });
 
-  console.log(`Created OpenSpec-compatible ${type} change: ${change}`);
+  if (isGitRepo()) {
+    const branchName = `${type}/${change}`;
+    if (getBranchExists(branchName)) {
+      logger.info(`Branch ${branchName} exists, checking out...`);
+      checkoutBranch(branchName);
+    } else {
+      logger.info(`Creating branch: ${branchName}`);
+      createBranch(branchName);
+    }
+    logger.success(`Branch ${branchName} ready`);
+  }
+
+  await runHooks('post-change-create', { change, type });
+
+  logger.success(`Created OpenSpec-compatible ${type} change: ${change}`);
 }
 
 function encodingCommand(changeInput?: string, options: { fix?: boolean } = {}) {

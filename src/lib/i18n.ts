@@ -60,6 +60,14 @@ const zhCN: Translations = {
   'error.general': '发生错误',
   'error.timeout': '操作超时',
   'error.permission': '权限不足',
+
+  'git.not_repo': '当前目录不是 Git 仓库',
+  'git.no_change': '未指定变更名称且没有活动变更',
+  'git.no_changes': '没有未提交的更改',
+  'git.has_changes': '存在未提交的更改',
+  'git.clean': '工作区干净',
+  'git.already_repo': '当前目录已经是 Git 仓库',
+  'git.init_success': 'Git 仓库初始化成功',
 };
 
 const enUS: Translations = {
@@ -118,6 +126,14 @@ const enUS: Translations = {
   'error.general': 'An error occurred',
   'error.timeout': 'Operation timed out',
   'error.permission': 'Permission denied',
+
+  'git.not_repo': 'Current directory is not a Git repository',
+  'git.no_change': 'No change name specified and no active change',
+  'git.no_changes': 'No uncommitted changes',
+  'git.has_changes': 'Uncommitted changes exist',
+  'git.clean': 'Working directory is clean',
+  'git.already_repo': 'Current directory is already a Git repository',
+  'git.init_success': 'Git repository initialized successfully',
 };
 
 const translations: Record<Locale, Translations> = {
