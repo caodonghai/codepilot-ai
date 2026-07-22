@@ -10,13 +10,7 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     env:
-      # Avoid runner- or organization-level npm cache paths leaking across jobs,
-      # especially the unstable shared C:\npm\cache path on Windows runners.
-      npm_config_cache: ${{ github.workspace }}/.npm-cache
-      # Repository/organization npm settings must not omit tooling or disable
-      # Windows .cmd shims used by npm scripts.
       NODE_ENV: development
-      npm_config_bin_links: 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -31,50 +25,35 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-
-      - name: Set up pnpm for Windows
-        if: runner.os == 'Windows'
+      - name: Set up pnpm
         uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
         with:
           version: 7.33.7
 
-      - name: Install dependencies (Linux/macOS)
-        if: runner.os != 'Windows'
-        # CI may inherit NODE_ENV=production or npm omit=dev from repository/org settings.
-        run: |
-          npm ci --include=dev
-          node -e "require.resolve('eslint/package.json')"
-          npm exec --yes=false -- eslint --version
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
 
-      - name: Install dependencies (Windows pnpm fallback)
-        if: runner.os == 'Windows'
-        # npm install/ci both crash on the hosted Windows image with "Exit handler never
-        # called". Use the committed pnpm lockfile so this job does not invoke npm's installer.
-        shell: pwsh
+      - name: Install dependencies
         run: |
           pnpm install --frozen-lockfile
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node -e "require.resolve('eslint/package.json')"
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          npm exec --yes=false -- eslint --version
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          pnpm exec eslint --version
 
       - name: Lint
-        run: npm run lint:check
+        run: pnpm run lint:check
 
       - name: Format check
-        run: npm run format:check
+        run: pnpm run format:check
 
       - name: Build
-        run: npm run build
+        run: pnpm run build
 
       - name: Test
-        run: npm run test:coverage
+        run: pnpm run test:coverage
 
       - name: Smoke test
-        run: npm run smoke
+        run: pnpm run smoke
