@@ -84,6 +84,9 @@ export {
 export {
   templateChangeFile,
   setupPackageScript,
+  setupGitignore,
+  gitignoreMarker,
+  gitignoreRules,
   findTemplateRoot,
   writeFileIfMissingFromTemplate,
   seedProjectTemplates,

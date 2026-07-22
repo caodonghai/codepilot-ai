@@ -9,6 +9,17 @@ import {
   skillFiles,
 } from '../config/constants';
 
+export const gitignoreMarker = '# CodePilot AI runtime artifacts';
+export const gitignoreRules = [
+  'harness/reports/',
+  'harness/runs/',
+  'harness/prompts/',
+  'harness/backups/',
+  'harness/memory/index/',
+  'harness/integrations/*/official/',
+  'harness/integrations/*/cache/',
+];
+
 export function setupPackageScript(options: { enabled?: boolean } = {}) {
   if (options.enabled === false) return 'Skipped package.json script setup by option.';
 
@@ -26,6 +37,28 @@ export function setupPackageScript(options: { enabled?: boolean } = {}) {
   packageJson.scripts.ai = 'codepilot';
   fs.writeFileSync(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`, 'utf8');
   return 'Added package.json script: "ai": "codepilot"';
+}
+
+export function setupGitignore(options: { enabled?: boolean } = {}) {
+  if (options.enabled === false) return 'Skipped .gitignore setup by option.';
+
+  const gitignorePath = resolvePath('.gitignore');
+  const existing = fs.existsSync(gitignorePath) ? fs.readFileSync(gitignorePath, 'utf8') : '';
+  const existingLines = new Set(existing.split(/\r?\n/).map((line) => line.trim()));
+  const missingRules = gitignoreRules.filter((rule) => !existingLines.has(rule));
+
+  if (!missingRules.length && existingLines.has(gitignoreMarker)) {
+    return 'Skipped .gitignore setup because all CodePilot rules already exist.';
+  }
+
+  const eol = existing.includes('\r\n') ? '\r\n' : '\n';
+  const additions: string[] = [];
+  if (!existingLines.has(gitignoreMarker)) additions.push(gitignoreMarker);
+  additions.push(...missingRules);
+
+  const separator = existing.length === 0 ? '' : existing.endsWith('\n') ? eol : eol + eol;
+  fs.writeFileSync(gitignorePath, `${existing}${separator}${additions.join(eol)}${eol}`, 'utf8');
+  return `Updated .gitignore with ${missingRules.length} CodePilot rule(s).`;
 }
 
 export function findTemplateRoot() {

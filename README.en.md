@@ -97,6 +97,7 @@ Initialization options:
 - `--profile <profile>`: `lightweight`, `official`, or `hybrid`.
 - `--tools <tools>`: comma-separated tool identifiers.
 - `--force`: request overwriting generated targets.
+- `--no-setup-gitignore`: do not append CodePilot runtime-artifact rules to the project's `.gitignore`.
 - `--framework <framework>`: React, Vue, Angular, Svelte, Next, Nuxt, Remix, or Solid.
 - `--build-tool <buildTool>`: webpack, vite, rollup, esbuild, or parcel.
 - `--pm <packageManager>`: npm, yarn, pnpm, or bun.
@@ -121,6 +122,8 @@ Responsibilities are divided as follows:
 - `harness/prompts`, `reports`, and `runs` store Agent prompts, check reports, and operation events.
 - `harness/memory` stores searchable, indexable, and deduplicated Knowledge Memory.
 - `harness/integrations` stores official OpenSpec or Superpowers resources imported into the repository.
+
+Initialization maintains `.gitignore` idempotently by default. It creates the file when absent, preserves all existing user content, and appends only missing rules under `# CodePilot AI runtime artifacts`. Repeated initialization does not add duplicates. Reports, run events, Agent prompts, backups, derived Knowledge indexes, and Integration official/cache directories are ignored automatically.
 
 The complete change lifecycle is:
 

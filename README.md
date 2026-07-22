@@ -97,6 +97,7 @@ pnpm exec codepilot init \
 - `--profile <profile>`：`lightweight`、`official` 或 `hybrid`。
 - `--tools <tools>`：逗号分隔的工具列表。
 - `--force`：请求覆盖生成目标。
+- `--no-setup-gitignore`：不向业务项目的 `.gitignore` 追加 CodePilot 运行产物规则。
 - `--framework <framework>`：React、Vue、Angular、Svelte、Next、Nuxt、Remix 或 Solid。
 - `--build-tool <buildTool>`：webpack、vite、rollup、esbuild 或 parcel。
 - `--pm <packageManager>`：npm、yarn、pnpm 或 bun。
@@ -121,6 +122,8 @@ codepilot-ai 包
 - `harness/prompts`、`reports` 和 `runs` 保存 Agent 提示、检查报告和操作事件。
 - `harness/memory` 保存可搜索、索引和去重的 Knowledge Memory。
 - `harness/integrations` 保存导入到当前仓库的 OpenSpec 或 Superpowers 官方资源。
+
+初始化默认以幂等方式维护 `.gitignore`：文件不存在时创建；文件已存在时保留全部用户内容，只在 `# CodePilot AI runtime artifacts` 标记下追加缺失规则。重复执行不会产生重复项。自动忽略报告、运行事件、Agent prompts、备份、Knowledge 派生索引以及 Integration official/cache 目录。
 
 完整需求生命周期是：
 

@@ -5,6 +5,7 @@ import { saveHarnessConfig } from '../lib/state';
 import {
   templateChangeFile,
   setupPackageScript,
+  setupGitignore,
   seedProjectTemplates,
   applyToolSkip,
 } from './templates';
@@ -29,6 +30,7 @@ export function registerInitCommands(program: Command) {
     .option('--profile <profile>', 'Profile: lightweight | official | hybrid', 'lightweight')
     .option('--tools <tools>', 'Comma-separated list of AI tools', defaultTools.join(','))
     .option('--force', 'Overwrite existing files')
+    .option('--no-setup-gitignore', 'Do not add CodePilot runtime artifacts to .gitignore')
     .option(
       '--framework <framework>',
       'Project framework (react/vue/angular/svelte/next/nuxt/remix/solid)',
@@ -53,6 +55,7 @@ function initHarnessCommand(options: {
   framework?: string;
   buildTool?: string;
   pm?: string;
+  setupGitignore?: boolean;
 }) {
   const tools = parseTools(options.tools);
   const profile = options.profile || 'lightweight';
@@ -78,6 +81,9 @@ function initHarnessCommand(options: {
 
     setupPackageScript();
     logger.debug('Set up package script');
+
+    setupGitignore({ enabled: options.setupGitignore !== false });
+    logger.debug('Set up .gitignore');
 
     ensureDir('openspec', 'changes');
     ensureDir('harness', 'memory', 'knowledge');
