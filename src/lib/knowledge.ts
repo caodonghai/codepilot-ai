@@ -1,7 +1,22 @@
 import fs from 'fs';
 import path from 'path';
-import type { KnowledgeRecord, KnowledgeIndexRecord, KnowledgeType, KnowledgeStatus, KnowledgeConfidence } from '../types';
-import { resolvePath, writeGeneratedFile, ensureDir, readText, knowledgeFiles, knowledgeTypes, kebabName, uniqueValues, parseKnowledgeType } from './utils';
+import type {
+  KnowledgeRecord,
+  KnowledgeIndexRecord,
+  KnowledgeType,
+  KnowledgeStatus,
+  KnowledgeConfidence,
+} from '../types';
+import {
+  resolvePath,
+  writeGeneratedFile,
+  ensureDir,
+  knowledgeFiles,
+  knowledgeTypes,
+  kebabName,
+  uniqueValues,
+  parseKnowledgeType,
+} from './utils';
 
 export function normalizeKnowledgeRecord(record: Partial<KnowledgeRecord>): KnowledgeRecord {
   const now = new Date().toISOString().slice(0, 10);
@@ -45,7 +60,9 @@ export function readKnowledgeFile(type: KnowledgeType): KnowledgeRecord[] {
       try {
         return normalizeKnowledgeRecord(JSON.parse(line));
       } catch (error) {
-        throw new Error(`${path.relative(resolvePath('.'), filePath)}:${index + 1} ${(error as Error).message}`);
+        throw new Error(
+          `${path.relative(resolvePath('.'), filePath)}:${index + 1} ${(error as Error).message}`,
+        );
       }
     });
 }
@@ -55,7 +72,11 @@ export function writeKnowledgeFile(type: KnowledgeType, records: KnowledgeRecord
   const lines = records
     .sort((a, b) => a.id.localeCompare(b.id))
     .map((record) => JSON.stringify(record));
-  fs.writeFileSync(knowledgeFilePath(type), `${lines.join('\n')}${lines.length ? '\n' : ''}`, 'utf8');
+  fs.writeFileSync(
+    knowledgeFilePath(type),
+    `${lines.join('\n')}${lines.length ? '\n' : ''}`,
+    'utf8',
+  );
 }
 
 export function readAllKnowledgeRecords(): KnowledgeIndexRecord[] {
@@ -73,7 +94,10 @@ export function readAllKnowledgeRecords(): KnowledgeIndexRecord[] {
   return records;
 }
 
-export function mergeKnowledgeRecords(existing: KnowledgeRecord, incoming: KnowledgeRecord): KnowledgeRecord {
+export function mergeKnowledgeRecords(
+  existing: KnowledgeRecord,
+  incoming: KnowledgeRecord,
+): KnowledgeRecord {
   return {
     ...existing,
     ...incoming,
@@ -109,7 +133,9 @@ export function buildKnowledgeSearchText(record: KnowledgeRecord) {
     record.summary,
     ...record.keywords,
     ...record.usedIn,
-  ].join(' ').toLowerCase();
+  ]
+    .join(' ')
+    .toLowerCase();
 }
 
 function levenshteinDistance(a: string, b: string): number {
@@ -118,7 +144,11 @@ function levenshteinDistance(a: string, b: string): number {
 
   const matrix: number[][] = Array(a.length + 1)
     .fill(null)
-    .map((_, i) => Array(b.length + 1).fill(null).map((_, j) => (i === 0 ? j : j === 0 ? i : 0)));
+    .map((_, i) =>
+      Array(b.length + 1)
+        .fill(null)
+        .map((_, j) => (i === 0 ? j : j === 0 ? i : 0)),
+    );
 
   for (let i = 1; i <= a.length; i++) {
     for (let j = 1; j <= b.length; j++) {
@@ -126,7 +156,7 @@ function levenshteinDistance(a: string, b: string): number {
       matrix[i][j] = Math.min(
         matrix[i - 1][j] + 1,
         matrix[i][j - 1] + 1,
-        matrix[i - 1][j - 1] + cost
+        matrix[i - 1][j - 1] + cost,
       );
     }
   }
@@ -150,7 +180,10 @@ export function buildKnowledgeIndex() {
   const stats = {
     updatedAt: new Date().toISOString(),
     total: records.length,
-    byType: Object.fromEntries(knowledgeTypes.map((type) => [type, 0])) as Record<KnowledgeType, number>,
+    byType: Object.fromEntries(knowledgeTypes.map((type) => [type, 0])) as Record<
+      KnowledgeType,
+      number
+    >,
     byStatus: { active: 0, deprecated: 0 } as Record<KnowledgeStatus, number>,
     byConfidence: { confirmed: 0, uncertain: 0 } as Record<KnowledgeConfidence, number>,
   };
@@ -166,8 +199,14 @@ export function buildKnowledgeIndex() {
     }
   }
 
-  writeGeneratedFile('harness/memory/index/keywords.json', `${JSON.stringify(keywords, null, 2)}\n`);
-  writeGeneratedFile('harness/memory/index/records.json', `${JSON.stringify(indexRecords, null, 2)}\n`);
+  writeGeneratedFile(
+    'harness/memory/index/keywords.json',
+    `${JSON.stringify(keywords, null, 2)}\n`,
+  );
+  writeGeneratedFile(
+    'harness/memory/index/records.json',
+    `${JSON.stringify(indexRecords, null, 2)}\n`,
+  );
   writeGeneratedFile('harness/memory/index/stats.json', `${JSON.stringify(stats, null, 2)}\n`);
   return stats;
 }
@@ -175,14 +214,21 @@ export function buildKnowledgeIndex() {
 export function loadKnowledgeIndex(): KnowledgeIndexRecord[] {
   const recordsPath = resolvePath('harness', 'memory', 'index', 'records.json');
   if (!fs.existsSync(recordsPath)) buildKnowledgeIndex();
-  const records = JSON.parse(fs.readFileSync(recordsPath, 'utf8')) as Record<string, Omit<KnowledgeIndexRecord, 'searchText'>>;
+  const records = JSON.parse(fs.readFileSync(recordsPath, 'utf8')) as Record<
+    string,
+    Omit<KnowledgeIndexRecord, 'searchText'>
+  >;
   return Object.values(records).map((record) => ({
     ...record,
     searchText: buildKnowledgeSearchText(record),
   }));
 }
 
-export function scoreKnowledgeRecord(record: KnowledgeIndexRecord, terms: string[], options: { fuzzy?: boolean } = {}) {
+export function scoreKnowledgeRecord(
+  record: KnowledgeIndexRecord,
+  terms: string[],
+  options: { fuzzy?: boolean } = {},
+) {
   let score = 0;
   for (const term of terms) {
     const normalized = term.toLowerCase();
@@ -207,7 +253,10 @@ export function scoreKnowledgeRecord(record: KnowledgeIndexRecord, terms: string
   return score;
 }
 
-export function searchKnowledge(terms: string[], options: { fuzzy?: boolean; limit?: number } = {}): KnowledgeIndexRecord[] {
+export function searchKnowledge(
+  terms: string[],
+  options: { fuzzy?: boolean; limit?: number } = {},
+): KnowledgeIndexRecord[] {
   const records = loadKnowledgeIndex();
   const scored = records.map((record) => ({
     record,

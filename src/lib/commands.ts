@@ -1,5 +1,11 @@
 import type { Command } from 'commander';
-import type { ChangeType, KnowledgeType, IntegrationName, IntegrationMode, ToolName } from '../types';
+import type {
+  ChangeType,
+  KnowledgeType,
+  IntegrationName,
+  IntegrationMode,
+  ToolName,
+} from '../types';
 
 export interface CommandHandler {
   name: string;
@@ -62,8 +68,12 @@ export class CommandRegistry {
       if (handler.options) {
         for (const option of handler.options) {
           const type = option.type === 'boolean' ? '' : ` <${option.type}>`;
-          const defaultValue = option.defaultValue !== undefined ? ` (default: ${option.defaultValue})` : '';
-          const defaultVal = option.type === 'number' ? undefined : (option.defaultValue as string | boolean | undefined);
+          const defaultValue =
+            option.defaultValue !== undefined ? ` (default: ${option.defaultValue})` : '';
+          const defaultVal =
+            option.type === 'number'
+              ? undefined
+              : (option.defaultValue as string | boolean | undefined);
           cmd.option(`--${option.name}${type}`, `${option.description}${defaultValue}`, defaultVal);
         }
       }
@@ -75,7 +85,7 @@ export class CommandRegistry {
             argValues[handler.args[i].name] = args[i];
           }
         }
-        const options = args[args.length - 1] as Record<string, unknown> || {};
+        const options = (args[args.length - 1] as Record<string, unknown>) || {};
         handler.action({ ...argValues, ...options });
       });
     }
@@ -110,13 +120,14 @@ export interface FlowCommandOptions {
   skip?: string;
 }
 
-export const createChangeCommand = (registry: CommandRegistry, action: (name: string, options: ChangeCommandOptions) => void) => {
+export const createChangeCommand = (
+  registry: CommandRegistry,
+  action: (name: string, options: ChangeCommandOptions) => void,
+) => {
   registry.register({
     name: 'change create <name>',
     description: 'Create a new change proposal',
-    args: [
-      { name: 'name', required: true },
-    ],
+    args: [{ name: 'name', required: true }],
     options: [
       { name: 'type', description: 'Change type', type: 'string', defaultValue: 'default' },
       { name: 'template', description: 'Template name', type: 'string' },
@@ -134,7 +145,10 @@ export const createChangeCommand = (registry: CommandRegistry, action: (name: st
   });
 };
 
-export const createKnowledgeCommand = (registry: CommandRegistry, action: (args: Record<string, unknown>) => void) => {
+export const createKnowledgeCommand = (
+  registry: CommandRegistry,
+  action: (args: Record<string, unknown>) => void,
+) => {
   registry.register({
     name: 'knowledge add',
     description: 'Add a new knowledge record',
@@ -145,7 +159,12 @@ export const createKnowledgeCommand = (registry: CommandRegistry, action: (args:
       { name: 'scope', description: 'Scope', type: 'string', defaultValue: 'global' },
       { name: 'source', description: 'Source', type: 'string', defaultValue: 'repo' },
       { name: 'keywords', description: 'Comma-separated keywords', type: 'string' },
-      { name: 'confidence', description: 'Confidence level', type: 'string', defaultValue: 'confirmed' },
+      {
+        name: 'confidence',
+        description: 'Confidence level',
+        type: 'string',
+        defaultValue: 'confirmed',
+      },
     ],
     action,
   });
@@ -153,9 +172,7 @@ export const createKnowledgeCommand = (registry: CommandRegistry, action: (args:
   registry.register({
     name: 'knowledge search <query>',
     description: 'Search knowledge records',
-    args: [
-      { name: 'query', required: true },
-    ],
+    args: [{ name: 'query', required: true }],
     options: [
       { name: 'type', description: 'Filter by type', type: 'string' },
       { name: 'limit', description: 'Max results', type: 'number', defaultValue: 10 },
@@ -184,15 +201,21 @@ export const createKnowledgeCommand = (registry: CommandRegistry, action: (args:
   });
 };
 
-export const createIntegrationCommand = (registry: CommandRegistry, action: (args: Record<string, unknown>) => void) => {
+export const createIntegrationCommand = (
+  registry: CommandRegistry,
+  action: (args: Record<string, unknown>) => void,
+) => {
   registry.register({
     name: 'integration install <name>',
     description: 'Install an integration',
-    args: [
-      { name: 'name', required: true },
-    ],
+    args: [{ name: 'name', required: true }],
     options: [
-      { name: 'mode', description: 'Integration mode', type: 'string', defaultValue: 'lightweight' },
+      {
+        name: 'mode',
+        description: 'Integration mode',
+        type: 'string',
+        defaultValue: 'lightweight',
+      },
       { name: 'source', description: 'Git source URL', type: 'string' },
       { name: 'path', description: 'Local path', type: 'string' },
     ],
@@ -208,14 +231,15 @@ export const createIntegrationCommand = (registry: CommandRegistry, action: (arg
   registry.register({
     name: 'integration status',
     description: 'Check integration health',
-    options: [
-      { name: 'name', description: 'Integration name', type: 'string' },
-    ],
+    options: [{ name: 'name', description: 'Integration name', type: 'string' }],
     action,
   });
 };
 
-export const createFlowCommand = (registry: CommandRegistry, action: (flow: string, options: FlowCommandOptions) => void) => {
+export const createFlowCommand = (
+  registry: CommandRegistry,
+  action: (flow: string, options: FlowCommandOptions) => void,
+) => {
   const flows = ['explore', 'propose', 'plan', 'apply', 'verify', 'review', 'finish'];
 
   for (const flow of flows) {
@@ -237,40 +261,35 @@ export const createFlowCommand = (registry: CommandRegistry, action: (flow: stri
   }
 };
 
-export const createArchiveCommand = (registry: CommandRegistry, action: (args: Record<string, unknown>) => void) => {
+export const createArchiveCommand = (
+  registry: CommandRegistry,
+  action: (args: Record<string, unknown>) => void,
+) => {
   registry.register({
     name: 'change archive <name>',
     description: 'Archive a completed change',
-    args: [
-      { name: 'name', required: true },
-    ],
+    args: [{ name: 'name', required: true }],
     action,
   });
 
   registry.register({
     name: 'change restore <name>',
     description: 'Restore an archived change',
-    args: [
-      { name: 'name', required: true },
-    ],
+    args: [{ name: 'name', required: true }],
     action,
   });
 
   registry.register({
     name: 'change delete <name>',
     description: 'Delete an archived change',
-    args: [
-      { name: 'name', required: true },
-    ],
+    args: [{ name: 'name', required: true }],
     action,
   });
 
   registry.register({
     name: 'change list',
     description: 'List all changes',
-    options: [
-      { name: 'archived', description: 'Show archived changes', type: 'boolean' },
-    ],
+    options: [{ name: 'archived', description: 'Show archived changes', type: 'boolean' }],
     action,
   });
 };

@@ -21,7 +21,12 @@ export interface HarnessState {
   lastReport: string | null;
   nextSuggestedFlow: string | null;
   blockedBy: string[];
-  decisions: Array<{ text: string; createdAt: string; change?: string | null; flow?: string | null }>;
+  decisions: Array<{
+    text: string;
+    createdAt: string;
+    change?: string | null;
+    flow?: string | null;
+  }>;
   context: Record<string, unknown>;
   updatedAt: string | null;
 }
@@ -50,8 +55,7 @@ function acquireLock(): boolean {
 function releaseLock() {
   try {
     fs.unlinkSync(LOCK_FILE);
-  } catch {
-  }
+  } catch {}
 }
 
 function withLock<T>(fn: () => T): T {
@@ -63,8 +67,7 @@ function withLock<T>(fn: () => T): T {
       throw new Error('Timeout waiting for state lock');
     }
     const start = Date.now();
-    while (Date.now() - start < LOCK_RETRY_DELAY) {
-    }
+    while (Date.now() - start < LOCK_RETRY_DELAY) {}
   }
   try {
     return fn();
@@ -202,7 +205,10 @@ export function writeRunEvent(kind: string, payload: Record<string, unknown>) {
   };
   ensureDir('harness', 'runs');
   const { timestampForFile } = require('./utils');
-  writeGeneratedFile(`harness/runs/${timestampForFile(new Date(createdAt))}-${kind}.json`, `${JSON.stringify(event, null, 2)}\n`);
+  writeGeneratedFile(
+    `harness/runs/${timestampForFile(new Date(createdAt))}-${kind}.json`,
+    `${JSON.stringify(event, null, 2)}\n`,
+  );
   return event;
 }
 

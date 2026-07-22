@@ -1,7 +1,13 @@
 import fs from 'fs';
 import path from 'path';
 import type { ChangeType } from '../types';
-import { resolvePath, ensureDir, writeGeneratedFile, requiredChangeFiles, changeTypes, kebabName } from './utils';
+import {
+  resolvePath,
+  ensureDir,
+  writeGeneratedFile,
+  requiredChangeFiles,
+  changeTypes,
+} from './utils';
 
 export interface ChangeInfo {
   name: string;
@@ -26,7 +32,9 @@ export function validateChangeStructure(change: string) {
   }
 
   const errors: string[] = [];
-  const missingFiles = requiredChangeFiles.filter((file) => !fs.existsSync(path.join(changeDir, file)));
+  const missingFiles = requiredChangeFiles.filter(
+    (file) => !fs.existsSync(path.join(changeDir, file)),
+  );
   if (missingFiles.length) {
     errors.push(`Missing required files: ${missingFiles.join(', ')}`);
   }
@@ -105,8 +113,7 @@ export function listArchivedChanges(): ChangeInfo[] {
       try {
         const archiveInfo = JSON.parse(fs.readFileSync(archiveInfoPath, 'utf8'));
         completedAt = archiveInfo.completedAt;
-      } catch {
-      }
+      } catch {}
     }
 
     changes.push({
@@ -146,11 +153,17 @@ export function archiveChange(change: string) {
     completedAt: new Date().toISOString().slice(0, 10),
     change,
   };
-  writeGeneratedFile(path.join('openspec', 'archive', change, '.archive-info.json'), `${JSON.stringify(archiveInfo, null, 2)}\n`);
+  writeGeneratedFile(
+    path.join('openspec', 'archive', change, '.archive-info.json'),
+    `${JSON.stringify(archiveInfo, null, 2)}\n`,
+  );
 
   fs.rmSync(sourceDir, { recursive: true, force: true });
 
-  return { archivedAt: archiveInfo.archivedAt, targetDir: path.relative(resolvePath('.'), targetDir) };
+  return {
+    archivedAt: archiveInfo.archivedAt,
+    targetDir: path.relative(resolvePath('.'), targetDir),
+  };
 }
 
 export function restoreChange(change: string) {
@@ -171,7 +184,10 @@ export function restoreChange(change: string) {
     fs.unlinkSync(archiveInfoPath);
   }
 
-  return { restoredAt: new Date().toISOString(), targetDir: path.relative(resolvePath('.'), targetDir) };
+  return {
+    restoredAt: new Date().toISOString(),
+    targetDir: path.relative(resolvePath('.'), targetDir),
+  };
 }
 
 export function deleteArchivedChange(change: string) {
@@ -207,7 +223,10 @@ export function createChange(change: string, type: string = 'default') {
 
   const { templateChangeFile } = require('./templates');
   for (const file of requiredChangeFiles) {
-    writeGeneratedFile(path.join('openspec', 'changes', change, file), templateChangeFile(change, file, type));
+    writeGeneratedFile(
+      path.join('openspec', 'changes', change, file),
+      templateChangeFile(change, file, type),
+    );
   }
 
   const notesPath = path.join('openspec', 'changes', change, 'notes.md');
@@ -215,5 +234,8 @@ export function createChange(change: string, type: string = 'default') {
     writeGeneratedFile(notesPath, templateChangeFile(change, 'notes.md', type));
   }
 
-  return { createdAt: new Date().toISOString(), changeDir: path.relative(resolvePath('.'), changeDir) };
+  return {
+    createdAt: new Date().toISOString(),
+    changeDir: path.relative(resolvePath('.'), changeDir),
+  };
 }

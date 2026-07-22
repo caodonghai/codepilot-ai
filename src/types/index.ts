@@ -1,6 +1,14 @@
 export type ToolName = 'codex' | 'trae' | 'qoder' | 'cursor';
-export type HarnessStatus = 'not_started' | 'in_progress' | 'accepted' | 'partially_accepted' | 'rejected' | 'blocked';
-export type HarnessPhase = 'exploration' | 'proposal' | 'planning' | 'implementation' | 'verification' | 'finishing' | 'blocked';
+export type HarnessStatus =
+  'not_started' | 'in_progress' | 'accepted' | 'partially_accepted' | 'rejected' | 'blocked';
+export type HarnessPhase =
+  | 'exploration'
+  | 'proposal'
+  | 'planning'
+  | 'implementation'
+  | 'verification'
+  | 'finishing'
+  | 'blocked';
 
 export interface HarnessResult {
   command: string;

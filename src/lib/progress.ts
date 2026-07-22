@@ -50,7 +50,9 @@ export class ProgressBar {
     const percentage = Math.round((this.current / this.total) * 100);
     const filled = Math.round((this.current / this.total) * this.width);
     const bar = '█'.repeat(filled) + '░'.repeat(this.width - filled);
-    process.stdout.write(`\r${this.message}: [${bar}] ${percentage}% (${this.current}/${this.total})`);
+    process.stdout.write(
+      `\r${this.message}: [${bar}] ${percentage}% (${this.current}/${this.total})`,
+    );
   }
 
   increment(message?: string) {

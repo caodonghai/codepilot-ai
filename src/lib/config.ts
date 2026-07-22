@@ -1,7 +1,6 @@
 import fs from 'fs';
-import path from 'path';
-import type { ToolName, IntegrationName, IntegrationMode } from '../types';
-import { resolvePath, writeGeneratedFile, ensureDir, defaultTools, integrationNames, integrationModes } from './utils';
+import type { ToolName } from '../types';
+import { resolvePath, writeGeneratedFile, ensureDir, defaultTools } from './utils';
 
 export interface ConfigValidationError {
   key: string;
@@ -30,7 +29,12 @@ export interface HarnessState {
   lastReport: string | null;
   nextSuggestedFlow: string | null;
   blockedBy: string[];
-  decisions: Array<{ text: string; createdAt: string; change?: string | null; flow?: string | null }>;
+  decisions: Array<{
+    text: string;
+    createdAt: string;
+    change?: string | null;
+    flow?: string | null;
+  }>;
   context: Record<string, unknown>;
   updatedAt: string | null;
 }
@@ -61,8 +65,7 @@ function acquireLock(): boolean {
 function releaseLock() {
   try {
     fs.unlinkSync(LOCK_FILE);
-  } catch {
-  }
+  } catch {}
 }
 
 function withLock<T>(fn: () => T): T {
@@ -74,8 +77,7 @@ function withLock<T>(fn: () => T): T {
       throw new Error('Timeout waiting for config lock');
     }
     const start = Date.now();
-    while (Date.now() - start < LOCK_RETRY_DELAY) {
-    }
+    while (Date.now() - start < LOCK_RETRY_DELAY) {}
   }
   try {
     return fn();
@@ -91,8 +93,14 @@ export function validateConfig(config: Partial<HarnessConfig>): ConfigValidation
     errors.push({ key: 'version', message: 'version must be a number' });
   }
 
-  if (config.profile !== undefined && !['lightweight', 'official', 'hybrid'].includes(config.profile)) {
-    errors.push({ key: 'profile', message: 'profile must be one of: lightweight, official, hybrid' });
+  if (
+    config.profile !== undefined &&
+    !['lightweight', 'official', 'hybrid'].includes(config.profile)
+  ) {
+    errors.push({
+      key: 'profile',
+      message: 'profile must be one of: lightweight, official, hybrid',
+    });
   }
 
   if (config.tools !== undefined) {
@@ -127,7 +135,7 @@ export function loadConfig(): HarnessConfig {
     const parsed = JSON.parse(raw) as Partial<HarnessConfig>;
     const errors = validateConfig(parsed);
     if (errors.length > 0) {
-      console.warn(`Config validation errors: ${errors.map(e => e.message).join(', ')}`);
+      console.warn(`Config validation errors: ${errors.map((e) => e.message).join(', ')}`);
     }
     return { ...getDefaultConfig(), ...parsed };
   } catch (error) {
@@ -160,7 +168,7 @@ export function updateConfig(patch: Partial<HarnessConfig>) {
     const updated = { ...config, ...patch };
     const errors = validateConfig(updated);
     if (errors.length > 0) {
-      throw new Error(`Config validation failed: ${errors.map(e => e.message).join(', ')}`);
+      throw new Error(`Config validation failed: ${errors.map((e) => e.message).join(', ')}`);
     }
     saveConfig(updated);
   });

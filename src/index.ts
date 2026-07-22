@@ -126,27 +126,33 @@ export {
   collectSkillSummary,
 } from './lib/templates';
 
-export {
-  setLocale,
-  getLocale,
-  t,
-  detectLocale,
-} from './lib/i18n';
+export { setLocale, getLocale, t, detectLocale } from './lib/i18n';
+
+export { Spinner, ProgressBar, logStep, logSuccess, logError, logWarning } from './lib/progress';
+
+export type { LogLevel } from './lib/logger';
+
+export { Logger, logger, setLogLevel, getLogLevel } from './lib/logger';
+
+export type { ErrorHandlerOptions } from './lib/errors';
 
 export {
-  Spinner,
-  ProgressBar,
-  logStep,
-  logSuccess,
-  logError,
-  logWarning,
-} from './lib/progress';
+  HarnessError,
+  ConfigError,
+  ChangeError,
+  IntegrationError,
+  KnowledgeError,
+  TemplateError,
+  ValidationError,
+  LockError,
+  ErrorHandler,
+  errorHandler,
+  handleError,
+  wrapAsync,
+  wrapSync,
+} from './lib/errors';
 
-export type {
-  ConfigValidationError,
-  HarnessConfig,
-  HarnessState,
-} from './lib/config';
+export type { ConfigValidationError, HarnessConfig, HarnessState } from './lib/config';
 
 export {
   validateConfig,
@@ -183,10 +189,7 @@ export {
   createArchiveCommand,
 } from './lib/commands';
 
-export type {
-  Factory,
-  ContainerConfig,
-} from './lib/di';
+export type { Factory, ContainerConfig } from './lib/di';
 
 export {
   DependencyContainer,

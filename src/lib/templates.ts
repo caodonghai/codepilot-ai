@@ -1,6 +1,14 @@
 import fs from 'fs';
 import path from 'path';
-import { resolvePath, writeFileIfMissing, defaultTools, coreFiles, dispatcherFlow, flowNames, skillFiles } from './utils';
+import {
+  resolvePath,
+  writeFileIfMissing,
+  defaultTools,
+  coreFiles,
+  dispatcherFlow,
+  flowNames,
+  skillFiles,
+} from './utils';
 
 export function setupPackageScript(options: { enabled?: boolean } = {}) {
   if (options.enabled === false) return 'Skipped package.json script setup by option.';
@@ -30,7 +38,11 @@ export function findTemplateRoot() {
   return candidates.find((candidate) => fs.existsSync(candidate)) ?? null;
 }
 
-export function writeFileIfMissingFromTemplate(templateRoot: string, templateRelativePath: string, targetRelativePath: string) {
+export function writeFileIfMissingFromTemplate(
+  templateRoot: string,
+  templateRelativePath: string,
+  targetRelativePath: string,
+) {
   const templatePath = path.join(templateRoot, templateRelativePath);
   if (!fs.existsSync(templatePath)) {
     return false;
@@ -56,7 +68,10 @@ export function seedProjectTemplates() {
     copy(path.join('ai', 'core', file), path.join('.ai', 'core', file));
   }
   copy(path.join('ai', 'registry', 'tools.json'), path.join('.ai', 'registry', 'tools.json'));
-  copy(path.join('ai', 'flows', `${dispatcherFlow}.md`), path.join('.ai', 'flows', `${dispatcherFlow}.md`));
+  copy(
+    path.join('ai', 'flows', `${dispatcherFlow}.md`),
+    path.join('.ai', 'flows', `${dispatcherFlow}.md`),
+  );
   for (const flow of flowNames) {
     copy(path.join('ai', 'flows', `${flow}.md`), path.join('.ai', 'flows', `${flow}.md`));
   }
@@ -139,9 +154,21 @@ export function templateChangeFile(change: string, kind: string, type: string = 
 
 export function listTargetFiles(tool: string): string[] {
   const targetFiles: Record<string, string[]> = {
-    codex: ['AGENTS.md', '.codex/skills/msgfi-ai/SKILL.md', ...flowNames.map((flow) => `.codex/skills/msgfi-ai-${flow}/SKILL.md`)],
-    trae: ['.trae/rules.md', '.trae/commands/ai.md', ...flowNames.map((flow) => `.trae/commands/ai-${flow}.md`)],
-    qoder: ['.qoder/rules.md', '.qoder/commands/ai.md', ...flowNames.map((flow) => `.qoder/commands/ai/${flow}.md`)],
+    codex: [
+      'AGENTS.md',
+      '.codex/skills/msgfi-ai/SKILL.md',
+      ...flowNames.map((flow) => `.codex/skills/msgfi-ai-${flow}/SKILL.md`),
+    ],
+    trae: [
+      '.trae/rules.md',
+      '.trae/commands/ai.md',
+      ...flowNames.map((flow) => `.trae/commands/ai-${flow}.md`),
+    ],
+    qoder: [
+      '.qoder/rules.md',
+      '.qoder/commands/ai.md',
+      ...flowNames.map((flow) => `.qoder/commands/ai/${flow}.md`),
+    ],
     cursor: ['.cursor/rules/msgfi-ai.mdc', '.cursor/rules/msgfi-frontend.mdc'],
   };
   return targetFiles[tool] || [];
@@ -149,7 +176,10 @@ export function listTargetFiles(tool: string): string[] {
 
 export function applyToolSkip(tools: string[], skipValue?: string) {
   if (!skipValue) return tools;
-  const skipped = skipValue.split(',').map((item) => item.trim()).filter((tool) => (defaultTools as string[]).includes(tool));
+  const skipped = skipValue
+    .split(',')
+    .map((item) => item.trim())
+    .filter((tool) => (defaultTools as string[]).includes(tool));
   return tools.filter((tool) => !skipped.includes(tool));
 }
 
@@ -163,7 +193,10 @@ export function collectCoreSummary() {
 }
 
 export function collectFlowSummary() {
-  return [`- /ai: .ai/flows/${dispatcherFlow}.md`, ...flowNames.map((flow) => `- /ai:${flow}: .ai/flows/${flow}.md`)].join('\n');
+  return [
+    `- /ai: .ai/flows/${dispatcherFlow}.md`,
+    ...flowNames.map((flow) => `- /ai:${flow}: .ai/flows/${flow}.md`),
+  ].join('\n');
 }
 
 export function collectSkillSummary() {

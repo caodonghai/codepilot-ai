@@ -2,27 +2,50 @@ import fs from 'fs';
 import path from 'path';
 import { spawnSync } from 'child_process';
 import { Command } from 'commander';
-import { archiveChange, restoreChange, deleteArchivedChange, listChanges, listArchivedChanges, validateChangeStructure } from './lib/change';
-import { loadHarnessConfig, saveHarnessConfig, loadHarnessState, saveHarnessState, updateHarnessState, initHarness } from './lib/state';
-import { normalizeKnowledgeRecord, knowledgeFilePath, readKnowledgeFile, writeKnowledgeFile, readAllKnowledgeRecords, mergeKnowledgeRecords, dedupeKnowledgeRecords, tokenizeKnowledgeText, buildKnowledgeSearchText, buildKnowledgeIndex, loadKnowledgeIndex, scoreKnowledgeRecord, searchKnowledge } from './lib/knowledge';
-import { templateChangeFile } from './lib/templates';
+import {
+  archiveChange,
+  restoreChange,
+  deleteArchivedChange,
+  listChanges,
+  listArchivedChanges,
+} from './lib/change';
+import {
+  loadHarnessConfig,
+  saveHarnessConfig,
+  loadHarnessState,
+  updateHarnessState,
+} from './lib/state';
+import {
+  normalizeKnowledgeRecord,
+  readKnowledgeFile,
+  writeKnowledgeFile,
+  readAllKnowledgeRecords,
+  mergeKnowledgeRecords,
+  dedupeKnowledgeRecords,
+  tokenizeKnowledgeText,
+  buildKnowledgeIndex,
+  loadKnowledgeIndex,
+  scoreKnowledgeRecord,
+} from './lib/knowledge';
+import {
+  templateChangeFile,
+  setupPackageScript,
+  seedProjectTemplates,
+  listTargetFiles,
+  applyToolSkip,
+  normalizeTools,
+} from './lib/templates';
 import type {
   ToolName,
   HarnessStatus,
-  HarnessPhase,
   HarnessResult,
   HarnessTaskStatus,
   HarnessTask,
   HarnessTaskBoard,
-  ChangeType,
-  KnowledgeType,
   KnowledgeStatus,
   KnowledgeConfidence,
   IntegrationName,
-  IntegrationMode,
-  IntegrationConfig,
   KnowledgeRecord,
-  KnowledgeIndexRecord,
 } from './types';
 import {
   root,
@@ -32,12 +55,9 @@ import {
   flowNames,
   skillFiles,
   requiredChangeFiles,
-  mojibakePatterns,
   textFilesToCheck,
-  changeTypes,
   knowledgeTypes,
   integrationNames,
-  integrationModes,
   integrationGitSources,
   knowledgeFiles,
   phaseByFlow,
@@ -47,7 +67,6 @@ import {
   writeFileIfMissing,
   writeGeneratedFile,
   readText,
-  parseTools,
   parseToolArgs,
   parseIntegrationName,
   parseIntegrationMode,
@@ -58,99 +77,24 @@ import {
   kebabName,
   quoteShellArg,
   timestampForFile,
-  textCorruptionScore,
   hasMojibake,
   fixMojibakeText,
 } from './lib/utils';
-import { defaultIntegrationConfig, integrationConfigPath, loadIntegrationConfig, saveIntegrationConfig, loadIntegrations, integrationSummary, inspectIntegrationHealth, assertIntegrationTargetPath, parseIntegrationSource, defaultIntegrationDownloadBase, resolveDownloadTarget, assertDownloadOutsideRepo, clearDirectoryContents, copyDirectoryRecursive } from './lib/integrations';
-
-function setupPackageScript(options: { enabled?: boolean } = {}) {
-  if (options.enabled === false) return 'Skipped package.json script setup by option.';
-
-  const packagePath = resolvePath('package.json');
-  if (!fs.existsSync(packagePath)) {
-    return 'Skipped package.json script setup because package.json was not found.';
-  }
-
-  const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8').replace(/^\uFEFF/, ''));
-  packageJson.scripts = packageJson.scripts ?? {};
-  if (packageJson.scripts.ai) {
-    return `Skipped package.json script setup because scripts.ai already exists: ${packageJson.scripts.ai}`;
-  }
-
-  packageJson.scripts.ai = 'msgfi-ai';
-  fs.writeFileSync(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`, 'utf8');
-  return 'Added package.json script: "ai": "msgfi-ai"';
-}
-
-function findTemplateRoot() {
-  const candidates = [
-    resolvePath('packages', 'ai-engineering-kit', 'templates'),
-    path.resolve(__dirname, '..', '..', 'packages', 'ai-engineering-kit', 'templates'),
-    path.resolve(__dirname, '..', 'templates'),
-  ];
-  return candidates.find((candidate) => fs.existsSync(candidate)) ?? null;
-}
-
-function writeFileIfMissingFromTemplate(templateRoot: string, templateRelativePath: string, targetRelativePath: string) {
-  const templatePath = path.join(templateRoot, templateRelativePath);
-  if (!fs.existsSync(templatePath)) {
-    return false;
-  }
-  writeFileIfMissing(targetRelativePath, fs.readFileSync(templatePath, 'utf8'));
-  return true;
-}
-
-function seedProjectTemplates() {
-  const templateRoot = findTemplateRoot();
-  if (!templateRoot) {
-    return ['Package templates not found. Init continued with existing embedded/default behavior.'];
-  }
-
-  const missing: string[] = [];
-  const copy = (templateRelativePath: string, targetRelativePath: string) => {
-    if (!writeFileIfMissingFromTemplate(templateRoot, templateRelativePath, targetRelativePath)) {
-      missing.push(templateRelativePath);
-    }
-  };
-
-  for (const file of coreFiles) {
-    copy(path.join('ai', 'core', file), path.join('.ai', 'core', file));
-  }
-  copy(path.join('ai', 'registry', 'tools.json'), path.join('.ai', 'registry', 'tools.json'));
-  copy(path.join('ai', 'flows', `${dispatcherFlow}.md`), path.join('.ai', 'flows', `${dispatcherFlow}.md`));
-  for (const flow of flowNames) {
-    copy(path.join('ai', 'flows', `${flow}.md`), path.join('.ai', 'flows', `${flow}.md`));
-  }
-  for (const file of skillFiles) {
-    copy(path.join('superpowers', 'skills', file), path.join('superpowers', 'skills', file));
-  }
-  copy(path.join('openspec', 'project.md'), path.join('openspec', 'project.md'));
-  copy(path.join('harness', 'state.json'), path.join('harness', 'state.json'));
-
-  return missing.map((file) => `Missing package template: ${file}`);
-}
-
-function listTargetFiles(tool: ToolName) {
-  const targetFiles: Record<ToolName, string[]> = {
-    codex: ['AGENTS.md', '.codex/skills/msgfi-ai/SKILL.md', ...flowNames.map((flow) => `.codex/skills/msgfi-ai-${flow}/SKILL.md`)],
-    trae: ['.trae/rules.md', '.trae/commands/ai.md', ...flowNames.map((flow) => `.trae/commands/ai-${flow}.md`)],
-    qoder: ['.qoder/rules.md', '.qoder/commands/ai.md', ...flowNames.map((flow) => `.qoder/commands/ai/${flow}.md`)],
-    cursor: ['.cursor/rules/msgfi-ai.mdc', '.cursor/rules/msgfi-frontend.mdc'],
-  };
-  return targetFiles[tool];
-}
-
-function applyToolSkip(tools: ToolName[], skipValue?: string) {
-  const skipped = parseTools(skipValue);
-  if (!skipValue) return tools;
-  return tools.filter((tool) => !skipped.includes(tool));
-}
-
-function normalizeTools(value: unknown): ToolName[] {
-  if (!Array.isArray(value)) return [];
-  return value.filter((tool): tool is ToolName => defaultTools.includes(tool as ToolName));
-}
+import {
+  defaultIntegrationConfig,
+  integrationConfigPath,
+  loadIntegrationConfig,
+  saveIntegrationConfig,
+  loadIntegrations,
+  integrationSummary,
+  inspectIntegrationHealth,
+  assertIntegrationTargetPath,
+  parseIntegrationSource,
+  resolveDownloadTarget,
+  assertDownloadOutsideRepo,
+  clearDirectoryContents,
+  copyDirectoryRecursive,
+} from './lib/integrations';
 
 function setCurrentChange(change: string) {
   const config = loadHarnessConfig();
@@ -185,7 +129,10 @@ function writeRunEvent(kind: string, payload: Record<string, unknown>) {
     ...payload,
   };
   ensureDir('harness', 'runs');
-  writeGeneratedFile(`harness/runs/${timestampForFile(new Date(createdAt))}-${kind}.json`, `${JSON.stringify(event, null, 2)}\n`);
+  writeGeneratedFile(
+    `harness/runs/${timestampForFile(new Date(createdAt))}-${kind}.json`,
+    `${JSON.stringify(event, null, 2)}\n`,
+  );
   return event;
 }
 
@@ -239,7 +186,7 @@ function syncTaskBoard(change: string) {
     return {
       id: existing?.id ?? `T${String(index + 1).padStart(3, '0')}`,
       title: task.title,
-      status: task.checked ? 'done' : existing?.status ?? 'todo',
+      status: task.checked ? 'done' : (existing?.status ?? 'todo'),
       checked: task.checked,
       sourceLine: task.sourceLine,
       owner: existing?.owner ?? null,
@@ -260,9 +207,11 @@ function syncTaskBoard(change: string) {
 
 function findTask(board: HarnessTaskBoard, taskId: string) {
   const normalized = taskId.trim().toLowerCase();
-  return board.tasks.find((task) => task.id.toLowerCase() === normalized)
-    ?? board.tasks.find((task) => task.id.toLowerCase() === `t${normalized.padStart(3, '0')}`)
-    ?? board.tasks.find((task) => task.title.toLowerCase().includes(normalized));
+  return (
+    board.tasks.find((task) => task.id.toLowerCase() === normalized) ??
+    board.tasks.find((task) => task.id.toLowerCase() === `t${normalized.padStart(3, '0')}`) ??
+    board.tasks.find((task) => task.title.toLowerCase().includes(normalized))
+  );
 }
 
 function updateMarkdownTaskCheck(change: string, task: HarnessTask, checked: boolean) {
@@ -287,10 +236,12 @@ function taskSummary(board: HarnessTaskBoard) {
 }
 
 function selectNextTask(board: HarnessTaskBoard) {
-  return board.tasks.find((item) => item.status === 'doing')
-    ?? board.tasks.find((item) => item.status === 'todo')
-    ?? board.tasks.find((item) => item.status === 'blocked')
-    ?? null;
+  return (
+    board.tasks.find((item) => item.status === 'doing') ??
+    board.tasks.find((item) => item.status === 'todo') ??
+    board.tasks.find((item) => item.status === 'blocked') ??
+    null
+  );
 }
 
 function buildAgentPrompt(change: string, task: HarnessTask | null, mode: string) {
@@ -349,7 +300,10 @@ function collectCoreSummary() {
 }
 
 function collectFlowSummary() {
-  return [`- /ai: .ai/flows/${dispatcherFlow}.md`, ...flowNames.map((flow) => `- /ai:${flow}: .ai/flows/${flow}.md`)].join('\n');
+  return [
+    `- /ai: .ai/flows/${dispatcherFlow}.md`,
+    ...flowNames.map((flow) => `- /ai:${flow}: .ai/flows/${flow}.md`),
+  ].join('\n');
 }
 
 function collectSkillSummary() {
@@ -416,7 +370,7 @@ function initCommand(options: { tools?: string; toolArgs?: string[]; setupScript
   saveHarnessConfig({
     version: 1,
     profile: 'lightweight',
-    currentChange: existingConfigExisted ? config.currentChange ?? null : null,
+    currentChange: existingConfigExisted ? (config.currentChange ?? null) : null,
     tools: configuredTools,
     checks: ['ai:validate', 'ai:report'],
     strictChecks: ['eslint', 'ai:validate', 'ai:report'],
@@ -433,7 +387,10 @@ function initCommand(options: { tools?: string; toolArgs?: string[]; setupScript
 }
 
 function syncCommand(options: { tools?: string; skip?: string; toolArgs?: string[] }) {
-  const selectedTools = parseToolArgs(options.toolArgs, options.tools ?? (loadHarnessConfig().tools || defaultTools).join(','));
+  const selectedTools = parseToolArgs(
+    options.toolArgs,
+    options.tools ?? (loadHarnessConfig().tools || defaultTools).join(','),
+  );
   const tools = applyToolSkip(selectedTools, options.skip);
   const errors: string[] = [];
 
@@ -478,12 +435,17 @@ function syncCommand(options: { tools?: string; skip?: string; toolArgs?: string
   if (tools.includes('cursor')) {
     syncTool('cursor', () => {
       writeGeneratedFile('.cursor/rules/msgfi-ai.mdc', buildRulesDocument('cursor'));
-      writeGeneratedFile('.cursor/rules/msgfi-frontend.mdc', `${readText('.ai/core/frontend.md')}\n\n${readText('.ai/core/ui.md')}`);
+      writeGeneratedFile(
+        '.cursor/rules/msgfi-frontend.mdc',
+        `${readText('.ai/core/frontend.md')}\n\n${readText('.ai/core/ui.md')}`,
+      );
     });
   }
 
   if (errors.length) {
-    console.error(`AI target sync partially failed:\n${errors.map((error) => `- ${error}`).join('\n')}`);
+    console.error(
+      `AI target sync partially failed:\n${errors.map((error) => `- ${error}`).join('\n')}`,
+    );
     process.exitCode = 1;
     return;
   }
@@ -504,7 +466,10 @@ function prompt(question: string): Promise<string> {
   });
 }
 
-async function newCommand(changeInput: string | undefined, options: { type?: string; interactive?: boolean } = {}) {
+async function newCommand(
+  changeInput: string | undefined,
+  options: { type?: string; interactive?: boolean } = {},
+) {
   let change = changeInput ? kebabName(changeInput) : '';
   let type = parseChangeType(options.type);
 
@@ -513,7 +478,10 @@ async function newCommand(changeInput: string | undefined, options: { type?: str
     while (!change) {
       change = kebabName(await prompt('Change name is required. Enter change name: '));
     }
-    type = parseChangeType(await prompt('Select change type (default/bugfix/feature/ui-change/refactor): ') || 'default');
+    type = parseChangeType(
+      (await prompt('Select change type (default/bugfix/feature/ui-change/refactor): ')) ||
+        'default',
+    );
   }
 
   if (!change) {
@@ -521,7 +489,10 @@ async function newCommand(changeInput: string | undefined, options: { type?: str
   }
 
   for (const file of [...requiredChangeFiles, 'notes.md']) {
-    writeFileIfMissing(`openspec/changes/${change}/${file}`, templateChangeFile(change, file, type));
+    writeFileIfMissing(
+      `openspec/changes/${change}/${file}`,
+      templateChangeFile(change, file, type),
+    );
   }
 
   const config = loadHarnessConfig();
@@ -573,7 +544,11 @@ function encodingCommand(changeInput?: string, options: { fix?: boolean } = {}) 
   const change = getChangeName(changeInput) ?? undefined;
   const issues = collectEncodingIssues(change);
   if (!issues.length) {
-    console.log(change ? `No mojibake detected for change: ${change}` : 'No mojibake detected in OpenSpec change documents.');
+    console.log(
+      change
+        ? `No mojibake detected for change: ${change}`
+        : 'No mojibake detected in OpenSpec change documents.',
+    );
     return;
   }
   console.log(`Possible mojibake detected:\n${issues.map((item) => `- ${item}`).join('\n')}`);
@@ -595,18 +570,10 @@ function encodingCommand(changeInput?: string, options: { fix?: boolean } = {}) 
     }
   }
   if (fixed.length) console.log(`Fixed files:\n${fixed.map((item) => `- ${item}`).join('\n')}`);
-  if (unchanged.length) console.log(`Could not safely fix:\n${unchanged.map((item) => `- ${item}`).join('\n')}`);
+  if (unchanged.length)
+    console.log(`Could not safely fix:\n${unchanged.map((item) => `- ${item}`).join('\n')}`);
   if (unchanged.length) process.exitCode = 1;
 }
-
-function knowledgeDir() {
-  return resolvePath('harness', 'memory', 'knowledge');
-}
-
-function knowledgeIndexDir() {
-  return resolvePath('harness', 'memory', 'index');
-}
-
 
 function knowledgeAddCommand(options: {
   type?: string;
@@ -622,7 +589,7 @@ function knowledgeAddCommand(options: {
   from?: string;
 }) {
   const fromRecord = options.from
-    ? JSON.parse(fs.readFileSync(resolvePath(options.from), 'utf8')) as Partial<KnowledgeRecord>
+    ? (JSON.parse(fs.readFileSync(resolvePath(options.from), 'utf8')) as Partial<KnowledgeRecord>)
     : {};
   const record = normalizeKnowledgeRecord({
     ...fromRecord,
@@ -647,35 +614,48 @@ function knowledgeAddCommand(options: {
   writeKnowledgeFile(record.type, dedupeKnowledgeRecords(records));
   const stats = buildKnowledgeIndex();
   writeRunEvent('knowledge-add', { id: record.id, type: record.type });
-  console.log(JSON.stringify({ status: existingIndex >= 0 ? 'merged' : 'added', record, stats }, null, 2));
+  console.log(
+    JSON.stringify({ status: existingIndex >= 0 ? 'merged' : 'added', record, stats }, null, 2),
+  );
 }
 
-function knowledgeSearchCommand(termsInput: string[], options: { limit?: string; all?: boolean; type?: string } = {}) {
+function knowledgeSearchCommand(
+  termsInput: string[],
+  options: { limit?: string; all?: boolean; type?: string } = {},
+) {
   const terms = termsInput.length ? termsInput : [];
   if (!terms.length) throw new Error('At least one search keyword is required.');
   const limit = Number.parseInt(options.limit ?? '10', 10);
   const type = options.type ? parseKnowledgeType(options.type) : null;
   const records = loadKnowledgeIndex()
-    .filter((record) => options.all || (record.status === 'active' && record.confidence === 'confirmed'))
+    .filter(
+      (record) => options.all || (record.status === 'active' && record.confidence === 'confirmed'),
+    )
     .filter((record) => !type || record.type === type)
     .map((record) => ({ record, score: scoreKnowledgeRecord(record, terms) }))
     .filter((item) => item.score > 0)
     .sort((a, b) => b.score - a.score || a.record.id.localeCompare(b.record.id))
     .slice(0, Number.isFinite(limit) && limit > 0 ? limit : 10);
-  console.log(JSON.stringify({
-    query: terms,
-    count: records.length,
-    records: records.map(({ record, score }) => ({
-      id: record.id,
-      type: record.type,
-      name: record.name,
-      summary: record.summary,
-      keywords: record.keywords,
-      usedIn: record.usedIn,
-      confidence: record.confidence,
-      score,
-    })),
-  }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        query: terms,
+        count: records.length,
+        records: records.map(({ record, score }) => ({
+          id: record.id,
+          type: record.type,
+          name: record.name,
+          summary: record.summary,
+          keywords: record.keywords,
+          usedIn: record.usedIn,
+          confidence: record.confidence,
+          score,
+        })),
+      },
+      null,
+      2,
+    ),
+  );
 }
 
 function knowledgeListCommand(options: { type?: string; limit?: string; all?: boolean } = {}) {
@@ -686,18 +666,24 @@ function knowledgeListCommand(options: { type?: string; limit?: string; all?: bo
     .filter((record) => !type || record.type === type)
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id))
     .slice(0, Number.isFinite(limit) && limit > 0 ? limit : 50);
-  console.log(JSON.stringify({
-    count: records.length,
-    records: records.map((record) => ({
-      id: record.id,
-      type: record.type,
-      name: record.name,
-      summary: record.summary,
-      status: record.status,
-      confidence: record.confidence,
-      updatedAt: record.updatedAt,
-    })),
-  }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        count: records.length,
+        records: records.map((record) => ({
+          id: record.id,
+          type: record.type,
+          name: record.name,
+          summary: record.summary,
+          status: record.status,
+          confidence: record.confidence,
+          updatedAt: record.updatedAt,
+        })),
+      },
+      null,
+      2,
+    ),
+  );
 }
 
 function knowledgeIndexCommand() {
@@ -720,7 +706,9 @@ function knowledgeDedupeCommand() {
 function knowledgeAnalyzeCommand(options: { limit?: string } = {}) {
   const records = readAllKnowledgeRecords();
   const limit = Number.parseInt(options.limit ?? '10', 10);
-  const byType = Object.fromEntries(knowledgeTypes.map((type) => [type, records.filter((record) => record.type === type).length]));
+  const byType = Object.fromEntries(
+    knowledgeTypes.map((type) => [type, records.filter((record) => record.type === type).length]),
+  );
   const uncertain = records.filter((record) => record.confidence === 'uncertain');
   const deprecated = records.filter((record) => record.status === 'deprecated');
   const keywordCounts = new Map<string, number>();
@@ -734,30 +722,60 @@ function knowledgeAnalyzeCommand(options: { limit?: string } = {}) {
     .slice(0, Number.isFinite(limit) && limit > 0 ? limit : 10)
     .map(([keyword, count]) => ({ keyword, count }));
   const suggestions = [
-    records.length < 10 ? 'Knowledge base is still small. Prefer adding confirmed facts from real changes before creating skills.' : null,
-    uncertain.length ? `Review ${uncertain.length} uncertain records before treating them as reusable facts.` : null,
-    (byType.failure ?? 0) === 0 ? 'No failure records yet. Add repeated pitfalls after finish when confirmed.' : null,
-    topKeywords.some((item) => item.count >= 3) ? 'Some keywords repeat across records; consider a future skill:suggest pass when there are at least 2-3 related confirmed cases.' : null,
+    records.length < 10
+      ? 'Knowledge base is still small. Prefer adding confirmed facts from real changes before creating skills.'
+      : null,
+    uncertain.length
+      ? `Review ${uncertain.length} uncertain records before treating them as reusable facts.`
+      : null,
+    (byType.failure ?? 0) === 0
+      ? 'No failure records yet. Add repeated pitfalls after finish when confirmed.'
+      : null,
+    topKeywords.some((item) => item.count >= 3)
+      ? 'Some keywords repeat across records; consider a future skill:suggest pass when there are at least 2-3 related confirmed cases.'
+      : null,
   ].filter(Boolean);
-  console.log(JSON.stringify({
-    status: 'analyzed',
-    total: records.length,
-    byType,
-    uncertain: uncertain.map((record) => ({ id: record.id, name: record.name, type: record.type })),
-    deprecated: deprecated.map((record) => ({ id: record.id, name: record.name, type: record.type })),
-    topKeywords,
-    suggestions,
-  }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        status: 'analyzed',
+        total: records.length,
+        byType,
+        uncertain: uncertain.map((record) => ({
+          id: record.id,
+          name: record.name,
+          type: record.type,
+        })),
+        deprecated: deprecated.map((record) => ({
+          id: record.id,
+          name: record.name,
+          type: record.type,
+        })),
+        topKeywords,
+        suggestions,
+      },
+      null,
+      2,
+    ),
+  );
 }
 
 function integrationListCommand() {
   const integrations = loadIntegrations();
-  const health = Object.fromEntries(integrationNames.map((name) => [name, inspectIntegrationHealth(name, integrations[name])]));
-  console.log(JSON.stringify({
-    integrations,
-    health,
-    note: 'Official integrations are repo-local only. This command does not install global packages or modify PATH.',
-  }, null, 2));
+  const health = Object.fromEntries(
+    integrationNames.map((name) => [name, inspectIntegrationHealth(name, integrations[name])]),
+  );
+  console.log(
+    JSON.stringify(
+      {
+        integrations,
+        health,
+        note: 'Official integrations are repo-local only. This command does not install global packages or modify PATH.',
+      },
+      null,
+      2,
+    ),
+  );
 }
 
 function integrationUseCommand(nameInput: string, modeInput: string) {
@@ -775,19 +793,29 @@ function integrationUseCommand(nameInput: string, modeInput: string) {
     officialInstalled: next.officialInstalled,
     officialPath: next.officialPath,
   });
-  console.log(JSON.stringify({
-    status: 'updated',
-    integration: name,
-    mode,
-    officialInstalled: next.officialInstalled,
-    officialPath: next.officialPath,
-    warning: mode !== 'lightweight' && !next.officialInstalled
-      ? 'Official integration is selected but not installed in the repo-local official directory. Runtime should fall back or report clearly.'
-      : undefined,
-  }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        status: 'updated',
+        integration: name,
+        mode,
+        officialInstalled: next.officialInstalled,
+        officialPath: next.officialPath,
+        warning:
+          mode !== 'lightweight' && !next.officialInstalled
+            ? 'Official integration is selected but not installed in the repo-local official directory. Runtime should fall back or report clearly.'
+            : undefined,
+      },
+      null,
+      2,
+    ),
+  );
 }
 
-function integrationInstallCommand(nameInput: string, options: { source?: string; dryRun?: boolean } = {}) {
+function integrationInstallCommand(
+  nameInput: string,
+  options: { source?: string; dryRun?: boolean } = {},
+) {
   const name = parseIntegrationName(nameInput);
   const current = loadIntegrationConfig(name);
   const officialPath = assertIntegrationTargetPath(name, current.officialPath);
@@ -800,21 +828,34 @@ function integrationInstallCommand(nameInput: string, options: { source?: string
       ...current,
       lastInstallDryRunAt: now,
     });
-    console.log(JSON.stringify({
-      status: 'dry-run',
-      integration: name,
-      source: options.source ?? null,
-      officialPath: current.officialPath,
-      cachePath: current.cachePath,
-      note: 'No files were copied. No global packages were installed. PATH was not modified.',
-    }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          status: 'dry-run',
+          integration: name,
+          source: options.source ?? null,
+          officialPath: current.officialPath,
+          cachePath: current.cachePath,
+          note: 'No files were copied. No global packages were installed. PATH was not modified.',
+        },
+        null,
+        2,
+      ),
+    );
     return;
   }
 
   if (!sourcePath || !options.source) {
-    throw new Error('v0.8 only supports repo-local install from --source local:<path>. Use --dry-run to preview.');
+    throw new Error(
+      'v0.8 only supports repo-local install from --source local:<path>. Use --dry-run to preview.',
+    );
   }
-  if (sourcePath === officialPath || sourcePath.startsWith(`${officialPath}${path.sep}`) || sourcePath === cachePath || sourcePath.startsWith(`${cachePath}${path.sep}`)) {
+  if (
+    sourcePath === officialPath ||
+    sourcePath.startsWith(`${officialPath}${path.sep}`) ||
+    sourcePath === cachePath ||
+    sourcePath.startsWith(`${cachePath}${path.sep}`)
+  ) {
     throw new Error('Local source cannot be inside the target official/cache directories.');
   }
 
@@ -836,14 +877,20 @@ function integrationInstallCommand(nameInput: string, options: { source?: string
     source: options.source,
     officialPath: current.officialPath,
   });
-  console.log(JSON.stringify({
-    status: 'installed',
-    integration: name,
-    source: options.source,
-    officialPath: current.officialPath,
-    mode: current.mode,
-    note: 'Installed into repo-local official directory only. Mode was not changed automatically.',
-  }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        status: 'installed',
+        integration: name,
+        source: options.source,
+        officialPath: current.officialPath,
+        mode: current.mode,
+        note: 'Installed into repo-local official directory only. Mode was not changed automatically.',
+      },
+      null,
+      2,
+    ),
+  );
 }
 
 function integrationRemoveCommand(nameInput: string, options: { dryRun?: boolean } = {}) {
@@ -854,12 +901,18 @@ function integrationRemoveCommand(nameInput: string, options: { dryRun?: boolean
   const now = new Date().toISOString();
 
   if (options.dryRun) {
-    console.log(JSON.stringify({
-      status: 'dry-run',
-      integration: name,
-      wouldClear: [current.officialPath, current.cachePath],
-      note: 'No files were removed. Only repo-local integration directories are eligible.',
-    }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          status: 'dry-run',
+          integration: name,
+          wouldClear: [current.officialPath, current.cachePath],
+          note: 'No files were removed. Only repo-local integration directories are eligible.',
+        },
+        null,
+        2,
+      ),
+    );
     return;
   }
 
@@ -880,16 +933,25 @@ function integrationRemoveCommand(nameInput: string, options: { dryRun?: boolean
     officialPath: current.officialPath,
     cachePath: current.cachePath,
   });
-  console.log(JSON.stringify({
-    status: 'removed',
-    integration: name,
-    mode: 'lightweight',
-    cleared: [current.officialPath, current.cachePath],
-    note: 'Repo-local official/cache directories were cleared. Lightweight files were not touched.',
-  }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        status: 'removed',
+        integration: name,
+        mode: 'lightweight',
+        cleared: [current.officialPath, current.cachePath],
+        note: 'Repo-local official/cache directories were cleared. Lightweight files were not touched.',
+      },
+      null,
+      2,
+    ),
+  );
 }
 
-function integrationDownloadCommand(nameInput: string, options: { to?: string; dryRun?: boolean; force?: boolean; allowInsideRepo?: boolean } = {}) {
+function integrationDownloadCommand(
+  nameInput: string,
+  options: { to?: string; dryRun?: boolean; force?: boolean; allowInsideRepo?: boolean } = {},
+) {
   const name = parseIntegrationName(nameInput);
   const repo = integrationGitSources[name];
   const target = resolveDownloadTarget(name, options.to);
@@ -898,15 +960,21 @@ function integrationDownloadCommand(nameInput: string, options: { to?: string; d
   const nextInstallCommand = `node ./scripts/ai/run-ai.cjs integration:install ${name} --source ${quoteShellArg(`local:${target}`)}`;
 
   if (options.dryRun) {
-    console.log(JSON.stringify({
-      status: 'dry-run',
-      integration: name,
-      method: 'git',
-      repo,
-      target,
-      nextInstallCommand,
-      note: 'No network request was made. No files were written.',
-    }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          status: 'dry-run',
+          integration: name,
+          method: 'git',
+          repo,
+          target,
+          nextInstallCommand,
+          note: 'No network request was made. No files were written.',
+        },
+        null,
+        2,
+      ),
+    );
     return;
   }
 
@@ -935,17 +1003,23 @@ function integrationDownloadCommand(nameInput: string, options: { to?: string; d
     exitCode,
     durationMs: Date.now() - startedAt,
   });
-  console.log(JSON.stringify({
-    status: exitCode === 0 ? 'downloaded' : 'failed',
-    integration: name,
-    method: 'git',
-    repo,
-    target,
-    exitCode,
-    durationMs: Date.now() - startedAt,
-    nextInstallCommand: exitCode === 0 ? nextInstallCommand : null,
-    note: 'Download only. The current project integration mode was not changed.',
-  }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        status: exitCode === 0 ? 'downloaded' : 'failed',
+        integration: name,
+        method: 'git',
+        repo,
+        target,
+        exitCode,
+        durationMs: Date.now() - startedAt,
+        nextInstallCommand: exitCode === 0 ? nextInstallCommand : null,
+        note: 'Download only. The current project integration mode was not changed.',
+      },
+      null,
+      2,
+    ),
+  );
   if (exitCode !== 0) process.exitCode = exitCode;
 }
 
@@ -961,7 +1035,8 @@ function detectOfficialValidateCommand(name: IntegrationName, officialPath: stri
     };
   }
   if (name === 'openspec' && packageJson?.bin) {
-    const firstBin = typeof packageJson.bin === 'string' ? packageJson.bin : Object.values(packageJson.bin)[0];
+    const firstBin =
+      typeof packageJson.bin === 'string' ? packageJson.bin : Object.values(packageJson.bin)[0];
     if (typeof firstBin === 'string') {
       return {
         command: process.execPath,
@@ -973,7 +1048,10 @@ function detectOfficialValidateCommand(name: IntegrationName, officialPath: stri
   return null;
 }
 
-function integrationValidateCommand(nameInput: string, options: { dryRun?: boolean; execute?: boolean } = {}) {
+function integrationValidateCommand(
+  nameInput: string,
+  options: { dryRun?: boolean; execute?: boolean } = {},
+) {
   const name = parseIntegrationName(nameInput);
   const config = loadIntegrationConfig(name);
   const health = inspectIntegrationHealth(name, config);
@@ -989,39 +1067,63 @@ function integrationValidateCommand(nameInput: string, options: { dryRun?: boole
   };
 
   if (!health.usable) {
-    console.log(JSON.stringify({
-      status: 'unusable',
-      ...base,
-      note: 'Official resources are not usable. Install repo-local official resources or switch back to lightweight.',
-    }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          status: 'unusable',
+          ...base,
+          note: 'Official resources are not usable. Install repo-local official resources or switch back to lightweight.',
+        },
+        null,
+        2,
+      ),
+    );
     process.exitCode = 1;
     return;
   }
 
   if (name === 'superpowers') {
-    console.log(JSON.stringify({
-      status: 'validated',
-      ...base,
-      note: 'Superpowers official validation is structural only in v0.8.2; no official command was executed.',
-    }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          status: 'validated',
+          ...base,
+          note: 'Superpowers official validation is structural only in v0.8.2; no official command was executed.',
+        },
+        null,
+        2,
+      ),
+    );
     return;
   }
 
   if (!validateCommand) {
-    console.log(JSON.stringify({
-      status: 'probe-only',
-      ...base,
-      note: 'Official resources look usable but no repo-local validate command was detected.',
-    }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          status: 'probe-only',
+          ...base,
+          note: 'Official resources look usable but no repo-local validate command was detected.',
+        },
+        null,
+        2,
+      ),
+    );
     return;
   }
 
   if (options.dryRun || !options.execute) {
-    console.log(JSON.stringify({
-      status: 'dry-run',
-      ...base,
-      note: 'Detected repo-local official validate command. Add --execute to run it.',
-    }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          status: 'dry-run',
+          ...base,
+          note: 'Detected repo-local official validate command. Add --execute to run it.',
+        },
+        null,
+        2,
+      ),
+    );
     return;
   }
 
@@ -1038,13 +1140,19 @@ function integrationValidateCommand(nameInput: string, options: { dryRun?: boole
     exitCode,
     durationMs: Date.now() - startedAt,
   });
-  console.log(JSON.stringify({
-    status: exitCode === 0 ? 'passed' : 'failed',
-    ...base,
-    exitCode,
-    durationMs: Date.now() - startedAt,
-    note: 'Executed repo-local official validate command only.',
-  }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        status: exitCode === 0 ? 'passed' : 'failed',
+        ...base,
+        exitCode,
+        durationMs: Date.now() - startedAt,
+        note: 'Executed repo-local official validate command only.',
+      },
+      null,
+      2,
+    ),
+  );
   if (exitCode !== 0) process.exitCode = exitCode;
 }
 
@@ -1058,11 +1166,23 @@ function readChangeText(change: string) {
 }
 
 function collectChangedFilesForKnowledge() {
-  const result = spawnSync('git', ['-c', `safe.directory=${root.replace(/\\/g, '/')}`, 'status', '--short', '--', 'apps', 'packages'], {
-    cwd: root,
-    shell: false,
-    encoding: 'utf8',
-  });
+  const result = spawnSync(
+    'git',
+    [
+      '-c',
+      `safe.directory=${root.replace(/\\/g, '/')}`,
+      'status',
+      '--short',
+      '--',
+      'apps',
+      'packages',
+    ],
+    {
+      cwd: root,
+      shell: false,
+      encoding: 'utf8',
+    },
+  );
   if (result.status !== 0 || !result.stdout) return [];
   return result.stdout
     .split(/\r?\n/)
@@ -1100,7 +1220,10 @@ function extractKnowledgeNames(text: string) {
   for (const item of constants) names.add(item);
   return Array.from(names)
     .sort((a, b) => {
-      const score = (value: string) => (value.includes('.') ? 3 : 0) + (/[A-Z_]/.test(value) ? 2 : 0) + (value.length > 12 ? 1 : 0);
+      const score = (value: string) =>
+        (value.includes('.') ? 3 : 0) +
+        (/[A-Z_]/.test(value) ? 2 : 0) +
+        (value.length > 12 ? 1 : 0);
       return score(b) - score(a) || a.localeCompare(b);
     })
     .slice(0, 8);
@@ -1108,7 +1231,9 @@ function extractKnowledgeNames(text: string) {
 
 function extractReferencedFiles(text: string) {
   const matches = text.match(/\b(?:apps|packages)\/[^\s)`"'，。；,]+/g) ?? [];
-  return uniqueValues(matches.map((item) => item.replace(/[:：]\d+$/, '').replace(/[.,;，。；]+$/, '')));
+  return uniqueValues(
+    matches.map((item) => item.replace(/[:：]\d+$/, '').replace(/[.,;，。；]+$/, '')),
+  );
 }
 
 function buildKnowledgeAddCommand(record: Partial<KnowledgeRecord>) {
@@ -1126,12 +1251,19 @@ function buildKnowledgeAddCommand(record: Partial<KnowledgeRecord>) {
   return args.join(' ');
 }
 
-function knowledgeSuggestCommand(changeInput?: string, options: { limit?: string; write?: boolean } = {}) {
+function knowledgeSuggestCommand(
+  changeInput?: string,
+  options: { limit?: string; write?: boolean } = {},
+) {
   const change = getChangeName(changeInput);
   if (!change) throw new Error('Change name is required.');
   const text = readChangeText(change);
-  const board = fs.existsSync(resolvePath('openspec', 'changes', change, 'tasks.md')) ? syncTaskBoard(change) : null;
-  const changedFiles = extractReferencedFiles(text).length ? extractReferencedFiles(text) : collectChangedFilesForKnowledge();
+  const board = fs.existsSync(resolvePath('openspec', 'changes', change, 'tasks.md'))
+    ? syncTaskBoard(change)
+    : null;
+  const changedFiles = extractReferencedFiles(text).length
+    ? extractReferencedFiles(text)
+    : collectChangedFilesForKnowledge();
   const names = extractKnowledgeNames(text);
   const limit = Number.parseInt(options.limit ?? '8', 10);
   const candidates: Array<Partial<KnowledgeRecord> & { reason: string; command: string }> = [];
@@ -1149,7 +1281,11 @@ function knowledgeSuggestCommand(changeInput?: string, options: { limit?: string
       status: 'active',
       confidence: 'uncertain',
     };
-    candidates.push({ ...record, reason: 'Named symbol found in change documents.', command: buildKnowledgeAddCommand(record) });
+    candidates.push({
+      ...record,
+      reason: 'Named symbol found in change documents.',
+      command: buildKnowledgeAddCommand(record),
+    });
   }
 
   if (/原因|root cause|失败|blocked|风险|regression|bug/i.test(text)) {
@@ -1164,7 +1300,11 @@ function knowledgeSuggestCommand(changeInput?: string, options: { limit?: string
       status: 'active',
       confidence: 'uncertain',
     };
-    candidates.push({ ...record, reason: 'Change text mentions root cause, bug, risk, or failure.', command: buildKnowledgeAddCommand(record) });
+    candidates.push({
+      ...record,
+      reason: 'Change text mentions root cause, bug, risk, or failure.',
+      command: buildKnowledgeAddCommand(record),
+    });
   }
 
   if (/决策|decision|确认|保持|不修改|不影响/i.test(text)) {
@@ -1179,7 +1319,11 @@ function knowledgeSuggestCommand(changeInput?: string, options: { limit?: string
       status: 'active',
       confidence: 'uncertain',
     };
-    candidates.push({ ...record, reason: 'Change text mentions confirmed choices or preserved behavior.', command: buildKnowledgeAddCommand(record) });
+    candidates.push({
+      ...record,
+      reason: 'Change text mentions confirmed choices or preserved behavior.',
+      command: buildKnowledgeAddCommand(record),
+    });
   }
 
   const outputCandidates = candidates.slice(0, Number.isFinite(limit) && limit > 0 ? limit : 8);
@@ -1208,25 +1352,37 @@ function knowledgeSuggestCommand(changeInput?: string, options: { limit?: string
       '',
     ]),
     outputCandidates.length ? '' : 'No obvious reusable knowledge candidates found.',
-  ].filter((line) => line !== '').join('\n');
+  ]
+    .filter((line) => line !== '')
+    .join('\n');
 
   let suggestionPath: string | null = null;
   if (options.write) {
-    suggestionPath = writeTimestampedMarkdown(`openspec/changes/${change}`, 'knowledge-suggestions', `${markdown}\n`);
+    suggestionPath = writeTimestampedMarkdown(
+      `openspec/changes/${change}`,
+      'knowledge-suggestions',
+      `${markdown}\n`,
+    );
     writeRunEvent('knowledge-suggest', { change, suggestionPath, count: outputCandidates.length });
   }
-  console.log(JSON.stringify({
-    change,
-    count: outputCandidates.length,
-    suggestionPath,
-    candidates: outputCandidates.map((candidate) => ({
-      type: candidate.type,
-      name: candidate.name,
-      reason: candidate.reason,
-      summary: candidate.summary,
-      command: candidate.command,
-    })),
-  }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        change,
+        count: outputCandidates.length,
+        suggestionPath,
+        candidates: outputCandidates.map((candidate) => ({
+          type: candidate.type,
+          name: candidate.name,
+          reason: candidate.reason,
+          summary: candidate.summary,
+          command: candidate.command,
+        })),
+      },
+      null,
+      2,
+    ),
+  );
 }
 
 function collectUncheckedTasks(change: string) {
@@ -1292,7 +1448,9 @@ function validateCommand(changeInput?: string, options: { quiet?: boolean } = {}
     for (const file of textFilesToCheck) {
       const relativePath = `openspec/changes/${change}/${file}`;
       if (exists(relativePath) && hasMojibake(readText(relativePath))) {
-        errors.push(`Possible mojibake detected in ${relativePath}. Ensure UTF-8 output in Windows/Codex/PowerShell.`);
+        errors.push(
+          `Possible mojibake detected in ${relativePath}. Ensure UTF-8 output in Windows/Codex/PowerShell.`,
+        );
       }
     }
   }
@@ -1323,18 +1481,6 @@ function validateCommand(changeInput?: string, options: { quiet?: boolean } = {}
   return { status: 'passed' as const, errors };
 }
 
-function runCommand(command: string, args: string[]): HarnessResult {
-  const startedAt = Date.now();
-  const result = spawnSync(command, args, { cwd: root, shell: false, stdio: 'inherit' });
-  const exitCode = typeof result.status === 'number' ? result.status : 1;
-  return {
-    command: [command, ...args].join(' '),
-    status: exitCode === 0 ? 'passed' : 'failed',
-    exitCode,
-    durationMs: Date.now() - startedAt,
-  };
-}
-
 function runEslintCommand(): HarnessResult {
   const eslintPath = resolvePath('node_modules', 'eslint', 'bin', 'eslint.js');
   const startedAt = Date.now();
@@ -1362,13 +1508,18 @@ function runEslintCommand(): HarnessResult {
   };
 }
 
-function writeReport(changeInput: string | undefined, results: HarnessResult[], status?: 'passed' | 'failed') {
+function writeReport(
+  changeInput: string | undefined,
+  results: HarnessResult[],
+  status?: 'passed' | 'failed',
+) {
   const config = loadHarnessConfig();
   const change = getChangeName(changeInput);
   if (changeInput && change) {
     setCurrentChange(change);
   }
-  const finalStatus = status ?? (results.every((item) => item.status === 'passed') ? 'passed' : 'failed');
+  const finalStatus =
+    status ?? (results.every((item) => item.status === 'passed') ? 'passed' : 'failed');
   const timestamp = new Date().toISOString();
   const fileTimestamp = timestamp.replace(/[:.]/g, '-');
   const report = {
@@ -1382,7 +1533,10 @@ function writeReport(changeInput: string | undefined, results: HarnessResult[], 
     results,
   };
 
-  writeGeneratedFile(`harness/reports/${fileTimestamp}.json`, `${JSON.stringify(report, null, 2)}\n`);
+  writeGeneratedFile(
+    `harness/reports/${fileTimestamp}.json`,
+    `${JSON.stringify(report, null, 2)}\n`,
+  );
   updateHarnessState({
     activeChange: change ?? null,
     status: finalStatus === 'passed' ? 'accepted' : 'blocked',
@@ -1390,10 +1544,18 @@ function writeReport(changeInput: string | undefined, results: HarnessResult[], 
     lastStep: `Generated report harness/reports/${fileTimestamp}.json`,
     lastReport: `harness/reports/${fileTimestamp}.json`,
     nextSuggestedFlow: finalStatus === 'passed' ? 'finish' : 'verify',
-    blockedBy: finalStatus === 'passed' ? [] : results.filter((item) => item.status === 'failed').map((item) => item.command),
+    blockedBy:
+      finalStatus === 'passed'
+        ? []
+        : results.filter((item) => item.status === 'failed').map((item) => item.command),
     context: change ? buildChangeContext(change) : {},
   });
-  writeRunEvent('report', { change, status: finalStatus, reportPath: `harness/reports/${fileTimestamp}.json`, results });
+  writeRunEvent('report', {
+    change,
+    status: finalStatus,
+    reportPath: `harness/reports/${fileTimestamp}.json`,
+    results,
+  });
   console.log(`Harness report generated: harness/reports/${fileTimestamp}.json`);
   return report;
 }
@@ -1410,7 +1572,10 @@ function reportCommand(changeInput?: string) {
   ]);
 }
 
-function checkCommand(changeInput?: string, options: { strict?: boolean; noEslint?: boolean } = {}) {
+function checkCommand(
+  changeInput?: string,
+  options: { strict?: boolean; noEslint?: boolean } = {},
+) {
   const results: HarnessResult[] = [];
 
   if (!options.noEslint && options.strict) {
@@ -1420,7 +1585,9 @@ function checkCommand(changeInput?: string, options: { strict?: boolean; noEslin
   const startedAt = Date.now();
   const validation = validateCommand(changeInput, { quiet: true });
   if (validation.status === 'failed') {
-    console.error(`AI validation failed:\n${validation.errors.map((error) => `- ${error}`).join('\n')}`);
+    console.error(
+      `AI validation failed:\n${validation.errors.map((error) => `- ${error}`).join('\n')}`,
+    );
   }
   results.push({
     command: changeInput ? `pnpm ai validate ${changeInput}` : 'pnpm ai validate',
@@ -1456,14 +1623,20 @@ function currentCommand(changeInput?: string) {
   }
   const config = loadHarnessConfig();
   const state = loadHarnessState();
-  console.log(JSON.stringify({
-    currentChange: config.currentChange ?? null,
-    activeChange: state.activeChange ?? null,
-    activeFlow: state.activeFlow ?? null,
-    status: state.status ?? null,
-    phase: state.phase ?? null,
-    lastReport: state.lastReport ?? null,
-  }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        currentChange: config.currentChange ?? null,
+        activeChange: state.activeChange ?? null,
+        activeFlow: state.activeFlow ?? null,
+        status: state.status ?? null,
+        phase: state.phase ?? null,
+        lastReport: state.lastReport ?? null,
+      },
+      null,
+      2,
+    ),
+  );
 }
 
 function resumeCommand() {
@@ -1488,10 +1661,18 @@ function resumeCommand() {
     `- nextStep: ${state.nextStep ?? 'none'}`,
   ];
   if (uncheckedTasks.length) {
-    lines.push('', 'Unfinished tasks:', ...uncheckedTasks.map((task) => `- ${task.replace(/^\s*-\s\[\s\]\s+/, '')}`));
+    lines.push(
+      '',
+      'Unfinished tasks:',
+      ...uncheckedTasks.map((task) => `- ${task.replace(/^\s*-\s\[\s\]\s+/, '')}`),
+    );
   }
   if (decisions.length) {
-    lines.push('', 'Recorded decisions:', ...decisions.map((item: any) => `- ${item.text ?? item}`));
+    lines.push(
+      '',
+      'Recorded decisions:',
+      ...decisions.map((item: { text: string }) => `- ${item.text ?? String(item)}`),
+    );
   }
   if (blockedBy.length) {
     lines.push('', 'Blocked by:', ...blockedBy.map((item: string) => `- ${item}`));
@@ -1505,7 +1686,10 @@ function parseTasks(value?: string | string[]) {
   return Array.isArray(value) ? value : [value];
 }
 
-function verifyCommand(changeInput?: string, options: { status?: HarnessStatus; task?: string | string[] } = {}) {
+function verifyCommand(
+  changeInput?: string,
+  options: { status?: HarnessStatus; task?: string | string[] } = {},
+) {
   const change = getChangeName(changeInput);
   if (!change) throw new Error('Change name is required.');
   if (changeInput) setCurrentChange(change);
@@ -1523,7 +1707,12 @@ function verifyCommand(changeInput?: string, options: { status?: HarnessStatus; 
     blockedBy: uncheckedTasks,
     context: buildChangeContext(change),
   });
-  writeRunEvent('verify-state', { change, status, appendedTasks: parseTasks(options.task), uncheckedTasks });
+  writeRunEvent('verify-state', {
+    change,
+    status,
+    appendedTasks: parseTasks(options.task),
+    uncheckedTasks,
+  });
   console.log(`Harness state updated: ${status}`);
   if (uncheckedTasks.length) {
     console.log(`Unchecked tasks:\n${uncheckedTasks.join('\n')}`);
@@ -1555,18 +1744,23 @@ function finishStateCommand(changeInput?: string) {
   }
 }
 
-function stepCommand(note: string, options: { change?: string; flow?: string; status?: HarnessStatus; next?: string } = {}) {
+function stepCommand(
+  note: string,
+  options: { change?: string; flow?: string; status?: HarnessStatus; next?: string } = {},
+) {
   const change = getChangeName(options.change);
   const flow = options.flow ?? loadHarnessState().activeFlow ?? null;
   updateHarnessState({
     activeChange: change,
     activeFlow: flow,
     status: options.status ?? 'in_progress',
-    phase: flow ? phaseByFlow[flow] ?? 'implementation' : loadHarnessState().phase ?? 'implementation',
+    phase: flow
+      ? (phaseByFlow[flow] ?? 'implementation')
+      : (loadHarnessState().phase ?? 'implementation'),
     lastStep: note,
     nextStep: options.next ?? loadHarnessState().nextStep ?? null,
     nextSuggestedFlow: flow ?? loadHarnessState().nextSuggestedFlow ?? null,
-    context: change ? buildChangeContext(change) : loadHarnessState().context ?? {},
+    context: change ? buildChangeContext(change) : (loadHarnessState().context ?? {}),
   });
   writeRunEvent('step', { change, flow, note, nextStep: options.next ?? null });
   console.log(`Step recorded: ${note}`);
@@ -1575,14 +1769,19 @@ function stepCommand(note: string, options: { change?: string; flow?: string; st
 function decisionCommand(text: string, options: { change?: string; flow?: string } = {}) {
   const state = loadHarnessState();
   const change = getChangeName(options.change);
-  const decision = { text, createdAt: new Date().toISOString(), change: change ?? null, flow: options.flow ?? state.activeFlow ?? null };
+  const decision = {
+    text,
+    createdAt: new Date().toISOString(),
+    change: change ?? null,
+    flow: options.flow ?? state.activeFlow ?? null,
+  };
   const decisions = Array.isArray(state.decisions) ? state.decisions.concat(decision) : [decision];
   updateHarnessState({
     activeChange: change ?? state.activeChange ?? null,
     activeFlow: options.flow ?? state.activeFlow ?? null,
     decisions,
     lastStep: `Decision recorded: ${text}`,
-    context: change ? buildChangeContext(change) : state.context ?? {},
+    context: change ? buildChangeContext(change) : (state.context ?? {}),
   });
   writeRunEvent('decision', decision);
   console.log(`Decision recorded: ${text}`);
@@ -1606,7 +1805,9 @@ function runLogCommand(options: { limit?: string } = {}) {
   }
   for (const file of files) {
     const event = JSON.parse(fs.readFileSync(path.join(runsDir, file), 'utf8'));
-    console.log(`${event.createdAt} ${event.kind} ${event.activeChange ?? ''} ${event.status ?? ''}`.trim());
+    console.log(
+      `${event.createdAt} ${event.kind} ${event.activeChange ?? ''} ${event.status ?? ''}`.trim(),
+    );
   }
 }
 
@@ -1628,9 +1829,10 @@ function taskNextCommand(changeInput?: string) {
   const change = getChangeName(changeInput);
   if (!change) throw new Error('Change name is required.');
   const board = syncTaskBoard(change);
-  const task = board.tasks.find((item) => item.status === 'doing')
-    ?? board.tasks.find((item) => item.status === 'todo')
-    ?? board.tasks.find((item) => item.status === 'blocked');
+  const task =
+    board.tasks.find((item) => item.status === 'doing') ??
+    board.tasks.find((item) => item.status === 'todo') ??
+    board.tasks.find((item) => item.status === 'blocked');
   if (!task) {
     console.log(`No remaining task for ${change}.`);
     return;
@@ -1677,7 +1879,8 @@ function updateTaskCommand(
     status: action === 'blocked' ? 'blocked' : 'in_progress',
     phase: action === 'done' ? 'verification' : action === 'blocked' ? 'blocked' : 'implementation',
     lastStep: `Task ${task.id} marked ${action}: ${task.title}`,
-    nextStep: action === 'done' ? 'Continue the next task or verify acceptance criteria' : task.title,
+    nextStep:
+      action === 'done' ? 'Continue the next task or verify acceptance criteria' : task.title,
     nextSuggestedFlow: action === 'done' ? 'verify' : 'apply',
     blockedBy: action === 'blocked' ? [task.blockedBy] : [],
     context: buildChangeContext(change),
@@ -1708,7 +1911,9 @@ function agentRunCommand(changeInput?: string, options: { claim?: boolean; mode?
     activeFlow: 'apply',
     status: task ? 'in_progress' : 'accepted',
     phase: task ? 'implementation' : 'finishing',
-    lastStep: task ? `Agent run prepared for ${task.id}: ${task.title}` : 'Agent run found no remaining task',
+    lastStep: task
+      ? `Agent run prepared for ${task.id}: ${task.title}`
+      : 'Agent run found no remaining task',
     nextStep: task?.title ?? null,
     nextSuggestedFlow: task ? 'apply' : 'finish',
     blockedBy: task?.status === 'blocked' && task.blockedBy ? [task.blockedBy] : [],
@@ -1732,12 +1937,17 @@ function agentRunCommand(changeInput?: string, options: { claim?: boolean; mode?
   }
 }
 
-function agentFinishCommand(changeInput?: string, options: { check?: boolean; strict?: boolean } = {}) {
+function agentFinishCommand(
+  changeInput?: string,
+  options: { check?: boolean; strict?: boolean } = {},
+) {
   const change = getChangeName(changeInput);
   if (!change) throw new Error('Change name is required.');
   if (changeInput) setCurrentChange(change);
   const board = syncTaskBoard(change);
-  const remainingTasks = board.tasks.filter((task) => task.status === 'todo' || task.status === 'doing');
+  const remainingTasks = board.tasks.filter(
+    (task) => task.status === 'todo' || task.status === 'doing',
+  );
   const blockedTasks = board.tasks.filter((task) => task.status === 'blocked');
   const uncheckedAcceptance = collectUncheckedAcceptance(change);
 
@@ -1782,7 +1992,11 @@ function agentFinishCommand(changeInput?: string, options: { check?: boolean; st
   }
   if (status !== 'blocked' && results.some((item) => item.status === 'failed')) {
     status = 'blocked';
-    blockedBy.push(...results.filter((item) => item.status === 'failed').map((item) => item.reason ?? item.command));
+    blockedBy.push(
+      ...results
+        .filter((item) => item.status === 'failed')
+        .map((item) => item.reason ?? item.command),
+    );
   }
 
   const reportStatus = status === 'blocked' ? 'failed' : 'passed';
@@ -1815,8 +2029,10 @@ function agentFinishCommand(changeInput?: string, options: { check?: boolean; st
   });
   console.log(`Agent finish: ${status}`);
   console.log(`Summary: ${taskSummary(board)}`);
-  if (remaining.length) console.log(`Remaining:\n${remaining.map((item) => `- ${item}`).join('\n')}`);
-  if (blockedBy.length) console.log(`Blocked by:\n${blockedBy.map((item) => `- ${item}`).join('\n')}`);
+  if (remaining.length)
+    console.log(`Remaining:\n${remaining.map((item) => `- ${item}`).join('\n')}`);
+  if (blockedBy.length)
+    console.log(`Blocked by:\n${blockedBy.map((item) => `- ${item}`).join('\n')}`);
   if (remainingTasks.length) {
     const firstTask = remainingTasks[0];
     console.log('');
@@ -1852,10 +2068,12 @@ function checkWritable(relativePath: string) {
 }
 
 function isActiveCodexSkillLock(relativePath: string, reason?: string) {
-  return process.platform === 'win32'
-    && relativePath.startsWith('.codex/skills/')
-    && relativePath.endsWith('/SKILL.md')
-    && Boolean(reason?.includes('EPERM'));
+  return (
+    process.platform === 'win32' &&
+    relativePath.startsWith('.codex/skills/') &&
+    relativePath.endsWith('/SKILL.md') &&
+    Boolean(reason?.includes('EPERM'))
+  );
 }
 
 function doctorCommand(options: { strict?: boolean; encoding?: boolean } = {}) {
@@ -1874,9 +2092,17 @@ function doctorCommand(options: { strict?: boolean; encoding?: boolean } = {}) {
 
   pushCheck('node', /^v?(\d+)\./.test(process.version), `version ${process.version}`, startedAt);
   const hasTsNode = exists('node_modules/ts-node/register/transpile-only.js');
-  pushCheck('ts-node/register/transpile-only', hasTsNode, hasTsNode ? undefined : 'Missing local ts-node dependency.');
+  pushCheck(
+    'ts-node/register/transpile-only',
+    hasTsNode,
+    hasTsNode ? undefined : 'Missing local ts-node dependency.',
+  );
   const hasLauncher = exists('scripts/ai/run-ai.cjs');
-  pushCheck('scripts/ai/run-ai.cjs', hasLauncher, hasLauncher ? undefined : 'Missing stable AI launcher.');
+  pushCheck(
+    'scripts/ai/run-ai.cjs',
+    hasLauncher,
+    hasLauncher ? undefined : 'Missing stable AI launcher.',
+  );
   const hasConfig = exists('harness/config.json');
   pushCheck('harness/config.json', hasConfig, hasConfig ? undefined : 'Missing harness config.');
   const hasState = exists('harness/state.json');
@@ -1892,7 +2118,12 @@ function doctorCommand(options: { strict?: boolean; encoding?: boolean } = {}) {
 
   const validationStartedAt = Date.now();
   const validation = validateCommand(undefined, { quiet: true });
-  pushCheck('ai validate', validation.status === 'passed', validation.errors.join('; ') || undefined, validationStartedAt);
+  pushCheck(
+    'ai validate',
+    validation.status === 'passed',
+    validation.errors.join('; ') || undefined,
+    validationStartedAt,
+  );
 
   const knowledgeStartedAt = Date.now();
   try {
@@ -1917,11 +2148,14 @@ function doctorCommand(options: { strict?: boolean; encoding?: boolean } = {}) {
   for (const tool of tools) {
     for (const file of listTargetFiles(tool)) {
       const writable = checkWritable(file);
-      const codexLock = writable.status === 'failed' && isActiveCodexSkillLock(file, writable.reason);
+      const codexLock =
+        writable.status === 'failed' && isActiveCodexSkillLock(file, writable.reason);
       pushCheck(
         `writable ${file}`,
         writable.status === 'passed' || codexLock,
-        codexLock ? 'Locked by the active Codex session; use pnpm ai sync --skip codex if needed.' : writable.reason,
+        codexLock
+          ? 'Locked by the active Codex session; use pnpm ai sync --skip codex if needed.'
+          : writable.reason,
       );
     }
   }
@@ -1942,13 +2176,19 @@ function doctorCommand(options: { strict?: boolean; encoding?: boolean } = {}) {
   }
 
   const failed = checks.filter((item) => item.status === 'failed');
-  console.log(JSON.stringify({
-    status: failed.length ? 'failed' : 'passed',
-    node: process.version,
-    platform: process.platform,
-    shell: process.env.ComSpec || process.env.SHELL || null,
-    checks,
-  }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        status: failed.length ? 'failed' : 'passed',
+        node: process.version,
+        platform: process.platform,
+        shell: process.env.ComSpec || process.env.SHELL || null,
+        checks,
+      },
+      null,
+      2,
+    ),
+  );
 
   if (failed.length) {
     process.exitCode = 1;
@@ -2095,11 +2335,16 @@ program
 program
   .command('integration:download')
   .argument('<integration>', 'openspec or superpowers')
-  .option('--to <directory>', 'Base directory outside the repository; defaults to ../_ai-official-sources')
+  .option(
+    '--to <directory>',
+    'Base directory outside the repository; defaults to ../_ai-official-sources',
+  )
   .option('--dry-run', 'Preview download target and next install command without network')
   .option('--force', 'Replace an existing download target')
   .option('--allow-inside-repo', 'Allow downloading inside the current repository')
-  .description('Download official sources outside the repository without installing or enabling them')
+  .description(
+    'Download official sources outside the repository without installing or enabling them',
+  )
   .action((integration, options) => integrationDownloadCommand(integration, options));
 
 program
@@ -2130,7 +2375,12 @@ program
   .command('verify-state')
   .argument('[change]', 'Change name')
   .option('--status <status>', 'accepted, partially_accepted, rejected, or blocked')
-  .option('--task <task>', 'Append an unchecked follow-up task', (value, previous: string[] = []) => previous.concat(value), [])
+  .option(
+    '--task <task>',
+    'Append an unchecked follow-up task',
+    (value, previous: string[] = []) => previous.concat(value),
+    [],
+  )
   .action((change, options) => verifyCommand(change, options));
 
 program
@@ -2227,18 +2477,30 @@ program
   .action((change) => {
     try {
       const result = archiveChange(change);
-      console.log(JSON.stringify({
-        status: 'archived',
-        change,
-        archivedAt: result.archivedAt,
-        target: result.targetDir,
-      }, null, 2));
+      console.log(
+        JSON.stringify(
+          {
+            status: 'archived',
+            change,
+            archivedAt: result.archivedAt,
+            target: result.targetDir,
+          },
+          null,
+          2,
+        ),
+      );
     } catch (error) {
-      console.error(JSON.stringify({
-        status: 'error',
-        change,
-        error: (error as Error).message,
-      }, null, 2));
+      console.error(
+        JSON.stringify(
+          {
+            status: 'error',
+            change,
+            error: (error as Error).message,
+          },
+          null,
+          2,
+        ),
+      );
       process.exitCode = 1;
     }
   });
@@ -2250,18 +2512,30 @@ program
   .action((change) => {
     try {
       const result = restoreChange(change);
-      console.log(JSON.stringify({
-        status: 'restored',
-        change,
-        restoredAt: result.restoredAt,
-        target: result.targetDir,
-      }, null, 2));
+      console.log(
+        JSON.stringify(
+          {
+            status: 'restored',
+            change,
+            restoredAt: result.restoredAt,
+            target: result.targetDir,
+          },
+          null,
+          2,
+        ),
+      );
     } catch (error) {
-      console.error(JSON.stringify({
-        status: 'error',
-        change,
-        error: (error as Error).message,
-      }, null, 2));
+      console.error(
+        JSON.stringify(
+          {
+            status: 'error',
+            change,
+            error: (error as Error).message,
+          },
+          null,
+          2,
+        ),
+      );
       process.exitCode = 1;
     }
   });
@@ -2273,17 +2547,29 @@ program
   .action((change) => {
     try {
       const result = deleteArchivedChange(change);
-      console.log(JSON.stringify({
-        status: 'deleted',
-        change,
-        deletedAt: result.deletedAt,
-      }, null, 2));
+      console.log(
+        JSON.stringify(
+          {
+            status: 'deleted',
+            change,
+            deletedAt: result.deletedAt,
+          },
+          null,
+          2,
+        ),
+      );
     } catch (error) {
-      console.error(JSON.stringify({
-        status: 'error',
-        change,
-        error: (error as Error).message,
-      }, null, 2));
+      console.error(
+        JSON.stringify(
+          {
+            status: 'error',
+            change,
+            error: (error as Error).message,
+          },
+          null,
+          2,
+        ),
+      );
       process.exitCode = 1;
     }
   });
@@ -2294,11 +2580,17 @@ program
   .action(() => {
     const active = listChanges();
     const archived = listArchivedChanges();
-    console.log(JSON.stringify({
-      active: active.length,
-      archived: archived.length,
-      changes: [...active, ...archived],
-    }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          active: active.length,
+          archived: archived.length,
+          changes: [...active, ...archived],
+        },
+        null,
+        2,
+      ),
+    );
   });
 
 program.parse(process.argv);

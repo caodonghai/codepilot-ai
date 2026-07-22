@@ -1,8 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { spawnSync } from 'child_process';
-import type { IntegrationConfig, IntegrationName, IntegrationMode } from '../types';
-import { resolvePath, writeGeneratedFile, ensureDir, exists, readText, integrationNames, integrationModes, integrationGitSources, quoteShellArg } from './utils';
+import type { IntegrationConfig, IntegrationName } from '../types';
+import { resolvePath, writeGeneratedFile, exists, readText, integrationNames } from './utils';
 
 export function defaultIntegrationConfig(name: IntegrationName): IntegrationConfig {
   return {
@@ -35,14 +34,23 @@ export function loadIntegrationConfig(name: IntegrationName): IntegrationConfig 
 }
 
 export function saveIntegrationConfig(config: IntegrationConfig) {
-  writeGeneratedFile(integrationConfigPath(config.name), `${JSON.stringify({
-    ...config,
-    updatedAt: new Date().toISOString(),
-  }, null, 2)}\n`);
+  writeGeneratedFile(
+    integrationConfigPath(config.name),
+    `${JSON.stringify(
+      {
+        ...config,
+        updatedAt: new Date().toISOString(),
+      },
+      null,
+      2,
+    )}\n`,
+  );
 }
 
 export function loadIntegrations() {
-  return Object.fromEntries(integrationNames.map((name) => [name, loadIntegrationConfig(name)])) as Record<IntegrationName, IntegrationConfig>;
+  return Object.fromEntries(
+    integrationNames.map((name) => [name, loadIntegrationConfig(name)]),
+  ) as Record<IntegrationName, IntegrationConfig>;
 }
 
 export function inspectIntegrationHealth(name: IntegrationName, config?: IntegrationConfig) {
@@ -85,9 +93,9 @@ export function inspectIntegrationHealth(name: IntegrationName, config?: Integra
   } else {
     has('README.md');
     if (
-      fs.existsSync(path.join(officialPath, 'skills'))
-      || fs.existsSync(path.join(officialPath, 'commands'))
-      || fs.existsSync(path.join(officialPath, 'superpowers'))
+      fs.existsSync(path.join(officialPath, 'skills')) ||
+      fs.existsSync(path.join(officialPath, 'commands')) ||
+      fs.existsSync(path.join(officialPath, 'superpowers'))
     ) {
       evidence.push(`${config?.officialPath}/skills|commands|superpowers`);
     } else {
@@ -97,28 +105,34 @@ export function inspectIntegrationHealth(name: IntegrationName, config?: Integra
 
   const usable = evidence.length > 0 && (name === 'superpowers' ? evidence.length >= 2 : true);
   return {
-    health: usable ? 'usable' as const : 'incomplete' as const,
+    health: usable ? ('usable' as const) : ('incomplete' as const),
     usable,
-    reason: usable ? 'Repo-local official resources look usable.' : `Repo-local official resources are incomplete: ${missing.join(', ')}`,
+    reason: usable
+      ? 'Repo-local official resources look usable.'
+      : `Repo-local official resources are incomplete: ${missing.join(', ')}`,
     evidence,
     missing,
   };
 }
 
 export function integrationSummary() {
-  return integrationNames.map((name) => {
-    const config = loadIntegrationConfig(name);
-    const installed = config.officialInstalled ? 'installed' : 'not installed';
-    const health = inspectIntegrationHealth(name, config);
-    return `- ${name}: ${config.mode} (${installed}, health=${health.health}, repo-local only: ${config.officialPath})`;
-  }).join('\n');
+  return integrationNames
+    .map((name) => {
+      const config = loadIntegrationConfig(name);
+      const installed = config.officialInstalled ? 'installed' : 'not installed';
+      const health = inspectIntegrationHealth(name, config);
+      return `- ${name}: ${config.mode} (${installed}, health=${health.health}, repo-local only: ${config.officialPath})`;
+    })
+    .join('\n');
 }
 
 export function assertIntegrationTargetPath(name: IntegrationName, relativePath: string) {
   const expectedPrefix = path.resolve(resolvePath('.'), 'harness', 'integrations', name);
   const fullPath = path.resolve(resolvePath('.'), relativePath);
   if (fullPath !== expectedPrefix && !fullPath.startsWith(`${expectedPrefix}${path.sep}`)) {
-    throw new Error(`Refusing integration path outside harness/integrations/${name}: ${relativePath}`);
+    throw new Error(
+      `Refusing integration path outside harness/integrations/${name}: ${relativePath}`,
+    );
   }
   return fullPath;
 }
@@ -126,13 +140,16 @@ export function assertIntegrationTargetPath(name: IntegrationName, relativePath:
 export function parseIntegrationSource(source?: string) {
   if (!source) return null;
   if (!source.startsWith('local:')) {
-    throw new Error('Only local:<path> sources are supported in v0.8. Network and global installs are intentionally unsupported.');
+    throw new Error(
+      'Only local:<path> sources are supported in v0.8. Network and global installs are intentionally unsupported.',
+    );
   }
   const sourcePath = source.slice('local:'.length).trim();
   if (!sourcePath) throw new Error('local:<path> source is required.');
   const fullPath = path.resolve(sourcePath);
   if (!fs.existsSync(fullPath)) throw new Error(`Local source does not exist: ${sourcePath}`);
-  if (!fs.statSync(fullPath).isDirectory()) throw new Error(`Local source must be a directory: ${sourcePath}`);
+  if (!fs.statSync(fullPath).isDirectory())
+    throw new Error(`Local source must be a directory: ${sourcePath}`);
   return fullPath;
 }
 
@@ -148,7 +165,9 @@ export function resolveDownloadTarget(name: IntegrationName, to?: string) {
 export function assertDownloadOutsideRepo(target: string, allowInsideRepo?: boolean) {
   const rootPath = path.resolve(resolvePath('.'));
   if (!allowInsideRepo && (target === rootPath || target.startsWith(`${rootPath}${path.sep}`))) {
-    throw new Error('Refusing to download official sources inside the repository. Use --allow-inside-repo only if you know what you are doing.');
+    throw new Error(
+      'Refusing to download official sources inside the repository. Use --allow-inside-repo only if you know what you are doing.',
+    );
   }
 }
 
@@ -184,7 +203,8 @@ export function detectOfficialValidateCommand(name: IntegrationName, officialPat
     };
   }
   if (name === 'openspec' && packageJson?.bin) {
-    const firstBin = typeof packageJson.bin === 'string' ? packageJson.bin : Object.values(packageJson.bin)[0];
+    const firstBin =
+      typeof packageJson.bin === 'string' ? packageJson.bin : Object.values(packageJson.bin)[0];
     if (typeof firstBin === 'string') {
       return {
         command: process.execPath,

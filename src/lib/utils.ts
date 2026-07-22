@@ -11,10 +11,24 @@ import type {
 
 export const root = process.cwd();
 export const defaultTools: ToolName[] = ['codex', 'trae', 'qoder', 'cursor'];
-export const coreFiles = ['project.md', 'frontend.md', 'api.md', 'ui.md', 'testing.md', 'review.md', 'workflow.md'];
+export const coreFiles = [
+  'project.md',
+  'frontend.md',
+  'api.md',
+  'ui.md',
+  'testing.md',
+  'review.md',
+  'workflow.md',
+];
 export const dispatcherFlow = 'ai';
 export const flowNames = ['explore', 'propose', 'plan', 'apply', 'verify', 'review', 'finish'];
-export const skillFiles = ['planning.md', 'tdd.md', 'debugging.md', 'code-review.md', 'finishing.md'];
+export const skillFiles = [
+  'planning.md',
+  'tdd.md',
+  'debugging.md',
+  'code-review.md',
+  'finishing.md',
+];
 export const requiredChangeFiles = ['proposal.md', 'tasks.md', 'acceptance.md'];
 export const mojibakePatterns = [
   '\u7ead',
@@ -29,9 +43,21 @@ export const mojibakePatterns = [
   '\u951f',
   '\ufffd',
 ];
-export const textFilesToCheck = ['proposal.md', 'tasks.md', 'acceptance.md', 'notes.md', 'conversation-report.txt'];
+export const textFilesToCheck = [
+  'proposal.md',
+  'tasks.md',
+  'acceptance.md',
+  'notes.md',
+  'conversation-report.txt',
+];
 export const changeTypes: ChangeType[] = ['default', 'bugfix', 'feature', 'ui-change', 'refactor'];
-export const knowledgeTypes: KnowledgeType[] = ['component', 'function', 'pattern', 'decision', 'failure'];
+export const knowledgeTypes: KnowledgeType[] = [
+  'component',
+  'function',
+  'pattern',
+  'decision',
+  'failure',
+];
 export const integrationNames: IntegrationName[] = ['openspec', 'superpowers'];
 export const integrationModes: IntegrationMode[] = ['lightweight', 'official', 'hybrid'];
 export const integrationGitSources: Record<IntegrationName, string> = {
@@ -87,10 +113,15 @@ export function readText(relativePath: string) {
 
 export function parseTools(value?: string): ToolName[] {
   if (!value) return defaultTools;
-  const tools = value.split(',').map((item) => item.trim()).filter(Boolean) as ToolName[];
+  const tools = value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean) as ToolName[];
   const unsupported = tools.filter((tool) => !defaultTools.includes(tool));
   if (unsupported.length) {
-    throw new Error(`Unsupported tools: ${unsupported.join(', ')}. Supported tools: ${defaultTools.join(', ')}`);
+    throw new Error(
+      `Unsupported tools: ${unsupported.join(', ')}. Supported tools: ${defaultTools.join(', ')}`,
+    );
   }
   return Array.from(new Set(tools));
 }
@@ -102,14 +133,18 @@ export function parseToolArgs(args?: string[], optionValue?: string) {
 
 export function parseIntegrationName(value?: string): IntegrationName {
   if (!value || !integrationNames.includes(value as IntegrationName)) {
-    throw new Error(`Unsupported integration: ${value ?? ''}. Supported integrations: ${integrationNames.join(', ')}`);
+    throw new Error(
+      `Unsupported integration: ${value ?? ''}. Supported integrations: ${integrationNames.join(', ')}`,
+    );
   }
   return value as IntegrationName;
 }
 
 export function parseIntegrationMode(value?: string): IntegrationMode {
   if (!value || !integrationModes.includes(value as IntegrationMode)) {
-    throw new Error(`Unsupported integration mode: ${value ?? ''}. Supported modes: ${integrationModes.join(', ')}`);
+    throw new Error(
+      `Unsupported integration mode: ${value ?? ''}. Supported modes: ${integrationModes.join(', ')}`,
+    );
   }
   return value as IntegrationMode;
 }
@@ -117,14 +152,18 @@ export function parseIntegrationMode(value?: string): IntegrationMode {
 export function parseChangeType(value?: string): ChangeType {
   if (!value) return 'default';
   if (!changeTypes.includes(value as ChangeType)) {
-    throw new Error(`Unsupported change type: ${value}. Supported types: ${changeTypes.join(', ')}`);
+    throw new Error(
+      `Unsupported change type: ${value}. Supported types: ${changeTypes.join(', ')}`,
+    );
   }
   return value as ChangeType;
 }
 
 export function parseKnowledgeType(value?: string): KnowledgeType {
   if (!value || !knowledgeTypes.includes(value as KnowledgeType)) {
-    throw new Error(`Unsupported knowledge type: ${value ?? ''}. Supported types: ${knowledgeTypes.join(', ')}`);
+    throw new Error(
+      `Unsupported knowledge type: ${value ?? ''}. Supported types: ${knowledgeTypes.join(', ')}`,
+    );
   }
   return value as KnowledgeType;
 }
@@ -142,7 +181,11 @@ export function uniqueValues(values: string[]) {
 }
 
 export function kebabName(value: string) {
-  return value.trim().replace(/[^a-zA-Z0-9\u4e00-\u9fa5]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase();
+  return value
+    .trim()
+    .replace(/[^a-zA-Z0-9\u4e00-\u9fa5]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase();
 }
 
 export function quoteShellArg(value: string) {
