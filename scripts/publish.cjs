@@ -129,9 +129,9 @@ async function main() {
   const confirmation = process.argv.includes('--yes')
     ? 'yes'
     : await ask(
-        `将 ${packageJson.name} 从 ${packageJson.version} 升级到 ${targetVersion}，提交并推送到 origin/${branch} 后发布 npm。输入 yes 继续：`,
+        `将 ${packageJson.name} 从 ${packageJson.version} 升级到 ${targetVersion}，提交并推送到 origin/${branch} 后发布 npm。输入 yes/y 继续：`,
       );
-  if (confirmation !== 'yes') throw new Error('已取消发布。');
+  if (!['yes', 'y'].includes(confirmation)) throw new Error('已取消发布。');
 
   run(npmCommand, ['version', release, '-m', 'chore(release): v%s']);
   run('git', ['push', 'origin', 'HEAD', '--follow-tags']);

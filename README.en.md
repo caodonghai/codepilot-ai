@@ -440,7 +440,7 @@ npm run smoke
 npm run publish
 ```
 
-`npm run publish` builds the project and validates the npm package contents before showing an arrow-key menu for a `patch`, `minor`, or `major` bump. `patch` is selected by default and Enter confirms it. The command then creates the version commit and Git tag, pushes them to `origin`, and publishes to npm. Use `npm run publish -- patch --yes` in non-interactive environments. The Git worktree must be clean and npm authentication must already be configured.
+`npm run publish` builds the project and validates the npm package contents before showing an arrow-key menu for a `patch`, `minor`, or `major` bump. `patch` is selected by default and Enter confirms it. The final commit-and-push confirmation accepts `yes` or `y`. The command then creates the version commit and Git tag, pushes them to `origin`, and publishes to npm. Use `npm run publish -- patch --yes` in non-interactive environments. The Git worktree must be clean and npm authentication must already be configured.
 
 The build script first runs type checking with the local TypeScript installation, then cleans and compiles `dist/`, and finally generates `dist/cli.cjs` with a Node shebang. Tests use an isolated temporary project root and do not modify real Harness data in the repository.
 
