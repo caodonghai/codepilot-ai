@@ -13,7 +13,7 @@ import {
   buildKnowledgeIndex,
   loadKnowledgeIndex,
   scoreKnowledgeRecord,
-} from './knowledge-core';
+} from '../lib/knowledge';
 import { writeRunEvent, getChangeName } from './helpers/state';
 import { readChangeText } from './helpers/encoding';
 import { syncTaskBoard, taskSummary } from './helpers/task';

@@ -11,6 +11,8 @@ import { registerGitCommands } from './git';
 import { registerTemplateCommands } from './template';
 import { registerBackupCommands } from './backup';
 import { registerUpgradeCommands } from './upgrade';
+import { registerDependencyCommands } from './dep';
+import { registerHookCommands } from './hook';
 import type { Command } from 'commander';
 
 export function registerAllCommands(program: Command) {
@@ -27,4 +29,6 @@ export function registerAllCommands(program: Command) {
   registerTemplateCommands(program);
   registerBackupCommands(program);
   registerUpgradeCommands(program);
+  registerDependencyCommands(program);
+  registerHookCommands(program);
 }

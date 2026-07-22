@@ -1,6 +1,7 @@
 import fs from 'fs';
 import { resolvePath, writeGeneratedFile, ensureDir } from '../utils/file';
 import { defaultTools } from '../config/constants';
+import { withLock } from './lock';
 
 export interface HarnessConfig {
   version?: number;
@@ -32,51 +33,6 @@ export interface HarnessState {
   updatedAt: string | null;
 }
 
-const LOCK_FILE = resolvePath('harness', '.state.lock');
-const LOCK_TIMEOUT = 5000;
-const LOCK_RETRY_DELAY = 100;
-
-function acquireLock(): boolean {
-  try {
-    if (fs.existsSync(LOCK_FILE)) {
-      const lockContent = fs.readFileSync(LOCK_FILE, 'utf8');
-      const lockTime = parseInt(lockContent, 10);
-      if (Date.now() - lockTime < LOCK_TIMEOUT) {
-        return false;
-      }
-      fs.unlinkSync(LOCK_FILE);
-    }
-    fs.writeFileSync(LOCK_FILE, `${Date.now()}`, 'utf8');
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function releaseLock() {
-  try {
-    fs.unlinkSync(LOCK_FILE);
-  } catch {}
-}
-
-function withLock<T>(fn: () => T): T {
-  let attempts = 0;
-  const maxAttempts = LOCK_TIMEOUT / LOCK_RETRY_DELAY;
-  while (!acquireLock()) {
-    attempts++;
-    if (attempts >= maxAttempts) {
-      throw new Error('Timeout waiting for state lock');
-    }
-    const start = Date.now();
-    while (Date.now() - start < LOCK_RETRY_DELAY) {}
-  }
-  try {
-    return fn();
-  } finally {
-    releaseLock();
-  }
-}
-
 export function loadHarnessConfig(): HarnessConfig {
   const configPath = resolvePath('harness', 'config.json');
   if (!fs.existsSync(configPath)) {
@@ -95,7 +51,7 @@ export function saveHarnessConfig(config: Record<string, unknown>) {
 }
 
 export function setCurrentChange(change: string) {
-  withLock(() => {
+  withLock('state', () => {
     const config = loadHarnessConfig();
     saveHarnessConfig({
       version: config.version ?? 1,
@@ -154,7 +110,7 @@ export function saveHarnessState(state: HarnessState | Record<string, unknown>) 
 }
 
 export function updateHarnessState(patch: Record<string, unknown>) {
-  withLock(() => {
+  withLock('state', () => {
     const state = loadHarnessState();
     saveHarnessState({
       ...state,

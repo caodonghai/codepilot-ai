@@ -90,7 +90,7 @@ export {
   loadKnowledgeIndex,
   scoreKnowledgeRecord,
   searchKnowledge,
-} from './commands/knowledge-core';
+} from './lib/knowledge';
 
 export {
   archiveChange,
@@ -118,7 +118,7 @@ export {
   assertDownloadOutsideRepo,
   clearDirectoryContents,
   copyDirectoryRecursive,
-} from './commands/integrations-core';
+} from './lib/integrations';
 
 export {
   templateChangeFile,

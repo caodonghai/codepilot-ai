@@ -12,7 +12,7 @@ import {
   defaultIntegrationConfig,
   loadIntegrationConfig,
   saveIntegrationConfig,
-} from './integrations-core';
+} from '../lib/integrations';
 import { writeRunEvent } from './helpers/state';
 
 export function registerIntegrationCommands(program: Command) {

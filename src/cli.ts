@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { registerAllCommands } from './commands';
-import { setGlobalOptions } from './lib/context';
+import { setGlobalOptions, loadFromEnv } from './lib/context';
 import { setLocale } from './lib/i18n';
 import { setLogLevel } from './lib/logger';
 
@@ -22,6 +22,8 @@ program.on('option:verbose', () => {
 program.on('option:locale', (locale) => {
   setLocale(locale);
 });
+
+loadFromEnv();
 
 registerAllCommands(program);
 
