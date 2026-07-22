@@ -37,14 +37,26 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
-      - name: Install dependencies
+      - name: Install dependencies (Linux/macOS)
+        if: runner.os != 'Windows'
         # CI may inherit NODE_ENV=production or npm omit=dev from repository/org settings.
-        # Retry once with a clean cache for npm's intermittent "Exit handler never called" bug.
-        shell: bash
         run: |
-          npm ci --include=dev || { npm cache clean --force && npm ci --include=dev; }
+          npm ci --include=dev
           node -e "require.resolve('eslint/package.json')"
           npm exec --yes=false -- eslint --version
+
+      - name: Install dependencies (Windows npm workaround)
+        if: runner.os == 'Windows'
+        # npm ci can print "Exit handler never called" but incorrectly return exit code 0 on
+        # Windows. npm install avoids that npm CLI clean-install failure mode.
+        shell: pwsh
+        run: |
+          npm install --include=dev --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node -e "require.resolve('eslint/package.json')"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm exec --yes=false -- eslint --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Lint
         run: npm run lint:check
