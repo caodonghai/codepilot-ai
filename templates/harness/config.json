@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "profile": "lightweight",
+  "currentChange": null,
+  "tools": [],
+  "checks": [
+    "ai:validate",
+    "ai:report"
+  ],
+  "strictChecks": [
+    "eslint",
+    "ai:validate",
+    "ai:report"
+  ]
+}

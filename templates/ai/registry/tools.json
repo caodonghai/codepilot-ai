@@ -1,0 +1,26 @@
+{
+  "defaultTools": ["codex", "trae", "qoder", "cursor"],
+  "tools": {
+    "codex": {
+      "level": 1,
+      "rules": ["AGENTS.md"],
+      "skills": ".codex/skills",
+      "commands": ".codex/skills"
+    },
+    "trae": {
+      "level": 2,
+      "rules": [".trae/rules.md"],
+      "commands": ".trae/commands"
+    },
+    "qoder": {
+      "level": 2,
+      "rules": [".qoder/rules.md"],
+      "commands": ".qoder/commands/ai"
+    },
+    "cursor": {
+      "level": 2,
+      "rules": [".cursor/rules/msgfi-ai.mdc", ".cursor/rules/msgfi-frontend.mdc"],
+      "commands": ".cursor/rules"
+    }
+  }
+}

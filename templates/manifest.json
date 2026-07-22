@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "templateSet": "msgfi-lightweight",
+  "description": "Default lightweight MsgFi AI Engineering Kit templates.",
+  "projectOwned": [
+    ".ai/core",
+    ".ai/flows",
+    ".ai/registry/tools.json",
+    "openspec/project.md",
+    "superpowers/skills",
+    "harness/config.json",
+    "harness/state.json"
+  ],
+  "generatedBySync": [
+    "AGENTS.md",
+    ".codex/skills",
+    ".trae/rules.md",
+    ".trae/commands",
+    ".qoder/rules.md",
+    ".qoder/commands",
+    ".cursor/rules"
+  ],
+  "stateful": [
+    "openspec/changes",
+    "openspec/specs",
+    "harness/state.json",
+    "harness/tasks",
+    "harness/reports",
+    "harness/runs",
+    "harness/memory",
+    "harness/integrations"
+  ],
+  "rules": {
+    "defaultMode": "lightweight",
+    "overwriteProjectOwnedByDefault": false,
+    "officialIntegrationsAreRepoLocal": true,
+    "globalInstallsAllowed": false
+  }
+}

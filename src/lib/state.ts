@@ -1,0 +1,206 @@
+import fs from 'fs';
+import { resolvePath, writeGeneratedFile, defaultTools, ensureDir } from './utils';
+
+export interface HarnessConfig {
+  version?: number;
+  profile?: string;
+  currentChange?: string | null;
+  tools?: string[];
+  checks?: string[];
+  strictChecks?: string[];
+}
+
+export interface HarnessState {
+  version: number;
+  activeChange: string | null;
+  activeFlow: string | null;
+  status: string;
+  phase: string | null;
+  lastStep: string | null;
+  nextStep: string | null;
+  lastReport: string | null;
+  nextSuggestedFlow: string | null;
+  blockedBy: string[];
+  decisions: Array<{ text: string; createdAt: string; change?: string | null; flow?: string | null }>;
+  context: Record<string, unknown>;
+  updatedAt: string | null;
+}
+
+const LOCK_FILE = resolvePath('harness', '.state.lock');
+const LOCK_TIMEOUT = 5000;
+const LOCK_RETRY_DELAY = 100;
+
+function acquireLock(): boolean {
+  try {
+    if (fs.existsSync(LOCK_FILE)) {
+      const lockContent = fs.readFileSync(LOCK_FILE, 'utf8');
+      const lockTime = parseInt(lockContent, 10);
+      if (Date.now() - lockTime < LOCK_TIMEOUT) {
+        return false;
+      }
+      fs.unlinkSync(LOCK_FILE);
+    }
+    fs.writeFileSync(LOCK_FILE, `${Date.now()}`, 'utf8');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function releaseLock() {
+  try {
+    fs.unlinkSync(LOCK_FILE);
+  } catch {
+  }
+}
+
+function withLock<T>(fn: () => T): T {
+  let attempts = 0;
+  const maxAttempts = LOCK_TIMEOUT / LOCK_RETRY_DELAY;
+  while (!acquireLock()) {
+    attempts++;
+    if (attempts >= maxAttempts) {
+      throw new Error('Timeout waiting for state lock');
+    }
+    const start = Date.now();
+    while (Date.now() - start < LOCK_RETRY_DELAY) {
+    }
+  }
+  try {
+    return fn();
+  } finally {
+    releaseLock();
+  }
+}
+
+export function loadHarnessConfig(): HarnessConfig {
+  const configPath = resolvePath('harness', 'config.json');
+  if (!fs.existsSync(configPath)) {
+    return { currentChange: null, tools: defaultTools };
+  }
+  try {
+    return JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  } catch (error) {
+    console.error(`Invalid harness/config.json: ${(error as Error).message}`);
+    return { currentChange: null, tools: defaultTools };
+  }
+}
+
+export function saveHarnessConfig(config: Record<string, unknown>) {
+  writeGeneratedFile('harness/config.json', `${JSON.stringify(config, null, 2)}\n`);
+}
+
+export function setCurrentChange(change: string) {
+  withLock(() => {
+    const config = loadHarnessConfig();
+    saveHarnessConfig({
+      version: config.version ?? 1,
+      profile: config.profile ?? 'lightweight',
+      currentChange: change,
+      tools: config.tools ?? defaultTools,
+      checks: config.checks ?? ['ai:validate', 'ai:report'],
+      strictChecks: config.strictChecks ?? ['eslint', 'ai:validate', 'ai:report'],
+    });
+  });
+}
+
+export function loadHarnessState(): HarnessState {
+  const statePath = resolvePath('harness', 'state.json');
+  if (!fs.existsSync(statePath)) {
+    return {
+      version: 1,
+      activeChange: null,
+      activeFlow: null,
+      status: 'not_started',
+      phase: null,
+      lastStep: null,
+      nextStep: null,
+      lastReport: null,
+      nextSuggestedFlow: null,
+      blockedBy: [],
+      decisions: [],
+      context: {},
+      updatedAt: null,
+    };
+  }
+  try {
+    return JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  } catch (error) {
+    console.error(`Invalid harness/state.json: ${(error as Error).message}`);
+    return {
+      version: 1,
+      activeChange: null,
+      activeFlow: null,
+      status: 'not_started',
+      phase: null,
+      lastStep: null,
+      nextStep: null,
+      lastReport: null,
+      nextSuggestedFlow: null,
+      blockedBy: [],
+      decisions: [],
+      context: {},
+      updatedAt: null,
+    };
+  }
+}
+
+export function saveHarnessState(state: Record<string, unknown>) {
+  writeGeneratedFile('harness/state.json', `${JSON.stringify(state, null, 2)}\n`);
+}
+
+export function updateHarnessState(patch: Record<string, unknown>) {
+  withLock(() => {
+    const state = loadHarnessState();
+    saveHarnessState({
+      ...state,
+      ...patch,
+      updatedAt: new Date().toISOString(),
+    });
+  });
+}
+
+export function buildChangeContext(change: string) {
+  return {
+    proposal: `openspec/changes/${change}/proposal.md`,
+    tasks: `openspec/changes/${change}/tasks.md`,
+    acceptance: `openspec/changes/${change}/acceptance.md`,
+    notes: `openspec/changes/${change}/notes.md`,
+  };
+}
+
+export function getChangeName(input?: string): string | null {
+  if (input) return input;
+  const config = loadHarnessConfig();
+  return typeof config.currentChange === 'string' ? config.currentChange : null;
+}
+
+export function writeRunEvent(kind: string, payload: Record<string, unknown>) {
+  const state = loadHarnessState();
+  const createdAt = new Date().toISOString();
+  const event = {
+    createdAt,
+    kind,
+    activeChange: state.activeChange ?? null,
+    activeFlow: state.activeFlow ?? null,
+    status: state.status ?? null,
+    ...payload,
+  };
+  ensureDir('harness', 'runs');
+  const { timestampForFile } = require('./utils');
+  writeGeneratedFile(`harness/runs/${timestampForFile(new Date(createdAt))}-${kind}.json`, `${JSON.stringify(event, null, 2)}\n`);
+  return event;
+}
+
+export function writeTimestampedMarkdown(directory: string, basename: string, content: string) {
+  const createdAt = new Date().toISOString();
+  const { timestampForFile } = require('./utils');
+  const filePath = `${directory}/${timestampForFile(new Date(createdAt))}-${basename}.md`;
+  ensureDir(...directory.split('/'));
+  writeGeneratedFile(filePath, content);
+  return filePath;
+}
+
+export function taskBoardPath(change: string) {
+  return `harness/tasks/${change}.json`;
+}

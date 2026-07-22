@@ -1,0 +1,38 @@
+{
+  "name": "@msgfi/ai-engineering-kit",
+  "version": "0.9.1-alpha.0",
+  "description": "Repo-level AI engineering workflow kit for MsgFi frontend projects.",
+  "license": "MIT",
+  "private": true,
+  "bin": {
+    "msgfi-ai": "./bin/msgfi-ai.cjs"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "scripts",
+    "src",
+    "templates",
+    "README.md",
+    "README.zh-CN.md"
+  ],
+  "engines": {
+    "node": ">=16.15.0"
+  },
+  "scripts": {
+    "build": "node ./scripts/build.cjs",
+    "smoke": "node ./dist/cli.cjs --help",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:watch": "vitest watch"
+  },
+  "dependencies": {
+    "commander": "^9.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^4.9.5",
+    "vitest": "^1.0.0"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "activeChange": null,
+  "activeFlow": null,
+  "status": "not_started",
+  "phase": null,
+  "lastStep": null,
+  "nextStep": null,
+  "lastReport": null,
+  "nextSuggestedFlow": null,
+  "blockedBy": [],
+  "decisions": [],
+  "context": {},
+  "updatedAt": null
+}
