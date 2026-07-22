@@ -12,7 +12,7 @@ jobs:
     env:
       # Avoid runner- or organization-level npm cache paths leaking across jobs,
       # especially the unstable shared C:\npm\cache path on Windows runners.
-      npm_config_cache: ${{ runner.temp }}/npm-cache
+      npm_config_cache: ${{ github.workspace }}/.npm-cache
     strategy:
       fail-fast: false
       matrix:
