@@ -2,426 +2,334 @@
 
 [English](README.en.md) | [中文](README.md)
 
-CodePilot AI 是一套放在项目仓库里的 AI 工程流程工具。它把 OpenSpec 风格的需求优先、Superpowers 风格的技能流程、本地 Harness 验收状态、Knowledge Memory 知识沉淀，以及 Codex / Trae / Qoder / Cursor 多 AI 编辑器规则同步整合到一个命令里。
+CodePilot AI 是一个面向项目仓库的 AI 工程流程 CLI。它把需求与验收文档、阶段化 AI 工作流、本地任务状态、Knowledge Memory，以及 Codex、Trae、Qoder、Cursor 的规则同步集中到 `codepilot` 命令中。
 
-第一次使用时，先安装包，然后执行一次初始化：
+## 核心能力
 
-```bash
-pnpm add -D @codepilot/ai
-pnpm exec codepilot init
-pnpm ai validate
-```
+- OpenSpec-compatible 变更：管理 proposal、tasks、acceptance 和 notes。
+- `/ai` 工作流：覆盖 explore、propose、plan、apply、verify、review、finish。
+- Harness 状态：记录当前变更、任务、步骤、决策、验证和运行报告。
+- Knowledge Memory：搜索、录入、索引、去重、分析和生成知识候选。
+- 多编辑器同步：默认支持 Codex、Trae、Qoder、Cursor。
+- Repo-local 集成：可导入 OpenSpec 或 Superpowers 官方资源，不修改全局 PATH。
+- 工程辅助：提供 Git、备份、依赖关系、Hook、模板和升级命令。
 
-为什么第一次是 `pnpm exec codepilot init`？因为此时项目里还没有 `"scripts": { "ai": "codepilot" }`。`init` 会自动把这个脚本加到 `package.json`，以后就可以直接使用：
+## 环境要求
 
-```bash
-pnpm ai init qoder
-pnpm ai sync qoder
-pnpm ai validate
-pnpm ai knowledge:search 关键字
-```
+- Node.js 18 或更高版本
+- npm、pnpm、yarn 或 bun
 
-如果只想初始化某些 AI 编辑器，可以把名字接在 `init` 后面：
+本文使用 pnpm 展示命令；使用其他包管理器时，将 `pnpm exec codepilot` 替换为对应执行方式即可。
 
-```bash
-pnpm exec codepilot init qoder
-pnpm exec codepilot init codex cursor
-pnpm exec codepilot init codex trae qoder cursor
-```
+## 快速开始
 
-不传工具名时，默认初始化 `codex / trae / qoder / cursor`。
-
-初始化后，项目会得到这些能力：
-
-- `.ai/`：项目 AI 规则和 `/ai` 工作流
-- `openspec/`：需求、任务、验收文档目录
-- `superpowers/`：项目级 AI skills
-- `harness/`：本地状态、任务板、报告、Knowledge Memory
-- `AGENTS.md`、`.trae/`、`.qoder/`、`.cursor/`：不同 AI 编辑器可读取的规则和命令
-
-在 AI 对话里，团队可以这样使用：
-
-```text
-/ai my-change-name
-这里写需求描述
-```
-
-如果想强制某个阶段，也可以用：
-
-```text
-/ai:propose my-change-name
-/ai:plan my-change-name
-/ai:apply my-change-name
-/ai:verify my-change-name
-/ai:finish my-change-name
-```
-
-## 推荐使用流程
-
-### 1. 安装包
+### 1. 安装
 
 ```bash
 pnpm add -D @codepilot/ai
 ```
 
-### 2. 第一次初始化
+### 2. 初始化
+
+首次初始化时，项目里还没有 `scripts.ai`，因此使用：
 
 ```bash
 pnpm exec codepilot init
 ```
 
-这一步会：
+`init` 会检测项目框架、构建工具和包管理器，创建流程文件，并在 `package.json` 中补充：
 
-- 生成 `.ai / openspec / superpowers / harness`
-- 生成 Codex / Trae / Qoder / Cursor 适配文件
-- 自动给 `package.json` 加 `"ai": "codepilot"`
-- 不覆盖已有 `scripts.ai`
-
-如果不希望自动改 `package.json`：
-
-```bash
-pnpm exec codepilot init --no-setup-script
+```json
+{
+  "scripts": {
+    "ai": "codepilot"
+  }
+}
 ```
 
-### 3. 后续统一使用
+如果已有 `scripts.ai`，CodePilot 不会覆盖它。
 
-初始化完成后，后续都用：
+### 3. 验证
+
+```bash
+pnpm ai validate
+pnpm ai doctor
+```
+
+初始化后，后续命令统一使用：
 
 ```bash
 pnpm ai <command>
 ```
 
-例如：
+## 初始化结果
 
-```bash
-pnpm ai validate
-pnpm ai sync qoder
-pnpm ai new bank-reconciliation
-pnpm ai knowledge:search 银行对账
-```
-
-## 命令说明
-
-### `pnpm ai init [tools...]`
-
-初始化 AI 工程目录和编辑器适配文件。
-
-```bash
-pnpm ai init
-pnpm ai init qoder
-pnpm ai init codex cursor
-```
-
-不传 `tools` 时默认初始化全部：`codex / trae / qoder / cursor`。
-
-如果重复执行，新的工具会合并到已有配置里。例如先执行 `init codex`，再执行 `init qoder`，最终会同时支持 `codex` 和 `qoder`。
-
-### `pnpm ai sync [tools...]`
-
-从 `.ai/core`、`.ai/flows`、`superpowers/skills` 重新生成不同 AI 编辑器的规则文件。
-
-```bash
-pnpm ai sync
-pnpm ai sync qoder cursor
-pnpm ai sync --skip codex
-```
-
-如果 Codex 当前锁住 `.codex/skills`，可以先跳过 Codex：
-
-```bash
-pnpm ai sync trae qoder cursor
-```
-
-### `pnpm ai new <change>`
-
-创建一个 OpenSpec-compatible 变更目录：
-
-```bash
-pnpm ai new bank-reconciliation
-pnpm ai new bugfix-139204 --type bugfix
-```
-
-会生成：
+默认初始化 `codex,trae,qoder,cursor`，并生成或维护：
 
 ```text
-openspec/changes/<change>/proposal.md
-openspec/changes/<change>/tasks.md
-openspec/changes/<change>/acceptance.md
-openspec/changes/<change>/notes.md
+.ai/                         核心规则、流程和工具注册表
+openspec/                    项目说明、活动变更和归档变更
+superpowers/                 项目级技能文档
+harness/                     配置、状态、任务、运行记录和知识库
+.codex/                      Codex 规则与命令
+.trae/                       Trae 规则与命令
+.qoder/                      Qoder 规则与命令
+.cursor/                     Cursor 规则与命令
 ```
 
-### `pnpm ai validate [change]`
-
-检查 AI Kit 必需文件是否完整，检查当前 change 的 proposal/tasks/acceptance 是否存在，并检查 target 文件是否同步。
+只初始化部分工具：
 
 ```bash
-pnpm ai validate
-pnpm ai validate bank-reconciliation
+pnpm exec codepilot init --tools codex,qoder
 ```
 
-### `pnpm ai check [change]`
-
-执行默认检查链路：
+显式指定检测结果：
 
 ```bash
-pnpm ai check
-pnpm ai check bank-reconciliation
+pnpm exec codepilot init \
+  --framework react \
+  --build-tool vite \
+  --pm pnpm
 ```
 
-默认偏轻量，主要用于 AI 工作流收口。严格检查可以后续按项目情况扩展。
+支持的初始化参数：
 
-### `pnpm ai report [change]`
+- `--profile <profile>`：`lightweight`、`official` 或 `hybrid`。
+- `--tools <tools>`：逗号分隔的工具列表。
+- `--force`：请求覆盖生成目标。
+- `--framework <framework>`：React、Vue、Angular、Svelte、Next、Nuxt、Remix 或 Solid。
+- `--build-tool <buildTool>`：webpack、vite、rollup、esbuild 或 parcel。
+- `--pm <packageManager>`：npm、yarn、pnpm 或 bun。
 
-生成 Harness JSON 报告：
+## 推荐工作流
+
+创建变更：
 
 ```bash
-pnpm ai report
-pnpm ai report bank-reconciliation
+pnpm ai new bank-reconciliation --type feature
 ```
 
-报告会写入：
+支持的类型为 `default`、`bugfix`、`feature`、`ui-change` 和 `refactor`。变更名只允许小写字母、数字、中文和单个连字符。
+
+生成目录：
 
 ```text
-harness/reports/<timestamp>.json
+openspec/changes/bank-reconciliation/
+├── proposal.md
+├── tasks.md
+├── acceptance.md
+└── notes.md
 ```
 
-### `pnpm ai status`
-
-查看当前 Harness 状态：
-
-```bash
-pnpm ai status
-```
-
-### `pnpm ai current [change]`
-
-查看或设置当前 active change：
-
-```bash
-pnpm ai current
-pnpm ai current bank-reconciliation
-```
-
-### `pnpm ai resume`
-
-根据当前 Harness 状态提示下一步应该走哪个 `/ai` flow。
-
-```bash
-pnpm ai resume
-```
-
-### `pnpm ai task-board <change>`
-
-从 `tasks.md` 同步本地任务板。
+随后可以执行：
 
 ```bash
 pnpm ai task-board bank-reconciliation
-```
-
-### `pnpm ai task-next <change>`
-
-查看下一个待处理任务。
-
-```bash
-pnpm ai task-next bank-reconciliation
-```
-
-### `pnpm ai task-start / task-done / task-block`
-
-标记任务状态。
-
-```bash
-pnpm ai task-start T001 --change bank-reconciliation
-pnpm ai task-done T001 --change bank-reconciliation
-pnpm ai task-block T002 --change bank-reconciliation --reason "缺少运行环境"
-```
-
-### `pnpm ai agent-run <change>`
-
-生成下一步 Agent 执行提示，适合长任务或多人接力。
-
-```bash
-pnpm ai agent-run bank-reconciliation
 pnpm ai agent-run bank-reconciliation --claim
-```
-
-### `pnpm ai agent-finish <change>`
-
-根据任务板、验收标准和检查结果评估最终状态。
-
-```bash
-pnpm ai agent-finish bank-reconciliation
+pnpm ai check bank-reconciliation
+pnpm ai verify bank-reconciliation --status passed
 pnpm ai agent-finish bank-reconciliation --check
+pnpm ai archive bank-reconciliation
 ```
 
-如果还有运行时验证未完成，结果会是 `partially_accepted`，不会假装完成。
-
-### `pnpm ai knowledge:search <keywords...>`
-
-搜索项目 Knowledge Memory。
-
-```bash
-pnpm ai knowledge:search 银行对账
-pnpm ai knowledge:search EccApplicationMst detail --limit 10
-```
-
-AI 在 `/ai:propose`、`/ai:plan`、`/ai:apply` 前应该先搜索 Knowledge。
-
-### `pnpm ai knowledge:suggest <change> --write`
-
-在 finish 阶段根据本次变更生成可沉淀知识候选。
-
-```bash
-pnpm ai knowledge:suggest bank-reconciliation --write
-```
-
-候选只是建议，不会自动变成事实。
-
-### `pnpm ai knowledge:add`
-
-人工确认后，把可复用知识写入 Knowledge Memory。
-
-```bash
-pnpm ai knowledge:add --type pattern --name "React detail migration" --summary "ExtJS detail 页面迁移到 React detail 页面时，先对齐数据流、保存入口和 grid 列格式化。" --keywords "ExtJS,React,detail" --used-in "apps/web/xxx/detail/index.tsx"
-```
-
-### `pnpm ai knowledge:list`
-
-查看已有 Knowledge 记录。
-
-```bash
-pnpm ai knowledge:list
-pnpm ai knowledge:list --type pattern
-```
-
-### `pnpm ai knowledge:index`
-
-重建 Knowledge 索引。
-
-```bash
-pnpm ai knowledge:index
-```
-
-### `pnpm ai knowledge:dedupe`
-
-按 id 合并重复 Knowledge 记录。
-
-```bash
-pnpm ai knowledge:dedupe
-```
-
-### `pnpm ai knowledge:analyze`
-
-分析 Knowledge Memory 当前质量，提示后续可沉淀方向。
-
-```bash
-pnpm ai knowledge:analyze
-```
-
-### `pnpm ai integration:list`
-
-查看 OpenSpec / Superpowers 当前集成模式。
-
-```bash
-pnpm ai integration:list
-```
-
-默认是 `lightweight`，即使用 CodePilot 内置轻量兼容流程。
-
-### `pnpm ai integration:download <name>`
-
-下载官方 OpenSpec 或 Superpowers 源码到仓库外目录。
-
-```bash
-pnpm ai integration:download openspec
-pnpm ai integration:download superpowers
-```
-
-这个命令只下载，不启用，不全局安装。
-
-### `pnpm ai integration:install <name> --source local:<path>`
-
-把已下载的官方源码导入当前项目的 repo-local official 目录。
-
-```bash
-pnpm ai integration:install openspec --source "local:E:\path\to\openspec"
-```
-
-路径里有空格时必须加引号。
-
-### `pnpm ai integration:use <name> <mode>`
-
-切换集成模式。
-
-```bash
-pnpm ai integration:use openspec lightweight
-pnpm ai integration:use openspec official
-pnpm ai integration:use superpowers hybrid
-```
-
-支持模式：
-
-- `lightweight`：使用 CodePilot 内置轻量版
-- `official`：优先使用 repo-local 官方资源
-- `hybrid`：轻量规则 + repo-local 官方资源结合
-
-### `pnpm ai integration:validate <name>`
-
-检查 repo-local official 资源是否可用。
-
-```bash
-pnpm ai integration:validate openspec
-pnpm ai integration:validate openspec --execute
-```
-
-默认只 probe，不执行官方 CLI。只有显式 `--execute` 才执行。
-
-### `pnpm ai integration:remove <name>`
-
-移除 repo-local official/cache，并切回 lightweight。
-
-```bash
-pnpm ai integration:remove openspec
-```
-
-不会卸载全局工具，因为本工具不使用全局安装。
-
-### `pnpm ai doctor`
-
-检查本地 AI Kit 运行环境和 target 文件健康状态。
-
-```bash
-pnpm ai doctor
-pnpm ai doctor --encoding
-```
-
-## AI 对话中的使用方式
-
-推荐让 AI 按下面方式开始一个需求：
+在支持生成命令文件的 AI 编辑器中，也可以使用：
 
 ```text
 /ai bank-reconciliation
-银企交易记录查询，增加银行对账功能
-```
-
-AI 应该自动分派到合适阶段：
-
-```text
-/ai:propose -> /ai:plan -> /ai:apply -> /ai:verify -> /ai:finish
-```
-
-如果你想强制某一步：
-
-```text
+/ai:explore bank-reconciliation
 /ai:propose bank-reconciliation
+/ai:plan bank-reconciliation
 /ai:apply bank-reconciliation
+/ai:verify bank-reconciliation
+/ai:review bank-reconciliation
+/ai:finish bank-reconciliation
 ```
 
-如果你不想走流程，直接正常提问即可，不加 `/ai`。
+普通问答不需要使用 `/ai`。
 
-## 文件和 Git 建议
+## 命令参考
 
-建议进入 Git：
+### 初始化与同步
+
+```bash
+pnpm ai init [options]
+pnpm ai sync [options]
+```
+
+`sync` 从 `.ai/core`、`.ai/flows` 和 `superpowers/skills` 重新生成编辑器规则：
+
+```bash
+pnpm ai sync --tools codex,qoder
+pnpm ai sync --dry-run
+pnpm ai sync --force
+```
+
+### 变更管理
+
+```bash
+pnpm ai new <change> [--type <type>] [--interactive] [--branch]
+pnpm ai list [--archived]
+pnpm ai validate [change] [--quiet]
+pnpm ai check [change] [--strict] [--no-eslint]
+pnpm ai report [change]
+pnpm ai encoding [change] [--fix]
+pnpm ai archive <change>
+pnpm ai restore <change>
+pnpm ai delete <change>
+```
+
+`delete` 只删除 `openspec/archive/<change>` 下已归档的变更。所有变更路径都会经过名称和目录边界检查。
+
+### Harness 状态与任务
+
+```bash
+pnpm ai status
+pnpm ai current [change]
+pnpm ai resume
+pnpm ai task-board [change]
+pnpm ai task-next [change]
+pnpm ai task-doing <task> [--change <change>] [--owner <owner>]
+pnpm ai task-done <task> [--change <change>] [--owner <owner>]
+pnpm ai task-block <task> [--change <change>] [--owner <owner>] [--reason <reason>]
+```
+
+记录验证、步骤和决策：
+
+```bash
+pnpm ai verify [change] --status passed --task "运行页面验收"
+pnpm ai finish-state [change]
+pnpm ai step "完成列表页实现" --change bank-reconciliation --flow apply
+pnpm ai decision "继续沿用现有 API" --change bank-reconciliation
+pnpm ai run-log --limit 20
+```
+
+### Agent 接力
+
+```bash
+pnpm ai agent-run [change] [--claim] [--mode prompt]
+pnpm ai agent-finish [change] [--check] [--strict]
+```
+
+`agent-run --claim` 会领取下一个任务；`agent-finish` 根据任务板、验收项和检查结果评估是否完成。
+
+### Knowledge Memory
+
+Knowledge 是 `knowledge` 下的子命令，命令之间使用空格：
+
+```bash
+pnpm ai knowledge search 银行 对账 --limit 10
+pnpm ai knowledge list --type pattern
+pnpm ai knowledge index
+pnpm ai knowledge dedupe
+pnpm ai knowledge analyze --limit 10
+pnpm ai knowledge suggest bank-reconciliation --write
+```
+
+人工确认后录入知识：
+
+```bash
+pnpm ai knowledge add \
+  --type pattern \
+  --name "React detail migration" \
+  --summary "详情页迁移时先对齐数据流、保存入口和表格列格式。" \
+  --keywords "React,detail,migration" \
+  --used-in "apps/web/example/detail/index.tsx"
+```
+
+也可以通过 `--from <json-file>` 从 JSON 文件录入。
+
+### OpenSpec / Superpowers 集成
+
+集成命令同样使用空格分隔：
+
+```bash
+pnpm ai integration list
+pnpm ai integration download openspec --dry-run
+pnpm ai integration download openspec --to ../official-openspec
+pnpm ai integration install openspec --source "local:../official-openspec"
+pnpm ai integration use openspec official
+pnpm ai integration validate openspec
+pnpm ai integration validate openspec --execute
+pnpm ai integration remove openspec
+```
+
+支持的集成为 `openspec` 和 `superpowers`；模式为：
+
+- `lightweight`：使用 CodePilot 内置轻量流程。
+- `official`：使用导入到当前仓库的官方资源。
+- `hybrid`：结合轻量规则和 repo-local 官方资源。
+
+`download` 默认要求目标位于当前仓库外；`install` 和 `remove` 只允许操作 `harness/integrations/<name>` 内的目录，并拒绝通过符号链接越界。
+
+### 配置、诊断和流程
+
+```bash
+pnpm ai doctor [--strict] [--encoding]
+pnpm ai config get <key>
+pnpm ai config set <key> <value>
+pnpm ai config list
+pnpm ai config show
+pnpm ai config reset
+pnpm ai flow list
+pnpm ai flow show <flow>
+pnpm ai flow sync
+```
+
+### Git、依赖、Hook、模板和备份
+
+```bash
+pnpm ai git status
+pnpm ai git info
+pnpm ai git branch <change>
+pnpm ai git commit [change]
+
+pnpm ai dep add <change> <target> --type requires
+pnpm ai dep remove <change> <target>
+pnpm ai dep list <change>
+pnpm ai dep check <change>
+pnpm ai dep graph [change]
+
+pnpm ai hook list
+pnpm ai hook register <name> --priority 100
+pnpm ai hook trigger <name> --change <change> --task <task>
+pnpm ai hook unregister <name>
+pnpm ai hook clear
+
+pnpm ai template list
+pnpm ai template add <name>
+pnpm ai template show <name>
+pnpm ai template edit <name>
+pnpm ai template remove <name>
+
+pnpm ai backup create
+pnpm ai backup list
+pnpm ai backup restore <file>
+pnpm ai backup delete <file>
+
+pnpm ai upgrade version
+pnpm ai upgrade check
+pnpm ai upgrade install
+```
+
+## 全局选项
+
+全局选项放在子命令前：
+
+```bash
+pnpm ai --verbose doctor
+pnpm ai --json status
+pnpm ai --locale en-US doctor
+```
+
+- `-v, --verbose`：输出调试日志。
+- `-q, --quiet`：抑制普通输出。
+- `--dry-run`：预览操作。
+- `--json`：使用 JSON 输出。
+- `--locale zh-CN|en-US`：设置输出语言，默认 `zh-CN`。
+
+## Git 建议
+
+建议提交：
 
 ```text
 .ai/
@@ -431,20 +339,20 @@ harness/config.json
 harness/state.json
 harness/tasks/
 harness/memory/
-AGENTS.md
+.codex/
 .trae/
 .qoder/
 .cursor/
 ```
 
-谨慎进入 Git 或按团队策略决定：
+根据团队策略决定是否提交：
 
 ```text
 harness/reports/
 harness/runs/
 ```
 
-不建议进入 Git：
+通常不提交：
 
 ```text
 harness/integrations/*/official/
@@ -453,25 +361,26 @@ harness/integrations/*/cache/
 
 ## 安全边界
 
-- 默认使用 lightweight，不强依赖官方 OpenSpec / Superpowers。
-- 官方资源只允许 repo-local，不做全局安装。
-- 不修改 PATH。
-- 不默认执行官方 CLI。
-- `init` 不覆盖已有 `scripts.ai`。
-- package 升级不应该覆盖用户已编辑的 `.ai / openspec / superpowers / harness` 源文件。
+- 不全局安装 OpenSpec 或 Superpowers，也不修改 PATH。
+- 官方校验命令只有显式传入 `integration validate --execute` 才会运行。
+- Integration 的安装、缓存和删除路径限制在对应 repo-local 目录内。
+- 变更归档、恢复和删除拒绝路径穿越及符号链接目录。
+- `init` 会保留已有项目模板和已有的 `scripts.ai`；`sync` 会重新生成所选编辑器的规则和命令文件。
+- 包升级不会主动覆盖项目中的 `.ai`、`openspec`、`superpowers` 或 `harness` 文件。
 
-## 当前版本状态
+## 本项目开发
 
-当前版本：
-
-```text
-1.0.0
+```bash
+npm ci
+npm run lint:check
+npm run format:check
+npm run test:coverage
+npm run build
+npm run smoke
 ```
 
-适合作为团队试用包。正式发布前建议继续验证：
+测试在独立临时项目根目录运行，不会修改当前仓库的真实 Harness 数据。CI 在 Node.js 18 和 20 上执行 lint、格式、覆盖率、构建和 smoke test。
 
-- Windows / macOS / Linux
-- Codex / Trae / Qoder / Cursor
-- 干净仓库初始化
-- 已有仓库重复初始化
-- Knowledge Memory 在真实需求中的搜索和沉淀效果
+## License
+
+MIT

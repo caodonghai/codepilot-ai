@@ -2,426 +2,334 @@
 
 [English](README.en.md) | [中文](README.md)
 
-CodePilot AI is an AI-powered engineering workflow toolkit designed to live in your project repository. It unifies OpenSpec-style requirement-first methodology, Superpowers-style skill workflows, local Harness acceptance status tracking, Knowledge Memory for knowledge accumulation, and multi-AI-editor rule synchronization (Codex/Trae/Qoder/Cursor) into a single command.
+CodePilot AI is a repository-oriented AI engineering workflow CLI. It brings requirement and acceptance documents, staged AI workflows, local task state, Knowledge Memory, and rule synchronization for Codex, Trae, Qoder, and Cursor under one `codepilot` command.
 
-First-time setup: install the package and run initialization:
+## Core capabilities
 
-```bash
-pnpm add -D @codepilot/ai
-pnpm exec codepilot init
-pnpm ai validate
-```
+- OpenSpec-compatible changes with proposal, tasks, acceptance, and notes documents.
+- `/ai` workflows for explore, propose, plan, apply, verify, review, and finish.
+- Harness state for active changes, tasks, steps, decisions, verification, and reports.
+- Knowledge Memory search, entry creation, indexing, deduplication, analysis, and suggestions.
+- Rule synchronization for Codex, Trae, Qoder, and Cursor by default.
+- Repo-local OpenSpec and Superpowers integrations without changing the global PATH.
+- Git, backup, dependency, hook, template, and upgrade utilities.
 
-Why `pnpm exec codepilot init` for the first time? Because the project doesn't have `"scripts": { "ai": "codepilot" }` yet. The `init` command automatically adds this script to `package.json`, so you can use:
+## Requirements
 
-```bash
-pnpm ai init qoder
-pnpm ai sync qoder
-pnpm ai validate
-pnpm ai knowledge:search keywords
-```
+- Node.js 18 or later
+- npm, pnpm, yarn, or bun
 
-If you only want to initialize specific AI editors, append their names to `init`:
+Examples use pnpm. With another package manager, replace `pnpm exec codepilot` with its equivalent package-execution command.
 
-```bash
-pnpm exec codepilot init qoder
-pnpm exec codepilot init codex cursor
-pnpm exec codepilot init codex trae qoder cursor
-```
+## Quick start
 
-Without tool names, it defaults to `codex / trae / qoder / cursor`.
-
-After initialization, the project gets these capabilities:
-
-- `.ai/`: Project AI rules and `/ai` workflows
-- `openspec/`: Requirements, tasks, and acceptance documents
-- `superpowers/`: Project-level AI skills
-- `harness/`: Local state, task board, reports, and Knowledge Memory
-- `AGENTS.md`, `.trae/`, `.qoder/`, `.cursor/`: Rule files for different AI editors
-
-In AI conversations, the team can use:
-
-```text
-/ai my-change-name
-Write requirement description here
-```
-
-To force a specific stage, use:
-
-```text
-/ai:propose my-change-name
-/ai:plan my-change-name
-/ai:apply my-change-name
-/ai:verify my-change-name
-/ai:finish my-change-name
-```
-
-## Recommended Usage Flow
-
-### 1. Install the Package
+### 1. Install
 
 ```bash
 pnpm add -D @codepilot/ai
 ```
 
-### 2. First-time Initialization
+### 2. Initialize
+
+The project does not have a `scripts.ai` entry before its first initialization, so run:
 
 ```bash
 pnpm exec codepilot init
 ```
 
-This step:
+`init` detects the project framework, build tool, and package manager, creates the workflow files, and adds this script to `package.json`:
 
-- Generates `.ai / openspec / superpowers / harness`
-- Generates Codex/Trae/Qoder/Cursor adapter files
-- Automatically adds `"ai": "codepilot"` to `package.json`
-- Does not overwrite existing `scripts.ai`
-
-To skip automatic `package.json` modification:
-
-```bash
-pnpm exec codepilot init --no-setup-script
+```json
+{
+  "scripts": {
+    "ai": "codepilot"
+  }
+}
 ```
 
-### 3. Subsequent Usage
+CodePilot preserves an existing `scripts.ai` entry.
 
-After initialization, always use:
+### 3. Validate
+
+```bash
+pnpm ai validate
+pnpm ai doctor
+```
+
+After initialization, use:
 
 ```bash
 pnpm ai <command>
 ```
 
-Examples:
+## Generated project structure
 
-```bash
-pnpm ai validate
-pnpm ai sync qoder
-pnpm ai new bank-reconciliation
-pnpm ai knowledge:search bank reconciliation
-```
-
-## Command Reference
-
-### `pnpm ai init [tools...]`
-
-Initialize AI engineering directories and editor adapter files.
-
-```bash
-pnpm ai init
-pnpm ai init qoder
-pnpm ai init codex cursor
-```
-
-Without `tools`, initializes all: `codex / trae / qoder / cursor`.
-
-Running multiple times merges new tools into existing configuration.
-
-### `pnpm ai sync [tools...]`
-
-Regenerate rule files for different AI editors from `.ai/core`, `.ai/flows`, `superpowers/skills`.
-
-```bash
-pnpm ai sync
-pnpm ai sync qoder cursor
-pnpm ai sync --skip codex
-```
-
-If Codex is locking `.codex/skills`:
-
-```bash
-pnpm ai sync trae qoder cursor
-```
-
-### `pnpm ai new <change>`
-
-Create an OpenSpec-compatible change directory:
-
-```bash
-pnpm ai new bank-reconciliation
-pnpm ai new bugfix-139204 --type bugfix
-```
-
-Generates:
+By default, initialization targets `codex,trae,qoder,cursor` and creates or maintains:
 
 ```text
-openspec/changes/<change>/proposal.md
-openspec/changes/<change>/tasks.md
-openspec/changes/<change>/acceptance.md
-openspec/changes/<change>/notes.md
+.ai/                         Core rules, flows, and tool registry
+openspec/                    Project specification, active changes, and archives
+superpowers/                 Project-level skill documents
+harness/                     Configuration, state, tasks, runs, and knowledge
+.codex/                      Codex rules and commands
+.trae/                       Trae rules and commands
+.qoder/                      Qoder rules and commands
+.cursor/                     Cursor rules and commands
 ```
 
-### `pnpm ai validate [change]`
-
-Check if required AI Kit files are complete, verify proposal/tasks/acceptance exist for current change, and check target file synchronization.
+Initialize selected tools only:
 
 ```bash
-pnpm ai validate
-pnpm ai validate bank-reconciliation
+pnpm exec codepilot init --tools codex,qoder
 ```
 
-### `pnpm ai check [change]`
-
-Execute the default check pipeline:
+Override project detection when needed:
 
 ```bash
-pnpm ai check
-pnpm ai check bank-reconciliation
+pnpm exec codepilot init \
+  --framework react \
+  --build-tool vite \
+  --pm pnpm
 ```
 
-Lightweight by default, primarily for AI workflow conclusion.
+Initialization options:
 
-### `pnpm ai report [change]`
+- `--profile <profile>`: `lightweight`, `official`, or `hybrid`.
+- `--tools <tools>`: comma-separated tool identifiers.
+- `--force`: request overwriting generated targets.
+- `--framework <framework>`: React, Vue, Angular, Svelte, Next, Nuxt, Remix, or Solid.
+- `--build-tool <buildTool>`: webpack, vite, rollup, esbuild, or parcel.
+- `--pm <packageManager>`: npm, yarn, pnpm, or bun.
 
-Generate Harness JSON report:
+## Recommended workflow
+
+Create a change:
 
 ```bash
-pnpm ai report
-pnpm ai report bank-reconciliation
+pnpm ai new bank-reconciliation --type feature
 ```
 
-Report written to:
+Supported types are `default`, `bugfix`, `feature`, `ui-change`, and `refactor`. Change names may contain lowercase letters, numbers, Chinese characters, and single hyphens.
+
+Generated files:
 
 ```text
-harness/reports/<timestamp>.json
+openspec/changes/bank-reconciliation/
+├── proposal.md
+├── tasks.md
+├── acceptance.md
+└── notes.md
 ```
 
-### `pnpm ai status`
-
-View current Harness status:
-
-```bash
-pnpm ai status
-```
-
-### `pnpm ai current [change]`
-
-View or set the current active change:
-
-```bash
-pnpm ai current
-pnpm ai current bank-reconciliation
-```
-
-### `pnpm ai resume`
-
-Suggest the next `/ai` flow based on current Harness status.
-
-```bash
-pnpm ai resume
-```
-
-### `pnpm ai task-board <change>`
-
-Sync local task board from `tasks.md`.
+Continue with:
 
 ```bash
 pnpm ai task-board bank-reconciliation
-```
-
-### `pnpm ai task-next <change>`
-
-View the next pending task.
-
-```bash
-pnpm ai task-next bank-reconciliation
-```
-
-### `pnpm ai task-start / task-done / task-block`
-
-Mark task status.
-
-```bash
-pnpm ai task-start T001 --change bank-reconciliation
-pnpm ai task-done T001 --change bank-reconciliation
-pnpm ai task-block T002 --change bank-reconciliation --reason "Missing runtime environment"
-```
-
-### `pnpm ai agent-run <change>`
-
-Generate next-step Agent execution prompt, suitable for long tasks or multi-person handoffs.
-
-```bash
-pnpm ai agent-run bank-reconciliation
 pnpm ai agent-run bank-reconciliation --claim
-```
-
-### `pnpm ai agent-finish <change>`
-
-Evaluate final status based on task board, acceptance criteria, and check results.
-
-```bash
-pnpm ai agent-finish bank-reconciliation
+pnpm ai check bank-reconciliation
+pnpm ai verify bank-reconciliation --status passed
 pnpm ai agent-finish bank-reconciliation --check
+pnpm ai archive bank-reconciliation
 ```
 
-If runtime verification is incomplete, result will be `partially_accepted`.
-
-### `pnpm ai knowledge:search <keywords...>`
-
-Search project Knowledge Memory.
-
-```bash
-pnpm ai knowledge:search bank reconciliation
-pnpm ai knowledge:search EccApplicationMst detail --limit 10
-```
-
-AI should search Knowledge before `/ai:propose`, `/ai:plan`, `/ai:apply`.
-
-### `pnpm ai knowledge:suggest <change> --write`
-
-Generate reusable knowledge candidates based on current change during finish stage.
-
-```bash
-pnpm ai knowledge:suggest bank-reconciliation --write
-```
-
-Candidates are suggestions only, not automatically committed.
-
-### `pnpm ai knowledge:add`
-
-Manually add verified reusable knowledge to Knowledge Memory.
-
-```bash
-pnpm ai knowledge:add --type pattern --name "React detail migration" --summary "When migrating ExtJS detail pages to React, align data flow, save entry, and grid column formatting first." --keywords "ExtJS,React,detail" --used-in "apps/web/xxx/detail/index.tsx"
-```
-
-### `pnpm ai knowledge:list`
-
-View existing Knowledge records.
-
-```bash
-pnpm ai knowledge:list
-pnpm ai knowledge:list --type pattern
-```
-
-### `pnpm ai knowledge:index`
-
-Rebuild Knowledge index.
-
-```bash
-pnpm ai knowledge:index
-```
-
-### `pnpm ai knowledge:dedupe`
-
-Merge duplicate Knowledge records by id.
-
-```bash
-pnpm ai knowledge:dedupe
-```
-
-### `pnpm ai knowledge:analyze`
-
-Analyze current Knowledge Memory quality and suggest future accumulation directions.
-
-```bash
-pnpm ai knowledge:analyze
-```
-
-### `pnpm ai integration:list`
-
-View current OpenSpec/Superpowers integration mode.
-
-```bash
-pnpm ai integration:list
-```
-
-Default is `lightweight`, using CodePilot built-in lightweight compatible workflows.
-
-### `pnpm ai integration:download <name>`
-
-Download official OpenSpec or Superpowers source code to a directory outside the repository.
-
-```bash
-pnpm ai integration:download openspec
-pnpm ai integration:download superpowers
-```
-
-This only downloads, does not enable or install globally.
-
-### `pnpm ai integration:install <name> --source local:<path>`
-
-Import downloaded official source code into the current project's repo-local official directory.
-
-```bash
-pnpm ai integration:install openspec --source "local:E:\path\to\openspec"
-```
-
-Wrap path in quotes if it contains spaces.
-
-### `pnpm ai integration:use <name> <mode>`
-
-Switch integration mode.
-
-```bash
-pnpm ai integration:use openspec lightweight
-pnpm ai integration:use openspec official
-pnpm ai integration:use superpowers hybrid
-```
-
-Supported modes:
-
-- `lightweight`: Use CodePilot built-in lightweight version
-- `official`: Prioritize repo-local official resources
-- `hybrid`: Combine lightweight rules with repo-local official resources
-
-### `pnpm ai integration:validate <name>`
-
-Check if repo-local official resources are usable.
-
-```bash
-pnpm ai integration:validate openspec
-pnpm ai integration:validate openspec --execute
-```
-
-Defaults to probe only, does not execute official CLI. Use `--execute` to run.
-
-### `pnpm ai integration:remove <name>`
-
-Remove repo-local official/cache and switch back to lightweight.
-
-```bash
-pnpm ai integration:remove openspec
-```
-
-Does not uninstall global tools as this toolkit does not use global installation.
-
-### `pnpm ai doctor`
-
-Check local AI Kit runtime environment and target file health status.
-
-```bash
-pnpm ai doctor
-pnpm ai doctor --encoding
-```
-
-## AI Conversation Usage
-
-Recommended way to start a requirement in AI chat:
+In AI editors that support the generated command files, use:
 
 ```text
 /ai bank-reconciliation
-Bank transaction record query, add bank reconciliation feature
-```
-
-AI should automatically dispatch to appropriate stages:
-
-```text
-/ai:propose -> /ai:plan -> /ai:apply -> /ai:verify -> /ai:finish
-```
-
-To force a specific step:
-
-```text
+/ai:explore bank-reconciliation
 /ai:propose bank-reconciliation
+/ai:plan bank-reconciliation
 /ai:apply bank-reconciliation
+/ai:verify bank-reconciliation
+/ai:review bank-reconciliation
+/ai:finish bank-reconciliation
 ```
 
-For direct questions without workflow, simply ask without `/ai`.
+Regular questions do not require `/ai`.
 
-## File and Git Recommendations
+## Command reference
 
-Recommended to commit to Git:
+### Initialization and synchronization
+
+```bash
+pnpm ai init [options]
+pnpm ai sync [options]
+```
+
+`sync` regenerates editor rules from `.ai/core`, `.ai/flows`, and `superpowers/skills`:
+
+```bash
+pnpm ai sync --tools codex,qoder
+pnpm ai sync --dry-run
+pnpm ai sync --force
+```
+
+### Change management
+
+```bash
+pnpm ai new <change> [--type <type>] [--interactive] [--branch]
+pnpm ai list [--archived]
+pnpm ai validate [change] [--quiet]
+pnpm ai check [change] [--strict] [--no-eslint]
+pnpm ai report [change]
+pnpm ai encoding [change] [--fix]
+pnpm ai archive <change>
+pnpm ai restore <change>
+pnpm ai delete <change>
+```
+
+`delete` only removes an archived change under `openspec/archive/<change>`. Every change path is protected by name and directory-boundary validation.
+
+### Harness state and tasks
+
+```bash
+pnpm ai status
+pnpm ai current [change]
+pnpm ai resume
+pnpm ai task-board [change]
+pnpm ai task-next [change]
+pnpm ai task-doing <task> [--change <change>] [--owner <owner>]
+pnpm ai task-done <task> [--change <change>] [--owner <owner>]
+pnpm ai task-block <task> [--change <change>] [--owner <owner>] [--reason <reason>]
+```
+
+Record verification, steps, and decisions:
+
+```bash
+pnpm ai verify [change] --status passed --task "Run page acceptance"
+pnpm ai finish-state [change]
+pnpm ai step "Completed list page" --change bank-reconciliation --flow apply
+pnpm ai decision "Keep the existing API" --change bank-reconciliation
+pnpm ai run-log --limit 20
+```
+
+### Agent handoff
+
+```bash
+pnpm ai agent-run [change] [--claim] [--mode prompt]
+pnpm ai agent-finish [change] [--check] [--strict]
+```
+
+`agent-run --claim` claims the next task. `agent-finish` evaluates task, acceptance, and check results before reporting completion.
+
+### Knowledge Memory
+
+Knowledge operations are nested subcommands separated by spaces:
+
+```bash
+pnpm ai knowledge search bank reconciliation --limit 10
+pnpm ai knowledge list --type pattern
+pnpm ai knowledge index
+pnpm ai knowledge dedupe
+pnpm ai knowledge analyze --limit 10
+pnpm ai knowledge suggest bank-reconciliation --write
+```
+
+Add reviewed, reusable knowledge:
+
+```bash
+pnpm ai knowledge add \
+  --type pattern \
+  --name "React detail migration" \
+  --summary "Align data flow, save entry, and grid formatting before migrating a detail page." \
+  --keywords "React,detail,migration" \
+  --used-in "apps/web/example/detail/index.tsx"
+```
+
+Use `--from <json-file>` to load an entry from JSON.
+
+### OpenSpec and Superpowers integrations
+
+Integration operations also use space-separated subcommands:
+
+```bash
+pnpm ai integration list
+pnpm ai integration download openspec --dry-run
+pnpm ai integration download openspec --to ../official-openspec
+pnpm ai integration install openspec --source "local:../official-openspec"
+pnpm ai integration use openspec official
+pnpm ai integration validate openspec
+pnpm ai integration validate openspec --execute
+pnpm ai integration remove openspec
+```
+
+Supported integrations are `openspec` and `superpowers`. Available modes:
+
+- `lightweight`: use CodePilot's built-in lightweight workflow.
+- `official`: use official resources imported into this repository.
+- `hybrid`: combine lightweight rules with repo-local official resources.
+
+`download` requires a destination outside the repository by default. `install` and `remove` can only operate inside `harness/integrations/<name>` and reject symlink escapes.
+
+### Configuration, diagnostics, and flows
+
+```bash
+pnpm ai doctor [--strict] [--encoding]
+pnpm ai config get <key>
+pnpm ai config set <key> <value>
+pnpm ai config list
+pnpm ai config show
+pnpm ai config reset
+pnpm ai flow list
+pnpm ai flow show <flow>
+pnpm ai flow sync
+```
+
+### Git, dependencies, hooks, templates, and backups
+
+```bash
+pnpm ai git status
+pnpm ai git info
+pnpm ai git branch <change>
+pnpm ai git commit [change]
+
+pnpm ai dep add <change> <target> --type requires
+pnpm ai dep remove <change> <target>
+pnpm ai dep list <change>
+pnpm ai dep check <change>
+pnpm ai dep graph [change]
+
+pnpm ai hook list
+pnpm ai hook register <name> --priority 100
+pnpm ai hook trigger <name> --change <change> --task <task>
+pnpm ai hook unregister <name>
+pnpm ai hook clear
+
+pnpm ai template list
+pnpm ai template add <name>
+pnpm ai template show <name>
+pnpm ai template edit <name>
+pnpm ai template remove <name>
+
+pnpm ai backup create
+pnpm ai backup list
+pnpm ai backup restore <file>
+pnpm ai backup delete <file>
+
+pnpm ai upgrade version
+pnpm ai upgrade check
+pnpm ai upgrade install
+```
+
+## Global options
+
+Place global options before the subcommand:
+
+```bash
+pnpm ai --verbose doctor
+pnpm ai --json status
+pnpm ai --locale en-US doctor
+```
+
+- `-v, --verbose`: enable debug logs.
+- `-q, --quiet`: suppress regular output.
+- `--dry-run`: preview an operation.
+- `--json`: request JSON output.
+- `--locale zh-CN|en-US`: set the output locale; defaults to `zh-CN`.
+
+## Git recommendations
+
+Recommended to commit:
 
 ```text
 .ai/
@@ -431,47 +339,48 @@ harness/config.json
 harness/state.json
 harness/tasks/
 harness/memory/
-AGENTS.md
+.codex/
 .trae/
 .qoder/
 .cursor/
 ```
 
-Commit with caution or per team policy:
+Commit according to team policy:
 
 ```text
 harness/reports/
 harness/runs/
 ```
 
-Not recommended to commit:
+Usually exclude:
 
 ```text
 harness/integrations/*/official/
 harness/integrations/*/cache/
 ```
 
-## Security Boundaries
+## Security boundaries
 
-- Defaults to lightweight mode, no strong dependency on official OpenSpec/Superpowers.
-- Official resources only allowed as repo-local, no global installation.
-- Does not modify PATH.
-- Does not execute official CLI by default.
-- `init` does not overwrite existing `scripts.ai`.
-- Package upgrades should not overwrite user-edited `.ai / openspec / superpowers / harness` source files.
+- CodePilot does not globally install OpenSpec or Superpowers and does not modify PATH.
+- Official validation commands run only with explicit `integration validate --execute`.
+- Integration install, cache, and removal paths are restricted to their repo-local directories.
+- Change archive, restore, and deletion reject path traversal and symlink directories.
+- `init` preserves existing project templates and `scripts.ai`; `sync` regenerates rules and command files for the selected editors.
+- Package upgrades do not proactively overwrite `.ai`, `openspec`, `superpowers`, or `harness` project files.
 
-## Current Version Status
+## Developing this project
 
-Version:
-
-```text
-1.0.0
+```bash
+npm ci
+npm run lint:check
+npm run format:check
+npm run test:coverage
+npm run build
+npm run smoke
 ```
 
-Suitable for team trial use. Recommended further verification before official release:
+Tests use an isolated temporary project root and do not modify real Harness data in the repository. CI runs lint, formatting, coverage, build, and smoke tests on Node.js 18 and 20.
 
-- Windows / macOS / Linux
-- Codex / Trae / Qoder / Cursor
-- Clean repository initialization
-- Re-initialization on existing repositories
-- Knowledge Memory search and accumulation effectiveness in real requirements
+## License
+
+MIT
