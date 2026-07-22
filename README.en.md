@@ -26,7 +26,7 @@ Examples use pnpm. With another package manager, replace `pnpm exec codepilot` w
 ### 1. Install
 
 ```bash
-pnpm add -D @codepilot/ai
+pnpm add -D codepilot-ai
 ```
 
 ### 2. Initialize

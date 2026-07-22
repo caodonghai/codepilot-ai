@@ -1,5 +1,5 @@
 {
-  "name": "@codepilot/ai",
+  "name": "codepilot-ai",
   "version": "1.0.0",
   "description": "AI-powered engineering workflow toolkit for modern software development.",
   "license": "MIT",
@@ -45,5 +45,9 @@
     "typescript": "^5.5.0",
     "vite": "^6.4.3",
     "vitest": "^3.2.6"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }

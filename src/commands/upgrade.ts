@@ -23,7 +23,7 @@ function getCurrentVersion(): string {
 
 async function fetchLatestVersion(): Promise<string | null> {
   try {
-    const url = 'https://registry.npmjs.org/@codepilot/ai';
+    const url = 'https://registry.npmjs.org/codepilot-ai';
     const response = await fetch(url);
     if (!response.ok) {
       return null;
@@ -87,7 +87,7 @@ function upgradeInstallCommand() {
 
   try {
     const { spawnSync } = require('child_process');
-    const result = spawnSync('npm', ['install', '@codepilot/ai@latest'], {
+    const result = spawnSync('npm', ['install', 'codepilot-ai@latest'], {
       cwd: process.cwd(),
       shell: false,
       stdio: 'inherit',
