@@ -135,7 +135,10 @@ async function main() {
 
   run(npmCommand, ['version', release, '-m', 'chore(release): v%s']);
   run('git', ['push', 'origin', 'HEAD', '--follow-tags']);
-  run(npmCommand, ['publish', '--provenance', '--access', 'public'], {
+  // npm can only generate provenance inside a supported CI identity provider.
+  // Local interactive releases publish normally; the GitHub release workflow
+  // keeps using --provenance.
+  run(npmCommand, ['publish', '--access', 'public'], {
     env: { CODEPILOT_PUBLISH_CHILD: '1' },
   });
 
