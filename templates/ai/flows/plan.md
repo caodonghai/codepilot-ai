@@ -13,7 +13,7 @@
 3. 读取 `openspec/changes/<change>` 下的所有文件。
 4. 阅读 `.ai/core/project.md`、`.ai/core/frontend.md`、`.ai/core/api.md`、`.ai/core/ui.md` 和 `.ai/core/testing.md`。
 5. 搜索知识记忆中的相关组件、函数、模式和失败：
-   - `pnpm ai knowledge:search <change> <module-or-domain-keywords> --limit 10`
+   - `pnpm ai knowledge search <change> <module-or-domain-keywords> --limit 10`
    - 仅读取返回的摘要。不要读取完整的记忆 JSONL 文件。
    - 如果未找到记录，明确说明计划在没有先前知识记忆的情况下进行。
 6. 阅读 `superpowers/skills/planning.md`。

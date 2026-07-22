@@ -335,7 +335,7 @@ export function extractReferencedFiles(text: string) {
 
 export function buildKnowledgeAddCommand(record: Partial<KnowledgeRecord>) {
   const args = [
-    'pnpm ai knowledge:add --',
+    'pnpm ai knowledge add',
     `--type ${record.type}`,
     `--name ${quoteShellArg(String(record.name ?? ''))}`,
     `--summary ${quoteShellArg(String(record.summary ?? ''))}`,

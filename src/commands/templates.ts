@@ -8,6 +8,7 @@ import {
   flowNames,
   skillFiles,
 } from '../config/constants';
+import { resolveIntegrationResource } from '../lib/integrations';
 
 export const gitignoreMarker = '# CodePilot AI runtime artifacts';
 export const gitignoreRules = [
@@ -65,6 +66,7 @@ export function findTemplateRoot() {
   const candidates = [
     resolvePath('packages', 'ai-engineering-kit', 'templates'),
     path.resolve(__dirname, '..', '..', 'packages', 'ai-engineering-kit', 'templates'),
+    path.resolve(__dirname, '..', '..', 'templates'),
     path.resolve(__dirname, '..', 'templates'),
   ];
   return candidates.find((candidate) => fs.existsSync(candidate)) ?? null;
@@ -108,7 +110,19 @@ export function seedProjectTemplates() {
     copy(path.join('ai', 'flows', `${flow}.md`), path.join('.ai', 'flows', `${flow}.md`));
   }
   for (const file of skillFiles) {
-    copy(path.join('superpowers', 'skills', file), path.join('superpowers', 'skills', file));
+    const officialSkill = resolveIntegrationResource('superpowers', [
+      path.join('skills', file.replace(/\.md$/, ''), 'SKILL.md'),
+      path.join('skills', file),
+      path.join('superpowers', 'skills', file),
+    ]);
+    if (officialSkill) {
+      writeFileIfMissing(
+        path.join('superpowers', 'skills', file),
+        fs.readFileSync(officialSkill, 'utf8'),
+      );
+    } else {
+      copy(path.join('superpowers', 'skills', file), path.join('superpowers', 'skills', file));
+    }
   }
   copy(path.join('openspec', 'project.md'), path.join('openspec', 'project.md'));
   copy(path.join('harness', 'state.json'), path.join('harness', 'state.json'));
@@ -121,6 +135,14 @@ function renderTemplate(content: string, data: Record<string, string>) {
 }
 
 export function templateChangeFile(change: string, kind: string, type: string = 'default') {
+  const officialTemplate = resolveIntegrationResource('openspec', [
+    path.join('templates', 'changes', type, kind),
+    path.join('changes', type, kind),
+    path.join('templates', kind),
+  ]);
+  if (officialTemplate) {
+    return renderTemplate(fs.readFileSync(officialTemplate, 'utf8'), { change, type });
+  }
   const templateRoot = findTemplateRoot();
   if (templateRoot) {
     const templatePath = path.join(templateRoot, 'changes', type, kind);

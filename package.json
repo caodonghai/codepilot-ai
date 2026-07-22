@@ -13,7 +13,10 @@
     "dist",
     "templates",
     "README.md",
-    "README.en.md"
+    "README.en.md",
+    "CHANGELOG.md",
+    "SECURITY.md",
+    "LICENSE"
   ],
   "engines": {
     "node": ">=18.0.0"

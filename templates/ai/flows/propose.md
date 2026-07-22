@@ -19,7 +19,7 @@
    - `notes.md`
 4. 读取 `openspec/changes/<change>` 下的现有文件。
 5. 在仓库范围搜索之前，搜索知识记忆中的变更名称和请求关键字：
-   - `pnpm ai knowledge:search <change> <request-keywords> --limit 5`
+   - `pnpm ai knowledge search <change> <request-keywords> --limit 5`
    - 仅读取返回的摘要，不要读取原始 `harness/memory/knowledge/*.jsonl` 文件。
    - 如果未找到记录，在响应或 notes 中记录"知识搜索：无相关记录"。
 6. 在仓库中搜索请求和变更名称中的术语，以定位可能受影响的页面、路由、模型、API 和组件。

@@ -1,6 +1,5 @@
 import { Command } from 'commander';
 import fs from 'fs';
-import { spawnSync } from 'child_process';
 import type { HarnessResult } from '../types';
 import {
   defaultTools,
@@ -38,6 +37,9 @@ import {
 import { isGitRepo, createBranch, getBranchExists, checkoutBranch } from '../lib/git';
 import { runHooks } from '../lib/hooks';
 import { logger } from '../lib/logger';
+import { isDryRun, isSkipGit } from '../lib/context';
+import { confirmDestructiveAction } from '../lib/confirm';
+import { runScript } from '../lib/package-manager';
 
 export function registerChangeCommands(program: Command) {
   program
@@ -89,7 +91,11 @@ export function registerChangeCommands(program: Command) {
     .description('Restore an archived change')
     .action(restoreCommand);
 
-  program.command('delete <change>').description('Delete an archived change').action(deleteCommand);
+  program
+    .command('delete <change>')
+    .description('Delete an archived change')
+    .option('-y, --yes', 'Confirm deletion')
+    .action(deleteCommand);
 
   program
     .command('list')
@@ -139,6 +145,13 @@ export async function newCommand(
   let change = changeInput ? kebabName(changeInput) : '';
   let type = parseChangeType(options.type);
 
+  if (isDryRun()) {
+    console.log(
+      JSON.stringify({ status: 'dry-run', command: 'new', change, type, writes: false }, null, 2),
+    );
+    return;
+  }
+
   await runHooks('pre-change-create', { change, type });
 
   if (options.interactive) {
@@ -165,11 +178,8 @@ export async function newCommand(
 
   const config = loadHarnessConfig();
   saveHarnessConfig({
-    version: config.version ?? 1,
-    profile: config.profile ?? 'lightweight',
+    ...config,
     currentChange: change,
-    tools: config.tools ?? defaultTools,
-    checks: config.checks ?? ['eslint', 'ai:validate', 'ai:report'],
   });
   updateHarnessState({
     activeChange: change,
@@ -184,7 +194,7 @@ export async function newCommand(
   });
   writeRunEvent('change-created', { change, type });
 
-  prepareChangeBranch(change, type, options.branch === true);
+  prepareChangeBranch(change, type, options.branch === true && !isSkipGit());
 
   await runHooks('post-change-create', { change, type });
 
@@ -286,29 +296,54 @@ export function validateCommand(changeInput?: string, options: { quiet?: boolean
 }
 
 function runEslintCommand(): HarnessResult {
-  const eslintPath = resolvePath('node_modules', 'eslint', 'bin', 'eslint.js');
   const startedAt = Date.now();
-  if (!fs.existsSync(eslintPath)) {
+  const packagePath = resolvePath('package.json');
+  const packageJson = fs.existsSync(packagePath)
+    ? JSON.parse(fs.readFileSync(packagePath, 'utf8'))
+    : {};
+  const script = packageJson?.scripts?.['lint:check'] ? 'lint:check' : 'lint';
+  if (!packageJson?.scripts?.[script]) {
     return {
-      command: 'node node_modules/eslint/bin/eslint.js --ext .tsx,.ts ./apps',
+      command: 'eslint',
       status: 'failed',
       exitCode: 1,
       durationMs: Date.now() - startedAt,
-      reason: 'Missing local ESLint binary. Run pnpm install first.',
+      reason: 'No lint or lint:check package script is configured.',
     };
   }
-  const result = spawnSync(process.execPath, [eslintPath, '--ext', '.tsx,.ts', './apps'], {
-    cwd: root,
-    shell: false,
-    stdio: 'inherit',
-  });
-  const exitCode = typeof result.status === 'number' ? result.status : 1;
+  const result = runScript(script, { cwd: root });
+  if (result.stdout) process.stdout.write(result.stdout);
+  if (result.stderr) process.stderr.write(result.stderr);
   return {
-    command: 'node node_modules/eslint/bin/eslint.js --ext .tsx,.ts ./apps',
-    status: exitCode === 0 ? 'passed' : 'failed',
-    exitCode,
+    command: `script:${script}`,
+    status: result.exitCode === 0 ? 'passed' : 'failed',
+    exitCode: result.exitCode,
     durationMs: Date.now() - startedAt,
-    reason: result.error?.message,
+    reason: result.exitCode === 0 ? undefined : result.stderr || `${script} failed`,
+  };
+}
+
+function runPackageScriptCheck(identifier: string): HarnessResult {
+  const script = identifier.slice('script:'.length);
+  const startedAt = Date.now();
+  if (!/^[\w:.-]+$/.test(script)) {
+    return {
+      command: identifier,
+      status: 'failed',
+      exitCode: 1,
+      durationMs: 0,
+      reason: 'Invalid package script name.',
+    };
+  }
+  const result = runScript(script, { cwd: root });
+  if (result.stdout) process.stdout.write(result.stdout);
+  if (result.stderr) process.stderr.write(result.stderr);
+  return {
+    command: identifier,
+    status: result.exitCode === 0 ? 'passed' : 'failed',
+    exitCode: result.exitCode,
+    durationMs: Date.now() - startedAt,
+    reason: result.exitCode === 0 ? undefined : result.stderr || `${script} failed`,
   };
 }
 
@@ -331,7 +366,7 @@ function writeReport(
     profile: config.profile ?? 'lightweight',
     scope: change ?? 'root',
     change,
-    dryRun: false,
+    dryRun: isDryRun(),
     status: finalStatus,
     tools: config.tools ?? defaultTools,
     results,
@@ -381,25 +416,40 @@ function checkCommand(
   options: { strict?: boolean; noEslint?: boolean } = {},
 ) {
   const results: HarnessResult[] = [];
+  const config = loadHarnessConfig();
+  const configuredChecks = options.strict ? config.strictChecks : config.checks;
+  const checks = configuredChecks?.length ? configuredChecks : ['ai:validate', 'ai:report'];
 
-  if (!options.noEslint && options.strict) {
-    results.push(runEslintCommand());
+  for (const check of checks) {
+    if (check === 'eslint') {
+      if (!options.noEslint) results.push(runEslintCommand());
+      continue;
+    }
+    if (check === 'ai:report') continue;
+    if (check.startsWith('script:')) {
+      results.push(runPackageScriptCheck(check));
+      continue;
+    }
+    if (check === 'ai:validate') {
+      const startedAt = Date.now();
+      const validation = validateCommand(changeInput, { quiet: true });
+      results.push({
+        command: changeInput ? `codepilot validate ${changeInput}` : 'codepilot validate',
+        status: validation.status,
+        exitCode: validation.status === 'passed' ? 0 : 1,
+        durationMs: Date.now() - startedAt,
+        reason: validation.errors.join('; ') || undefined,
+      });
+      continue;
+    }
+    results.push({
+      command: check,
+      status: 'failed',
+      exitCode: 1,
+      durationMs: 0,
+      reason: 'Unsupported check. Use eslint, ai:validate, ai:report, or script:<name>.',
+    });
   }
-
-  const startedAt = Date.now();
-  const validation = validateCommand(changeInput, { quiet: true });
-  if (validation.status === 'failed') {
-    console.error(
-      `AI validation failed:\n${validation.errors.map((error) => `- ${error}`).join('\n')}`,
-    );
-  }
-  results.push({
-    command: changeInput ? `pnpm ai validate ${changeInput}` : 'pnpm ai validate',
-    status: validation.status,
-    exitCode: validation.status === 'passed' ? 0 : 1,
-    durationMs: Date.now() - startedAt,
-    reason: validation.errors.join('; ') || undefined,
-  });
 
   const finalStatus = results.every((item) => item.status === 'passed') ? 'passed' : 'failed';
   writeReport(changeInput, results, finalStatus);
@@ -434,8 +484,9 @@ function restoreCommand(change: string) {
   }
 }
 
-function deleteCommand(change: string) {
+async function deleteCommand(change: string, options: { yes?: boolean }) {
   try {
+    await confirmDestructiveAction(`Permanently delete archived change "${change}"?`, options.yes);
     const result = deleteArchivedChange(change);
     console.log(`Archived change deleted: ${change}`);
     console.log(`Deleted at: ${result.deletedAt}`);

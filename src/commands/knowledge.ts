@@ -18,6 +18,7 @@ import { writeRunEvent } from '../lib/events';
 import { getChangeName } from '../lib/state';
 import { readChangeText } from '../utils/encoding';
 import { syncTaskBoard, taskSummary } from '../lib/task';
+import { root } from '../config/constants';
 
 export function registerKnowledgeCommands(program: Command) {
   const knowledge = program.command('knowledge').description('Knowledge memory management');
@@ -266,7 +267,6 @@ function knowledgeAnalyzeCommand(options: { limit?: string } = {}) {
 
 function collectChangedFilesForKnowledge() {
   const { spawnSync } = require('child_process');
-  const { root } = require('../lib/utils');
   const result = spawnSync(
     'git',
     [
@@ -339,7 +339,7 @@ function extractReferencedFiles(text: string) {
 
 function buildKnowledgeAddCommand(record: Record<string, unknown>) {
   const args = [
-    'pnpm ai knowledge:add --',
+    'pnpm ai knowledge add',
     `--type ${record.type}`,
     `--name "${String(record.name ?? '').replace(/"/g, '\\"')}"`,
     `--summary "${String(record.summary ?? '').replace(/"/g, '\\"')}"`,

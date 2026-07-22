@@ -14,10 +14,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Use Node.js 20.x
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '20.x'
           cache: 'npm'
@@ -35,17 +35,17 @@ jobs:
       - name: Smoke test
         run: npm run smoke
 
+      - name: Build release archive and SBOM
+        run: |
+          npm pack
+          npm sbom --sbom-format cyclonedx > sbom.cdx.json
+
       - name: Publish package
-        run: npm publish --provenance --access public
+        run: npm publish codepilot-ai-*.tgz --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Create Release
-        uses: actions/create-release@v1
+      - name: Create GitHub release
+        run: gh release create "$GITHUB_REF_NAME" codepilot-ai-*.tgz sbom.cdx.json --generate-notes
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
+          GH_TOKEN: ${{ github.token }}

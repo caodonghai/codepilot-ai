@@ -27,11 +27,11 @@
    - `pnpm ai finish-state <change>`
 10. 在 `notes.md` 中更新最终验证细节和已知风险。
 11. 当工具可用时，生成知识记忆建议：
-    - `pnpm ai knowledge:suggest <change> --write`
+    - `pnpm ai knowledge suggest <change> --write`
     - 将建议视为候选，而非事实。
     - 如果未找到可复用候选，在最终报告中明确说明。
 12. 仅将已确认的可复用知识添加到知识记忆中，当变更揭示未来工作应复用的组件、函数、模式、决策或失败时：
-    - `pnpm ai knowledge:add --type <type> --name "<name>" --summary "<short-summary>" --keywords "<keyword1>,<keyword2>" --used-in "<path>"`
+    - `pnpm ai knowledge add --type <type> --name "<name>" --summary "<short-summary>" --keywords "<keyword1>,<keyword2>" --used-in "<path>"`
     - 不要将不确定的猜测作为已确认事实添加。
 13. 如果必需检查因实现原因失败、任务仍为 todo/doing/blocked 或 `agent-finish` 报告 `partially_accepted` 或 `blocked`，不要声称变更已完成。
 

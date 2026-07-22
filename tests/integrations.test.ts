@@ -2,7 +2,11 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { describe, expect, test } from 'vitest';
-import { assertDownloadOutsideRepo, assertIntegrationTargetPath } from '../src/lib/integrations';
+import {
+  assertDownloadOutsideRepo,
+  assertIntegrationTargetPath,
+  resolveIntegrationRuntime,
+} from '../src/lib/integrations';
 import { resolvePath } from '../src/utils/file';
 
 describe('integration 路径边界', () => {
@@ -44,6 +48,34 @@ describe('integration 路径边界', () => {
     expect(() => assertDownloadOutsideRepo(sibling)).not.toThrow();
     expect(() => assertDownloadOutsideRepo(resolvePath('downloads'))).toThrow(
       'inside the repository',
+    );
+  });
+
+  test('lightweight 始终使用内置资源', () => {
+    expect(
+      resolveIntegrationRuntime('openspec', {
+        name: 'openspec',
+        mode: 'lightweight',
+        officialInstalled: false,
+        officialPath: 'harness/integrations/openspec/official',
+        cachePath: 'harness/integrations/openspec/cache',
+        updatedAt: new Date().toISOString(),
+      }).source,
+    ).toBe('builtin');
+  });
+
+  test('official 不可用时失败，hybrid 自动回退', () => {
+    const config = {
+      name: 'openspec' as const,
+      mode: 'official' as const,
+      officialInstalled: false,
+      officialPath: 'harness/integrations/openspec/official',
+      cachePath: 'harness/integrations/openspec/cache',
+      updatedAt: new Date().toISOString(),
+    };
+    expect(() => resolveIntegrationRuntime('openspec', config)).toThrow('unavailable');
+    expect(resolveIntegrationRuntime('openspec', { ...config, mode: 'hybrid' }).source).toBe(
+      'builtin',
     );
   });
 });

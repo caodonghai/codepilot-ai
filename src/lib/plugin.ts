@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { logger } from './logger';
 import type { Command } from 'commander';
+import { resolvePath } from '../utils/file';
 
 export interface Plugin {
   name: string;
@@ -26,10 +27,16 @@ export interface PluginManifest {
 }
 
 const PLUGIN_DIR = 'harness/plugins';
+const pluginNamePattern = /^[a-z0-9][a-z0-9-]*$/;
+
+function assertPluginName(name: string) {
+  if (!pluginNamePattern.test(name)) throw new Error(`Invalid plugin name: ${name}`);
+  return name;
+}
 
 export function loadPlugins(): Plugin[] {
   const plugins: Plugin[] = [];
-  const pluginDir = path.resolve(process.cwd(), PLUGIN_DIR);
+  const pluginDir = resolvePath(PLUGIN_DIR);
 
   if (!fs.existsSync(pluginDir)) {
     return plugins;
@@ -50,7 +57,11 @@ export function loadPlugins(): Plugin[] {
 
     try {
       const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as PluginManifest;
-      const mainPath = path.join(pluginPath, manifest.main || 'index.js');
+      assertPluginName(manifest.name);
+      const mainPath = path.resolve(pluginPath, manifest.main || 'index.js');
+      if (!mainPath.startsWith(`${path.resolve(pluginPath)}${path.sep}`)) {
+        throw new Error('Plugin main must stay inside its plugin directory.');
+      }
 
       if (!fs.existsSync(mainPath)) {
         logger.warn(`Plugin ${manifest.name} missing main file`);
@@ -110,12 +121,22 @@ export function listPlugins(): Plugin[] {
 }
 
 export function installPlugin(pluginPath: string): boolean {
-  const pluginDir = path.resolve(process.cwd(), PLUGIN_DIR);
-  const destPath = path.join(pluginDir, path.basename(pluginPath));
+  pluginPath = path.resolve(pluginPath);
+  if (!fs.existsSync(pluginPath) || !fs.statSync(pluginPath).isDirectory()) {
+    throw new Error(`Plugin source must be a local directory: ${pluginPath}`);
+  }
+  const manifestPath = path.join(pluginPath, 'plugin.json');
+  if (!fs.existsSync(manifestPath)) throw new Error('Plugin source is missing plugin.json.');
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as PluginManifest;
+  assertPluginName(manifest.name);
+  const pluginDir = resolvePath(PLUGIN_DIR);
+  const destPath = path.join(pluginDir, manifest.name);
 
   try {
-    fs.cpSync(pluginPath, destPath, { recursive: true });
-    logger.success(`Plugin installed: ${path.basename(pluginPath)}`);
+    fs.mkdirSync(pluginDir, { recursive: true });
+    if (fs.existsSync(destPath)) throw new Error(`Plugin already installed: ${manifest.name}`);
+    fs.cpSync(pluginPath, destPath, { recursive: true, errorOnExist: true });
+    logger.success(`Plugin installed: ${manifest.name}`);
     return true;
   } catch (error) {
     logger.error(`Failed to install plugin: ${(error as Error).message}`);
@@ -124,7 +145,8 @@ export function installPlugin(pluginPath: string): boolean {
 }
 
 export function uninstallPlugin(pluginName: string): boolean {
-  const pluginDir = path.resolve(process.cwd(), PLUGIN_DIR);
+  assertPluginName(pluginName);
+  const pluginDir = resolvePath(PLUGIN_DIR);
   const pluginPath = path.join(pluginDir, pluginName);
 
   if (!fs.existsSync(pluginPath)) {

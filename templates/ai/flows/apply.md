@@ -13,7 +13,7 @@
 3. 读取 `openspec/changes/<change>` 下的所有文件。
 4. 阅读 `.ai/core/project.md`、`.ai/core/frontend.md`、`.ai/core/api.md`、`.ai/core/ui.md` 和 `.ai/core/testing.md`。
 5. 搜索知识记忆中的相关用法示例和已知失败：
-   - `pnpm ai knowledge:search <change> <module-or-domain-keywords> --limit 10`
+   - `pnpm ai knowledge search <change> <module-or-domain-keywords> --limit 10`
    - 仅使用返回的摘要。不要直接读取 `harness/memory/knowledge`。
    - 如果未找到记录，在编辑前说明没有可用的可复用知识。
 6. 阅读 `superpowers/skills/planning.md`；在相关时阅读 `tdd.md`、`debugging.md` 或 `code-review.md`。

@@ -22,7 +22,7 @@
    - "验证官方集成" -> `pnpm ai integration:validate <openspec|superpowers> --dry-run`
    - "同步 Codex/Cursor/Trae/Qoder" -> `pnpm ai sync <tools...>`
    - 除非用户明确要求 `--execute`，否则不要安装全局包、使用全局工具、修改 PATH 或执行官方 CLI。
-7. 如果用户要求分析知识记忆，运行 `pnpm ai knowledge:analyze` 并总结建议。
+7. 如果用户要求分析知识记忆，运行 `pnpm ai knowledge analyze` 并总结建议。
 8. 如果存在，检查 `openspec/changes/<change>`。
 9. 调度：
    - 如果变更不存在，使用 `/ai:propose <change>`。

@@ -24,40 +24,48 @@ function getEnvString(key: string): string | undefined {
   return process.env[key] || undefined;
 }
 
+function getCompatibleEnvBool(name: string): boolean | undefined {
+  return getEnvBool(`CODEPILOT_${name}`) ?? getEnvBool(`MSGFI_AI_${name}`);
+}
+
+function getCompatibleEnvString(name: string): string | undefined {
+  return getEnvString(`CODEPILOT_${name}`) ?? getEnvString(`MSGFI_AI_${name}`);
+}
+
 export function loadFromEnv(): void {
   const envOptions: GlobalOptions = {};
 
-  const verbose = getEnvBool('MSGFI_AI_VERBOSE');
+  const verbose = getCompatibleEnvBool('VERBOSE');
   if (verbose !== undefined) envOptions.verbose = verbose;
 
-  const quiet = getEnvBool('MSGFI_AI_QUIET');
+  const quiet = getCompatibleEnvBool('QUIET');
   if (quiet !== undefined) envOptions.quiet = quiet;
 
-  const dryRun = getEnvBool('MSGFI_AI_DRY_RUN');
+  const dryRun = getCompatibleEnvBool('DRY_RUN');
   if (dryRun !== undefined) envOptions.dryRun = dryRun;
 
-  const json = getEnvBool('MSGFI_AI_JSON');
+  const json = getCompatibleEnvBool('JSON');
   if (json !== undefined) envOptions.json = json;
 
-  const locale = getEnvString('MSGFI_AI_LOCALE');
+  const locale = getCompatibleEnvString('LOCALE');
   if (locale !== undefined) envOptions.locale = locale;
 
-  const configPath = getEnvString('MSGFI_AI_CONFIG');
+  const configPath = getCompatibleEnvString('CONFIG');
   if (configPath !== undefined) envOptions.configPath = configPath;
 
-  const framework = getEnvString('MSGFI_AI_FRAMEWORK');
+  const framework = getCompatibleEnvString('FRAMEWORK');
   if (framework !== undefined) envOptions.framework = framework;
 
-  const buildTool = getEnvString('MSGFI_AI_BUILD_TOOL');
+  const buildTool = getCompatibleEnvString('BUILD_TOOL');
   if (buildTool !== undefined) envOptions.buildTool = buildTool;
 
-  const packageManager = getEnvString('MSGFI_AI_PACKAGE_MANAGER');
+  const packageManager = getCompatibleEnvString('PACKAGE_MANAGER');
   if (packageManager !== undefined) envOptions.packageManager = packageManager;
 
-  const skipAi = getEnvBool('MSGFI_AI_SKIP_AI');
+  const skipAi = getCompatibleEnvBool('SKIP_AI');
   if (skipAi !== undefined) envOptions.skipAi = skipAi;
 
-  const skipGit = getEnvBool('MSGFI_AI_SKIP_GIT');
+  const skipGit = getCompatibleEnvBool('SKIP_GIT');
   if (skipGit !== undefined) envOptions.skipGit = skipGit;
 
   globalOptions = { ...globalOptions, ...envOptions };

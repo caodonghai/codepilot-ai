@@ -4,6 +4,12 @@ import { resolvePath, ensureDir } from '../utils/file';
 import { logger } from '../lib/logger';
 import { isJsonOutput } from '../lib/context';
 import { t } from '../lib/i18n';
+import { confirmDestructiveAction } from '../lib/confirm';
+
+function assertTemplateName(name: string) {
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(name)) throw new Error(`Invalid template name: ${name}`);
+  return name;
+}
 
 export function registerTemplateCommands(program: Command) {
   const template = program.command('template').description('Template management commands');
@@ -12,7 +18,11 @@ export function registerTemplateCommands(program: Command) {
 
   template.command('add <name>').description('Add custom template').action(templateAddCommand);
 
-  template.command('remove <name>').description('Remove template').action(templateRemoveCommand);
+  template
+    .command('remove <name>')
+    .description('Remove template')
+    .option('-y, --yes', 'Confirm removal')
+    .action(templateRemoveCommand);
 
   template.command('edit <name>').description('Edit template content').action(templateEditCommand);
 
@@ -64,6 +74,7 @@ function templateListCommand() {
 }
 
 function templateAddCommand(name: string) {
+  name = assertTemplateName(name);
   const templatePath = resolvePath(templateDir, name);
   if (fs.existsSync(templatePath)) {
     logger.error(`Template already exists: ${name}`);
@@ -86,7 +97,8 @@ function templateAddCommand(name: string) {
   logger.info(`Files created: ${defaultFiles.join(', ')}`);
 }
 
-function templateRemoveCommand(name: string) {
+async function templateRemoveCommand(name: string, options: { yes?: boolean }) {
+  name = assertTemplateName(name);
   const templatePath = resolvePath(templateDir, name);
   if (!fs.existsSync(templatePath)) {
     logger.error(`Template not found: ${name}`);
@@ -94,11 +106,18 @@ function templateRemoveCommand(name: string) {
     return;
   }
 
-  fs.rmSync(templatePath, { recursive: true, force: true });
-  logger.success(`Template removed: ${name}`);
+  try {
+    await confirmDestructiveAction(`Permanently remove template "${name}"?`, options.yes);
+    fs.rmSync(templatePath, { recursive: true, force: true });
+    logger.success(`Template removed: ${name}`);
+  } catch (error) {
+    logger.error((error as Error).message);
+    process.exitCode = 1;
+  }
 }
 
 function templateEditCommand(name: string) {
+  name = assertTemplateName(name);
   const templatePath = resolvePath(templateDir, name);
   if (!fs.existsSync(templatePath)) {
     logger.error(`Template not found: ${name}`);
@@ -124,6 +143,7 @@ function templateEditCommand(name: string) {
 }
 
 function templateShowCommand(name: string) {
+  name = assertTemplateName(name);
   const templatePath = resolvePath(templateDir, name);
   if (!fs.existsSync(templatePath)) {
     logger.error(`Template not found: ${name}`);

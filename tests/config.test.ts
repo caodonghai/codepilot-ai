@@ -11,6 +11,7 @@ import {
   saveState,
   updateState,
   isConfigInitialized,
+  migrateConfig,
 } from '../src/lib/state';
 import { resolvePath } from '../src/utils/file';
 
@@ -39,7 +40,7 @@ describe('config 模块', () => {
 
   test('getDefaultConfig 返回默认值', () => {
     const config = getDefaultConfig();
-    expect(config.version).toBe(1);
+    expect(config.version).toBe(2);
     expect(config.profile).toBe('lightweight');
     expect(config.currentChange).toBe(null);
     expect(Array.isArray(config.tools)).toBe(true);
@@ -72,7 +73,7 @@ describe('config 模块', () => {
 
   test('loadConfig 在文件不存在时返回默认值', () => {
     const config = loadConfig();
-    expect(config.version).toBe(1);
+    expect(config.version).toBe(2);
     expect(config.profile).toBe('lightweight');
   });
 
@@ -94,7 +95,7 @@ describe('config 模块', () => {
     const loaded = loadConfig();
     expect(loaded.currentChange).toBe('new-change');
     expect(loaded.autoSave).toBe(false);
-    expect(loaded.version).toBe(1);
+    expect(loaded.version).toBe(2);
   });
 
   test('getDefaultState 返回默认值', () => {
@@ -139,5 +140,16 @@ describe('config 模块', () => {
     saveConfig(getDefaultConfig());
     saveState(getDefaultState());
     expect(isConfigInitialized()).toBe(true);
+  });
+
+  test('迁移旧配置并保留自定义字段', () => {
+    const migrated = migrateConfig({ version: 1, profile: 'strict', custom: 'kept' });
+    expect(migrated.version).toBe(2);
+    expect((migrated as Record<string, unknown>).custom).toBe('kept');
+    expect(migrated.strictChecks).toContain('eslint');
+  });
+
+  test('拒绝未来版本配置', () => {
+    expect(() => migrateConfig({ version: 999 })).toThrow('newer than supported');
   });
 });

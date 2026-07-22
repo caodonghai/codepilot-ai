@@ -1,13 +1,21 @@
 import { Command } from 'commander';
-import { defaultTools, requiredChangeFiles, parseTools } from '../config/constants';
-import { ensureDir, writeFileIfMissing, writeGeneratedFile } from '../utils/file';
-import { saveHarnessConfig } from '../lib/state';
+import {
+  configSchemaVersion,
+  defaultTools,
+  requiredChangeFiles,
+  parseTools,
+  flowNames,
+  integrationNames,
+} from '../config/constants';
+import { ensureDir, exists, writeFileIfMissing, writeGeneratedFile } from '../utils/file';
+import { loadHarnessConfig, saveHarnessConfig } from '../lib/state';
 import {
   templateChangeFile,
   setupPackageScript,
   setupGitignore,
   seedProjectTemplates,
   applyToolSkip,
+  listTargetFiles,
 } from './templates';
 import { writeRunEvent } from '../lib/events';
 import {
@@ -19,16 +27,17 @@ import { checkWritable, isActiveCodexSkillLock } from '../lib/permissions';
 import { Spinner } from './progress';
 import { logger } from '../lib/logger';
 import { t } from '../lib/i18n';
-import { isJsonOutput } from '../lib/context';
+import { isDryRun, isJsonOutput } from '../lib/context';
 import { detectProjectInfo } from '../lib/project';
 import type { ProjectFramework, BuildTool, PackageManager } from '../types';
+import { defaultIntegrationConfig, saveIntegrationConfig } from '../lib/integrations';
 
 export function registerInitCommands(program: Command) {
   program
     .command('init')
     .description('Initialize CodePilot AI harness and integration rules')
-    .option('--profile <profile>', 'Profile: lightweight | official | hybrid', 'lightweight')
-    .option('--tools <tools>', 'Comma-separated list of AI tools', defaultTools.join(','))
+    .option('--profile <profile>', 'Profile: lightweight | official | hybrid')
+    .option('--tools <tools>', 'Comma-separated list of AI tools')
     .option('--force', 'Overwrite existing files')
     .option('--no-setup-gitignore', 'Do not add CodePilot runtime artifacts to .gitignore')
     .option(
@@ -57,8 +66,25 @@ function initHarnessCommand(options: {
   pm?: string;
   setupGitignore?: boolean;
 }) {
-  const tools = parseTools(options.tools);
-  const profile = options.profile || 'lightweight';
+  const previousConfig = exists('harness', 'config.json') ? loadHarnessConfig() : null;
+  const tools = options.tools
+    ? parseTools(options.tools)
+    : ((previousConfig?.tools as string[] | undefined) ?? defaultTools);
+  const profile = options.profile || previousConfig?.profile || 'lightweight';
+  if (!['lightweight', 'official', 'hybrid'].includes(profile)) {
+    throw new Error('Profile must be lightweight, official, or hybrid.');
+  }
+
+  if (isDryRun()) {
+    console.log(
+      JSON.stringify(
+        { status: 'dry-run', command: 'init', profile, tools, writes: false },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
 
   const spinner = new Spinner('Initializing CodePilot AI harness...');
   spinner.start();
@@ -100,14 +126,23 @@ function initHarnessCommand(options: {
     logger.debug('Created template files');
 
     saveHarnessConfig({
-      version: 1,
+      ...previousConfig,
+      version: configSchemaVersion,
       profile,
-      currentChange: null,
+      currentChange: previousConfig?.currentChange ?? null,
       tools,
-      checks: ['ai:validate', 'ai:report'],
-      strictChecks: ['eslint', 'ai:validate', 'ai:report'],
+      checks: previousConfig?.checks ?? ['ai:validate', 'ai:report'],
+      strictChecks: previousConfig?.strictChecks ?? ['eslint', 'ai:validate', 'ai:report'],
       project: projectInfo,
     });
+    for (const name of integrationNames) {
+      if (options.profile || !exists('harness', 'integrations', name, 'config.json')) {
+        saveIntegrationConfig({
+          ...defaultIntegrationConfig(name),
+          mode: profile as 'lightweight' | 'official' | 'hybrid',
+        });
+      }
+    }
     logger.debug('Saved harness config');
 
     spinner.stop(true);
@@ -141,43 +176,16 @@ function initHarnessCommand(options: {
 function syncCommand(options: { tools?: string; force?: boolean; dryRun?: boolean }) {
   const rawTools = parseTools(options.tools);
   const tools = applyToolSkip(rawTools);
-
-  const files: Array<{ tool: string; path: string; content: string }> = [];
+  const files = buildSyncFiles(tools);
   const skips: Array<{ tool: string; reason: string }> = [];
 
-  for (const tool of tools) {
-    const rulesPath = tool === 'codex' ? '.codex/rules.md' : `.${tool}/rules.md`;
-    files.push({ tool, path: rulesPath, content: buildRulesDocument(tool) });
-
-    files.push({
-      tool,
-      path: tool === 'codex' ? '.codex/commands/ai.md' : `.${tool}/commands/ai.md`,
-      content: buildDispatcherDocument(),
-    });
-
-    for (const flow of ['explore', 'propose', 'plan', 'apply', 'verify', 'review', 'finish']) {
-      files.push({
-        tool,
-        path:
-          tool === 'codex' ? `.codex/commands/ai:${flow}.md` : `.${tool}/commands/ai:${flow}.md`,
-        content: buildCommandDocument(flow),
-      });
-    }
-  }
-
-  if (options.dryRun) {
+  if (options.dryRun || isDryRun()) {
     console.log('[DRY-RUN] Would sync:');
     for (const item of files) {
       const marker = require('fs').existsSync(require('path').join(process.cwd(), item.path))
         ? '[UPDATE]'
         : '[CREATE]';
       console.log(`  ${marker} ${item.tool}: ${item.path}`);
-    }
-    if (skips.length > 0) {
-      console.log('\nSkipped:');
-      for (const item of skips) {
-        console.log(`  ${item.tool}: ${item.reason}`);
-      }
     }
     return;
   }
@@ -186,37 +194,53 @@ function syncCommand(options: { tools?: string; force?: boolean; dryRun?: boolea
   for (const item of files) {
     const writable = checkWritable(item.path);
     if (writable.status === 'failed') {
-      if (isActiveCodexSkillLock(item.path, writable.reason)) {
-        failures += 1;
-        console.log(`[SKIP] ${item.tool}: ${item.path} (locked by Codex skill)`);
-      } else {
-        failures += 1;
-        console.log(`[FAIL] ${item.tool}: ${item.path} (${writable.reason})`);
-      }
+      failures += 1;
+      console.log(
+        isActiveCodexSkillLock(item.path, writable.reason)
+          ? `[SKIP] ${item.tool}: ${item.path} (locked by Codex skill)`
+          : `[FAIL] ${item.tool}: ${item.path} (${writable.reason})`,
+      );
       continue;
     }
 
     ensureDir(...item.path.split('/').slice(0, -1));
     writeGeneratedFile(item.path, item.content);
-    const marker = require('fs').existsSync(require('path').join(process.cwd(), item.path))
-      ? '[UPDATE]'
-      : '[CREATE]';
-    console.log(`  ${marker} ${item.tool}: ${item.path}`);
-  }
-
-  if (skips.length > 0) {
-    console.log('\nSkipped:');
-    for (const item of skips) {
-      console.log(`  ${item.tool}: ${item.reason}`);
-    }
+    console.log(`  [UPDATE] ${item.tool}: ${item.path}`);
   }
 
   writeRunEvent('sync', { tools: rawTools, skipped: skips.map((s) => s.tool), failures });
-
   if (failures > 0) {
     process.exitCode = 1;
     console.log(`\n[WARN] ${failures} file(s) failed to sync`);
   } else {
     console.log('\n[OK] Rules synchronized successfully');
   }
+}
+
+export function buildSyncFiles(tools: string[]) {
+  const files: Array<{ tool: string; path: string; content: string }> = [];
+
+  for (const tool of tools) {
+    for (const targetPath of listTargetFiles(tool)) {
+      const flow = flowNames.find(
+        (name) =>
+          targetPath.includes(`codepilot-${name}`) ||
+          targetPath.endsWith(`/ai-${name}.md`) ||
+          targetPath.endsWith(`/ai/${name}.md`),
+      );
+      const isDispatcher =
+        targetPath.endsWith('/codepilot/SKILL.md') || targetPath.endsWith('/commands/ai.md');
+      const content = flow
+        ? buildCommandDocument(flow)
+        : isDispatcher
+          ? buildDispatcherDocument()
+          : buildRulesDocument(tool);
+      files.push({
+        tool,
+        path: targetPath,
+        content,
+      });
+    }
+  }
+  return files;
 }

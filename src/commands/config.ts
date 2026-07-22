@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { loadHarnessConfig, saveHarnessConfig, loadHarnessState } from '../lib/state';
 import { logger } from '../lib/logger';
 import { isJsonOutput } from '../lib/context';
+import { getDefaultConfig } from '../lib/state';
 
 export function registerConfigCommands(program: Command) {
   const config = program.command('config').description('Configuration management');
@@ -83,14 +84,7 @@ function configListCommand() {
 }
 
 function configResetCommand() {
-  saveHarnessConfig({
-    version: 1,
-    profile: 'lightweight',
-    currentChange: null,
-    tools: ['codex', 'trae', 'qoder', 'cursor'],
-    checks: ['ai:validate', 'ai:report'],
-    strictChecks: ['eslint', 'ai:validate', 'ai:report'],
-  });
+  saveHarnessConfig(getDefaultConfig());
   if (isJsonOutput()) {
     console.log(JSON.stringify({ status: 'success', message: 'Configuration reset' }));
   } else {

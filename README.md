@@ -221,10 +221,10 @@ pnpm ai report [change]
 pnpm ai encoding [change] [--fix]
 pnpm ai archive <change>
 pnpm ai restore <change>
-pnpm ai delete <change>
+pnpm ai delete <change> --yes
 ```
 
-`delete` 只删除 `openspec/archive/<change>` 下已归档的变更。所有变更路径都会经过名称和目录边界检查。
+`delete` 只删除 `openspec/archive/<change>` 下已归档的变更。所有变更路径都会经过名称和目录边界检查；交互终端要求输入确认，自动化环境必须传入 `--yes`。
 
 ### Harness 状态与任务
 
@@ -296,7 +296,7 @@ pnpm ai integration install openspec --source "local:../official-openspec"
 pnpm ai integration use openspec official
 pnpm ai integration validate openspec
 pnpm ai integration validate openspec --execute
-pnpm ai integration remove openspec
+pnpm ai integration remove openspec --yes
 ```
 
 支持的集成为 `openspec` 和 `superpowers`；模式为：
@@ -308,6 +308,8 @@ pnpm ai integration remove openspec
 `download` 默认要求目标位于当前仓库外；`install` 和 `remove` 只允许操作 `harness/integrations/<name>` 内的目录，并拒绝通过符号链接越界。
 
 当前集成模式和安装状态保存在各集成的 `config.json` 中；这些命令负责官方资源的下载、导入、健康检查和模式声明，不会全局安装工具或替换系统命令。
+
+`official` 模式会从 repo-local OpenSpec 模板和 Superpowers 技能中解析资源；缺失时失败。`hybrid` 模式会自动回退到内置资源。
 
 ### 配置、诊断和流程
 
@@ -322,6 +324,8 @@ pnpm ai flow list
 pnpm ai flow show <flow>
 pnpm ai flow sync
 ```
+
+配置 Schema 当前为 v2。读取 v1 配置时会保留现有字段、生成 `.v1.bak` 并迁移；高于当前版本的配置会被拒绝。`checks` 和 `strictChecks` 支持 `eslint`、`ai:validate`、`ai:report` 与 `script:<package-script>`。
 
 ### Git、依赖、Hook、模板和备份
 
@@ -347,17 +351,23 @@ pnpm ai template list
 pnpm ai template add <name>
 pnpm ai template show <name>
 pnpm ai template edit <name>
-pnpm ai template remove <name>
+pnpm ai template remove <name> --yes
 
 pnpm ai backup create
 pnpm ai backup list
 pnpm ai backup restore <file>
-pnpm ai backup delete <file>
+pnpm ai backup delete <file> --yes
+
+pnpm ai plugin list
+pnpm ai plugin install <local-directory> --yes
+pnpm ai plugin remove <name> --yes
 
 pnpm ai upgrade version
 pnpm ai upgrade check
 pnpm ai upgrade install
 ```
+
+插件仅从本地目录安装。设置 `CODEPILOT_ENABLE_PLUGINS=true` 才会加载并执行已安装插件。全局环境变量使用 `CODEPILOT_*` 前缀，例如 `CODEPILOT_DRY_RUN`、`CODEPILOT_LOCALE` 和 `CODEPILOT_SKIP_GIT`；旧的 `MSGFI_AI_*` 暂时兼容。
 
 ## 全局选项
 

@@ -1,9 +1,11 @@
 import { Command } from 'commander';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { resolvePath, ensureDir } from '../utils/file';
 import { logger } from '../lib/logger';
 import { isJsonOutput } from '../lib/context';
+import { confirmDestructiveAction } from '../lib/confirm';
 
 export function registerBackupCommands(program: Command) {
   const backup = program.command('backup').description('Backup management commands');
@@ -14,7 +16,11 @@ export function registerBackupCommands(program: Command) {
 
   backup.command('list').description('List backups').action(backupListCommand);
 
-  backup.command('delete <file>').description('Delete backup').action(backupDeleteCommand);
+  backup
+    .command('delete <file>')
+    .description('Delete backup')
+    .option('-y, --yes', 'Confirm deletion')
+    .action(backupDeleteCommand);
 }
 
 const backupDir = 'harness/backups';
@@ -53,16 +59,23 @@ function backupCreateCommand() {
   const timestamp = new Date().toISOString().replace(/:/g, '-');
   const filename = `backup-${timestamp}.tar.gz`;
   const backupPath = resolvePath(backupDir, filename);
+  const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'codepilot-backup-'));
+  const temporaryPath = path.join(temporaryDirectory, filename);
 
   try {
     const { spawnSync } = require('child_process');
-    const result = spawnSync('tar', ['-czf', backupPath, 'harness'], {
-      cwd: process.cwd(),
-      shell: false,
-      stdio: 'pipe',
-    });
+    const result = spawnSync(
+      'tar',
+      ['--exclude=harness/backups', '-czf', temporaryPath, 'harness'],
+      {
+        cwd: process.cwd(),
+        shell: false,
+        stdio: 'pipe',
+      },
+    );
 
     if (result.status === 0) {
+      fs.renameSync(temporaryPath, backupPath);
       const stats = fs.statSync(backupPath);
       if (isJsonOutput()) {
         console.log(
@@ -85,7 +98,30 @@ function backupCreateCommand() {
   } catch (error) {
     logger.error(`Backup failed: ${(error as Error).message}`);
     process.exitCode = 1;
+  } finally {
+    fs.rmSync(temporaryDirectory, { recursive: true, force: true });
   }
+}
+
+function hasUnsafeArchiveEntry(entry: string) {
+  if (!entry || path.isAbsolute(entry)) return true;
+  return entry.split(/[\\/]+/).some((segment) => segment === '..');
+}
+
+export function validateBackupArchive(backupPath: string): string[] {
+  const { spawnSync } = require('child_process');
+  const result = spawnSync('tar', ['-tzf', backupPath], {
+    shell: false,
+    encoding: 'utf8',
+  });
+  if (result.status !== 0) throw new Error(result.stderr || 'Unable to inspect backup archive.');
+  const entries = String(result.stdout).split(/\r?\n/).filter(Boolean);
+  const unsafe = entries.filter(hasUnsafeArchiveEntry);
+  if (unsafe.length) throw new Error(`Unsafe backup archive entries: ${unsafe.join(', ')}`);
+  if (entries.some((entry) => entry !== 'harness' && !entry.startsWith('harness/'))) {
+    throw new Error('Backup archive contains files outside harness/.');
+  }
+  return entries;
 }
 
 function backupRestoreCommand(file: string) {
@@ -102,6 +138,7 @@ function backupRestoreCommand(file: string) {
 
   try {
     const { spawnSync } = require('child_process');
+    validateBackupArchive(backupPath);
     const result = spawnSync('tar', ['-xzf', backupPath], {
       cwd: process.cwd(),
       shell: false,
@@ -143,11 +180,13 @@ function backupListCommand() {
   }
 }
 
-function backupDeleteCommand(file: string) {
-  let backupPath = file;
-  if (!path.isAbsolute(file)) {
-    backupPath = resolvePath(backupDir, file);
+async function backupDeleteCommand(file: string, options: { yes?: boolean }) {
+  if (path.isAbsolute(file) || path.basename(file) !== file) {
+    logger.error('Backup deletion only accepts a filename from harness/backups/.');
+    process.exitCode = 1;
+    return;
   }
+  const backupPath = resolvePath(backupDir, file);
 
   if (!fs.existsSync(backupPath)) {
     logger.error(`Backup file not found: ${file}`);
@@ -155,6 +194,12 @@ function backupDeleteCommand(file: string) {
     return;
   }
 
-  fs.unlinkSync(backupPath);
-  logger.success(`Backup deleted: ${file}`);
+  try {
+    await confirmDestructiveAction(`Permanently delete backup "${file}"?`, options.yes);
+    fs.unlinkSync(backupPath);
+    logger.success(`Backup deleted: ${file}`);
+  } catch (error) {
+    logger.error((error as Error).message);
+    process.exitCode = 1;
+  }
 }

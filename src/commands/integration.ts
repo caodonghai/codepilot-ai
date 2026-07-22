@@ -18,6 +18,8 @@ import {
   assertDownloadOutsideRepo,
 } from '../lib/integrations';
 import { writeRunEvent } from '../lib/events';
+import { confirmDestructiveAction } from '../lib/confirm';
+import { isDryRun } from '../lib/context';
 
 export function registerIntegrationCommands(program: Command) {
   const integration = program.command('integration').description('Integration management');
@@ -40,6 +42,7 @@ export function registerIntegrationCommands(program: Command) {
     .command('remove <name>')
     .description('Remove integration')
     .option('--dry-run', 'Preview removal')
+    .option('-y, --yes', 'Confirm removal')
     .action(integrationRemoveCommand);
 
   integration
@@ -137,7 +140,7 @@ function integrationInstallCommand(
   const sourcePath = parseIntegrationSource(options.source);
   const now = new Date().toISOString();
 
-  if (options.dryRun) {
+  if (options.dryRun || isDryRun()) {
     saveIntegrationConfig({
       ...current,
       lastInstallDryRunAt: now,
@@ -207,7 +210,10 @@ function integrationInstallCommand(
   );
 }
 
-function integrationRemoveCommand(nameInput: string, options: { dryRun?: boolean } = {}) {
+async function integrationRemoveCommand(
+  nameInput: string,
+  options: { dryRun?: boolean; yes?: boolean } = {},
+) {
   const name = nameInput as IntegrationName;
   if (!integrationNames.includes(name)) {
     throw new Error(
@@ -219,7 +225,7 @@ function integrationRemoveCommand(nameInput: string, options: { dryRun?: boolean
   const cachePath = assertIntegrationTargetPath(name, current.cachePath);
   const now = new Date().toISOString();
 
-  if (options.dryRun) {
+  if (options.dryRun || isDryRun()) {
     console.log(
       JSON.stringify(
         {
@@ -235,6 +241,10 @@ function integrationRemoveCommand(nameInput: string, options: { dryRun?: boolean
     return;
   }
 
+  await confirmDestructiveAction(
+    `Remove repo-local ${name} official and cache resources?`,
+    options.yes,
+  );
   clearDirectoryContents(officialPath);
   clearDirectoryContents(cachePath);
   writeFileIfMissing(`${current.officialPath}/.gitkeep`, '\n');
@@ -288,7 +298,7 @@ function integrationDownloadCommand(
   const parent = path.dirname(target);
   const nextInstallCommand = `node ./scripts/ai/run-ai.cjs integration:install ${name} --source ${quoteShellArg(`local:${target}`)}`;
 
-  if (options.dryRun) {
+  if (options.dryRun || isDryRun()) {
     console.log(
       JSON.stringify(
         {

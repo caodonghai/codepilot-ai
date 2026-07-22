@@ -3,6 +3,7 @@ import { registerAllCommands } from './commands';
 import { setGlobalOptions, loadFromEnv } from './lib/context';
 import { setLocale } from './lib/i18n';
 import { setLogLevel } from './lib/logger';
+import { loadPlugins, registerPluginCommands, registerPluginHooks } from './lib/plugin';
 
 const program = new Command();
 
@@ -27,13 +28,23 @@ loadFromEnv();
 
 registerAllCommands(program);
 
-program.parse(process.argv);
+if (process.env.CODEPILOT_ENABLE_PLUGINS === 'true') {
+  const plugins = loadPlugins();
+  registerPluginHooks(plugins);
+  registerPluginCommands(program, plugins);
+}
 
-const opts = program.opts();
-setGlobalOptions({
-  verbose: opts.verbose,
-  quiet: opts.quiet,
-  dryRun: opts.dryRun,
-  json: opts.json,
-  locale: opts.locale,
+program.hook('preAction', (command) => {
+  const opts = command.optsWithGlobals();
+  setGlobalOptions({
+    verbose: opts.verbose,
+    quiet: opts.quiet,
+    dryRun: opts.dryRun,
+    json: opts.json,
+    locale: opts.locale,
+  });
+  if (opts.verbose) setLogLevel('debug');
+  if (opts.locale) setLocale(opts.locale);
 });
+
+program.parse(process.argv);

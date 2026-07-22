@@ -1,0 +1,31 @@
+name: 缺陷报告
+description: 报告可复现的 CodePilot AI 缺陷
+title: '[缺陷]: '
+labels: [bug]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 复现步骤
+      description: 请提供执行命令、相关配置和最小复现步骤。
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: CodePilot AI 版本
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: 运行环境
+      description: 请提供操作系统和 Node.js 版本。
+    validations:
+      required: true

@@ -221,10 +221,10 @@ pnpm ai report [change]
 pnpm ai encoding [change] [--fix]
 pnpm ai archive <change>
 pnpm ai restore <change>
-pnpm ai delete <change>
+pnpm ai delete <change> --yes
 ```
 
-`delete` only removes an archived change under `openspec/archive/<change>`. Every change path is protected by name and directory-boundary validation.
+`delete` only removes an archived change under `openspec/archive/<change>`. Every change path is protected by name and directory-boundary validation. Interactive terminals request confirmation; automation must pass `--yes`.
 
 ### Harness state and tasks
 
@@ -296,7 +296,7 @@ pnpm ai integration install openspec --source "local:../official-openspec"
 pnpm ai integration use openspec official
 pnpm ai integration validate openspec
 pnpm ai integration validate openspec --execute
-pnpm ai integration remove openspec
+pnpm ai integration remove openspec --yes
 ```
 
 Supported integrations are `openspec` and `superpowers`. Available modes:
@@ -308,6 +308,8 @@ Supported integrations are `openspec` and `superpowers`. Available modes:
 `download` requires a destination outside the repository by default. `install` and `remove` can only operate inside `harness/integrations/<name>` and reject symlink escapes.
 
 Each integration stores its current mode and installation state in its own `config.json`. These commands manage download, import, health checks, and mode declaration without globally installing tools or replacing system commands.
+
+`official` resolves repo-local OpenSpec templates and Superpowers skills and fails when required resources are absent. `hybrid` falls back to built-in resources.
 
 ### Configuration, diagnostics, and flows
 
@@ -322,6 +324,8 @@ pnpm ai flow list
 pnpm ai flow show <flow>
 pnpm ai flow sync
 ```
+
+The current configuration schema is v2. Loading v1 preserves existing fields, creates a `.v1.bak`, and migrates it; configurations newer than the supported schema are rejected. `checks` and `strictChecks` accept `eslint`, `ai:validate`, `ai:report`, and `script:<package-script>`.
 
 ### Git, dependencies, hooks, templates, and backups
 
@@ -347,17 +351,23 @@ pnpm ai template list
 pnpm ai template add <name>
 pnpm ai template show <name>
 pnpm ai template edit <name>
-pnpm ai template remove <name>
+pnpm ai template remove <name> --yes
 
 pnpm ai backup create
 pnpm ai backup list
 pnpm ai backup restore <file>
-pnpm ai backup delete <file>
+pnpm ai backup delete <file> --yes
+
+pnpm ai plugin list
+pnpm ai plugin install <local-directory> --yes
+pnpm ai plugin remove <name> --yes
 
 pnpm ai upgrade version
 pnpm ai upgrade check
 pnpm ai upgrade install
 ```
+
+Plugins are installed only from local directories and are loaded only when `CODEPILOT_ENABLE_PLUGINS=true`. Global environment variables use the `CODEPILOT_*` prefix, including `CODEPILOT_DRY_RUN`, `CODEPILOT_LOCALE`, and `CODEPILOT_SKIP_GIT`; legacy `MSGFI_AI_*` variables remain temporarily compatible.
 
 ## Global options
 

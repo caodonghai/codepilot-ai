@@ -1,12 +1,37 @@
 import fs from 'fs';
-import { resolvePath, writeGeneratedFile, ensureDir } from '../utils/file';
-import { defaultTools } from '../config/constants';
+import { resolvePath, writeGeneratedFile, ensureDir, resolveInsideRoot } from '../utils/file';
+import { configSchemaVersion, defaultTools, supportedTools } from '../config/constants';
 import { withLock } from './lock';
 import { logger } from './logger';
 import type { HarnessConfig, HarnessState, ProjectInfo } from '../types';
+import { getConfigPath } from './context';
+
+function configFilePath() {
+  const configured = getConfigPath();
+  return configured ? resolveInsideRoot(configured) : resolvePath('harness', 'config.json');
+}
+
+export function migrateConfig(raw: Record<string, unknown>): HarnessConfig {
+  const version = typeof raw.version === 'number' ? raw.version : 1;
+  if (version > configSchemaVersion) {
+    throw new Error(
+      `Config schema ${version} is newer than supported schema ${configSchemaVersion}. Upgrade CodePilot AI.`,
+    );
+  }
+  return {
+    ...(raw as HarnessConfig),
+    version: configSchemaVersion,
+    checks: (raw.checks as string[] | undefined) ?? ['ai:validate', 'ai:report'],
+    strictChecks: (raw.strictChecks as string[] | undefined) ?? [
+      'eslint',
+      'ai:validate',
+      'ai:report',
+    ],
+  };
+}
 
 export function loadConfig(): HarnessConfig {
-  const configPath = resolvePath('harness', 'config.json');
+  const configPath = configFilePath();
   if (!fs.existsSync(configPath)) {
     return getDefaultConfig();
   }
@@ -14,11 +39,15 @@ export function loadConfig(): HarnessConfig {
     const raw = JSON.parse(fs.readFileSync(configPath, 'utf8')) as Record<string, unknown>;
     const errors = validateConfig(raw);
     if (errors.length > 0) {
-      logger.warn(`Invalid harness/config.json: ${errors.map((e) => e.message).join(', ')}`);
-      return getDefaultConfig();
+      throw new Error(errors.map((e) => e.message).join(', '));
+    }
+    const migrated = migrateConfig(raw);
+    if ((raw.version as number | undefined) !== configSchemaVersion) {
+      fs.copyFileSync(configPath, `${configPath}.v${raw.version ?? 1}.bak`);
+      saveConfig(migrated);
     }
     return {
-      version: (raw.version as number) ?? 1,
+      version: migrated.version,
       profile: (raw.profile as string) ?? 'lightweight',
       currentChange: (raw.currentChange as string) ?? null,
       tools: (raw.tools as string[]) ?? defaultTools,
@@ -33,13 +62,20 @@ export function loadConfig(): HarnessConfig {
       output: raw.output as HarnessConfig['output'],
     };
   } catch (error) {
-    logger.warn(`Invalid harness/config.json: ${(error as Error).message}`);
-    return getDefaultConfig();
+    if ((error as Error).message.includes('newer than supported schema')) throw error;
+    throw new Error(`Invalid harness/config.json: ${(error as Error).message}`);
   }
 }
 
 export function saveConfig(config: HarnessConfig): void {
-  writeGeneratedFile('harness/config.json', `${JSON.stringify(config, null, 2)}\n`);
+  const target = configFilePath();
+  const content = `${JSON.stringify({ ...config, version: configSchemaVersion }, null, 2)}\n`;
+  if (target === resolvePath('harness', 'config.json')) {
+    writeGeneratedFile('harness/config.json', content);
+  } else {
+    fs.mkdirSync(require('path').dirname(target), { recursive: true });
+    fs.writeFileSync(target, content, 'utf8');
+  }
 }
 
 export function setCurrentChange(change: string): void {
@@ -105,7 +141,7 @@ export function initHarness(): void {
 
 export function getDefaultConfig(): HarnessConfig {
   return {
-    version: 1,
+    version: configSchemaVersion,
     profile: 'lightweight',
     currentChange: null,
     tools: defaultTools,
@@ -125,13 +161,16 @@ export function validateConfig(
   }
   if (
     config.profile !== undefined &&
-    !['lightweight', 'standard', 'strict'].includes(String(config.profile))
+    !['lightweight', 'official', 'hybrid', 'standard', 'strict'].includes(String(config.profile))
   ) {
-    errors.push({ key: 'profile', message: 'profile must be lightweight, standard, or strict' });
+    errors.push({
+      key: 'profile',
+      message: 'profile must be lightweight, official, hybrid, standard, or strict',
+    });
   }
   if (config.tools !== undefined && Array.isArray(config.tools)) {
     for (const tool of config.tools) {
-      if (!defaultTools.includes(tool as string)) {
+      if (!supportedTools.includes(tool as string)) {
         errors.push({ key: 'tools', message: `invalid tool: ${tool}` });
       }
     }
@@ -165,7 +204,7 @@ export function getDefaultState(): HarnessState {
 }
 
 export function isConfigInitialized(): boolean {
-  const configPath = resolvePath('harness', 'config.json');
+  const configPath = configFilePath();
   const statePath = resolvePath('harness', 'state.json');
   return fs.existsSync(configPath) && fs.existsSync(statePath);
 }

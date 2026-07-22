@@ -20,10 +20,10 @@
 
 ## 知识记忆
 
-- 在 `/ai:propose`、`/ai:plan` 和 `/ai:apply` 之前，当工具可用时，使用 `codepilot knowledge:search <keywords> --limit 10` 搜索相关项目知识。
+- 在 `/ai:propose`、`/ai:plan` 和 `/ai:apply` 之前，当工具可用时，使用 `codepilot knowledge search <keywords> --limit 10` 搜索相关项目知识。
 - 在正常 AI 工作期间，不要读取完整的 `harness/memory/knowledge/*.jsonl` 文件。
-- 仅使用 `knowledge:search` 返回的摘要。
+- 仅使用 `knowledge search` 返回的摘要。
 - 每个流程最多读取 10 条知识记录，每条记录摘要应保持简短以避免上下文膨胀。
-- 在 `/ai:finish` 期间，运行 `codepilot knowledge:suggest <change> --write` 生成候选知识。
-- 在 `/ai:finish` 之后，仅将已确认的可复用组件、函数、模式、决策或失败记录添加到知识记忆中：`codepilot knowledge:add`。
+- 在 `/ai:finish` 期间，运行 `codepilot knowledge suggest <change> --write` 生成候选知识。
+- 在 `/ai:finish` 之后，仅将已确认的可复用组件、函数、模式、决策或失败记录添加到知识记忆中：`codepilot knowledge add`。
 - 每份最终工作报告应包含知识记忆状态：搜索的术语、生成的建议路径（如有）、添加的记录（如有），或跳过的简短原因。

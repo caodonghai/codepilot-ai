@@ -13,6 +13,8 @@ export const root = process.env.CODEPILOT_ROOT
   ? path.resolve(process.env.CODEPILOT_ROOT)
   : process.cwd();
 
+export const configSchemaVersion = 2;
+
 export const defaultTools: ToolName[] = getDefaultToolIds();
 
 export const supportedTools: ToolName[] = getAllTools().map((t) => t.id as ToolName);

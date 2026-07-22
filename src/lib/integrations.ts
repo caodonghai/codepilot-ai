@@ -116,13 +116,77 @@ export function inspectIntegrationHealth(name: IntegrationName, config?: Integra
   };
 }
 
+export interface ResolvedIntegration {
+  name: IntegrationName;
+  mode: IntegrationConfig['mode'];
+  source: 'builtin' | 'official';
+  root: string | null;
+  fallbackReason: string | null;
+}
+
+/** Resolve the resources that runtime commands should actually consume. */
+export function resolveIntegrationRuntime(
+  name: IntegrationName,
+  config = loadIntegrationConfig(name),
+): ResolvedIntegration {
+  if (config.mode === 'lightweight') {
+    return { name, mode: config.mode, source: 'builtin', root: null, fallbackReason: null };
+  }
+
+  const health = inspectIntegrationHealth(name, config);
+  if (health.usable) {
+    return {
+      name,
+      mode: config.mode,
+      source: 'official',
+      root: assertIntegrationTargetPath(name, config.officialPath),
+      fallbackReason: null,
+    };
+  }
+  if (config.mode === 'hybrid') {
+    return {
+      name,
+      mode: config.mode,
+      source: 'builtin',
+      root: null,
+      fallbackReason: health.reason,
+    };
+  }
+  throw new Error(
+    `${name} official mode is unavailable: ${health.reason}. Install or repair the repo-local integration first.`,
+  );
+}
+
+export function resolveIntegrationResource(
+  name: IntegrationName,
+  candidates: string[],
+): string | null {
+  const runtime = resolveIntegrationRuntime(name);
+  if (runtime.source === 'builtin' || !runtime.root) return null;
+  for (const candidate of candidates) {
+    const target = path.resolve(runtime.root, candidate);
+    if (!target.startsWith(`${path.resolve(runtime.root)}${path.sep}`)) continue;
+    if (fs.existsSync(target) && fs.statSync(target).isFile()) return target;
+  }
+  if (runtime.mode === 'official') {
+    throw new Error(`${name} official resources do not provide: ${candidates.join(' or ')}`);
+  }
+  return null;
+}
+
 export function integrationSummary() {
   return integrationNames
     .map((name) => {
       const config = loadIntegrationConfig(name);
       const installed = config.officialInstalled ? 'installed' : 'not installed';
       const health = inspectIntegrationHealth(name, config);
-      return `- ${name}: ${config.mode} (${installed}, health=${health.health}, repo-local only: ${config.officialPath})`;
+      let runtime: string;
+      try {
+        runtime = resolveIntegrationRuntime(name, config).source;
+      } catch {
+        runtime = 'unavailable';
+      }
+      return `- ${name}: ${config.mode} (${installed}, health=${health.health}, runtime=${runtime}, repo-local only: ${config.officialPath})`;
     })
     .join('\n');
 }
