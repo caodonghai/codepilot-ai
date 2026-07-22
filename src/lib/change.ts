@@ -1,10 +1,11 @@
 import fs from 'fs';
 import path from 'path';
+import type { ChangeType } from '../types';
 import { resolvePath, ensureDir, writeGeneratedFile, requiredChangeFiles, changeTypes, kebabName } from './utils';
 
 export interface ChangeInfo {
   name: string;
-  type: string;
+  type: ChangeType;
   createdAt: string;
   completedAt?: string;
   status: 'active' | 'completed' | 'archived';
@@ -67,7 +68,7 @@ export function listChanges(): ChangeInfo[] {
 
     changes.push({
       name: entry.name,
-      type: changeTypes.includes(type) ? type : 'default',
+      type: (changeTypes as string[]).includes(type) ? (type as ChangeType) : 'default',
       createdAt,
       status: 'active',
     });
@@ -110,7 +111,7 @@ export function listArchivedChanges(): ChangeInfo[] {
 
     changes.push({
       name: entry.name,
-      type: changeTypes.includes(type) ? type : 'default',
+      type: (changeTypes as string[]).includes(type) ? (type as ChangeType) : 'default',
       createdAt,
       completedAt,
       status: 'archived',

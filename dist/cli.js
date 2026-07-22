@@ -8,80 +8,16 @@ const path_1 = __importDefault(require("path"));
 const child_process_1 = require("child_process");
 const commander_1 = require("commander");
 const change_1 = require("./lib/change");
-const root = process.cwd();
-const defaultTools = ['codex', 'trae', 'qoder', 'cursor'];
-const coreFiles = ['project.md', 'frontend.md', 'api.md', 'ui.md', 'testing.md', 'review.md', 'workflow.md'];
-const dispatcherFlow = 'ai';
-const flowNames = ['explore', 'propose', 'plan', 'apply', 'verify', 'review', 'finish'];
-const skillFiles = ['planning.md', 'tdd.md', 'debugging.md', 'code-review.md', 'finishing.md'];
-const requiredChangeFiles = ['proposal.md', 'tasks.md', 'acceptance.md'];
-const mojibakePatterns = [
-    '\u7ead',
-    '\u93c4',
-    '\u95be\u6735',
-    '\u7035\u7858',
-    '\u8dfa\u5ba0',
-    '\u7a0b\u5b2a',
-    '\u9286?',
-    '\u9225?',
-    '\u20ac?',
-    '\u951f',
-    '\ufffd',
-];
-const textFilesToCheck = ['proposal.md', 'tasks.md', 'acceptance.md', 'notes.md', 'conversation-report.txt'];
-const changeTypes = ['default', 'bugfix', 'feature', 'ui-change', 'refactor'];
-const knowledgeTypes = ['component', 'function', 'pattern', 'decision', 'failure'];
-const integrationNames = ['openspec', 'superpowers'];
-const integrationModes = ['lightweight', 'official', 'hybrid'];
-const integrationGitSources = {
-    openspec: 'https://github.com/Fission-AI/OpenSpec.git',
-    superpowers: 'https://github.com/obra/superpowers.git',
-};
-const knowledgeFiles = {
-    component: 'components.jsonl',
-    function: 'functions.jsonl',
-    pattern: 'patterns.jsonl',
-    decision: 'decisions.jsonl',
-    failure: 'failures.jsonl',
-};
-const phaseByFlow = {
-    explore: 'exploration',
-    propose: 'proposal',
-    plan: 'planning',
-    apply: 'implementation',
-    verify: 'verification',
-    review: 'verification',
-    finish: 'finishing',
-};
-function resolvePath(...segments) {
-    return path_1.default.join(root, ...segments);
-}
-function exists(...segments) {
-    return fs_1.default.existsSync(resolvePath(...segments));
-}
-function ensureDir(...segments) {
-    fs_1.default.mkdirSync(resolvePath(...segments), { recursive: true });
-}
-function writeFileIfMissing(relativePath, content) {
-    const filePath = resolvePath(relativePath);
-    fs_1.default.mkdirSync(path_1.default.dirname(filePath), { recursive: true });
-    if (!fs_1.default.existsSync(filePath)) {
-        fs_1.default.writeFileSync(filePath, content, 'utf8');
-    }
-}
-function writeGeneratedFile(relativePath, content) {
-    const filePath = resolvePath(relativePath);
-    fs_1.default.mkdirSync(path_1.default.dirname(filePath), { recursive: true });
-    fs_1.default.writeFileSync(filePath, content, 'utf8');
-}
-function readText(relativePath) {
-    return fs_1.default.readFileSync(resolvePath(relativePath), 'utf8');
-}
+const state_1 = require("./lib/state");
+const knowledge_1 = require("./lib/knowledge");
+const templates_1 = require("./lib/templates");
+const utils_1 = require("./lib/utils");
+const integrations_1 = require("./lib/integrations");
 function setupPackageScript(options = {}) {
     var _a;
     if (options.enabled === false)
         return 'Skipped package.json script setup by option.';
-    const packagePath = resolvePath('package.json');
+    const packagePath = (0, utils_1.resolvePath)('package.json');
     if (!fs_1.default.existsSync(packagePath)) {
         return 'Skipped package.json script setup because package.json was not found.';
     }
@@ -97,7 +33,7 @@ function setupPackageScript(options = {}) {
 function findTemplateRoot() {
     var _a;
     const candidates = [
-        resolvePath('packages', 'ai-engineering-kit', 'templates'),
+        (0, utils_1.resolvePath)('packages', 'ai-engineering-kit', 'templates'),
         path_1.default.resolve(__dirname, '..', '..', 'packages', 'ai-engineering-kit', 'templates'),
         path_1.default.resolve(__dirname, '..', 'templates'),
     ];
@@ -108,7 +44,7 @@ function writeFileIfMissingFromTemplate(templateRoot, templateRelativePath, targ
     if (!fs_1.default.existsSync(templatePath)) {
         return false;
     }
-    writeFileIfMissing(targetRelativePath, fs_1.default.readFileSync(templatePath, 'utf8'));
+    (0, utils_1.writeFileIfMissing)(targetRelativePath, fs_1.default.readFileSync(templatePath, 'utf8'));
     return true;
 }
 function seedProjectTemplates() {
@@ -122,229 +58,32 @@ function seedProjectTemplates() {
             missing.push(templateRelativePath);
         }
     };
-    for (const file of coreFiles) {
+    for (const file of utils_1.coreFiles) {
         copy(path_1.default.join('ai', 'core', file), path_1.default.join('.ai', 'core', file));
     }
     copy(path_1.default.join('ai', 'registry', 'tools.json'), path_1.default.join('.ai', 'registry', 'tools.json'));
-    copy(path_1.default.join('ai', 'flows', `${dispatcherFlow}.md`), path_1.default.join('.ai', 'flows', `${dispatcherFlow}.md`));
-    for (const flow of flowNames) {
+    copy(path_1.default.join('ai', 'flows', `${utils_1.dispatcherFlow}.md`), path_1.default.join('.ai', 'flows', `${utils_1.dispatcherFlow}.md`));
+    for (const flow of utils_1.flowNames) {
         copy(path_1.default.join('ai', 'flows', `${flow}.md`), path_1.default.join('.ai', 'flows', `${flow}.md`));
     }
-    for (const file of skillFiles) {
+    for (const file of utils_1.skillFiles) {
         copy(path_1.default.join('superpowers', 'skills', file), path_1.default.join('superpowers', 'skills', file));
     }
     copy(path_1.default.join('openspec', 'project.md'), path_1.default.join('openspec', 'project.md'));
     copy(path_1.default.join('harness', 'state.json'), path_1.default.join('harness', 'state.json'));
     return missing.map((file) => `Missing package template: ${file}`);
 }
-function parseTools(value) {
-    if (!value)
-        return defaultTools;
-    const tools = value.split(',').map((item) => item.trim()).filter(Boolean);
-    const unsupported = tools.filter((tool) => !defaultTools.includes(tool));
-    if (unsupported.length) {
-        throw new Error(`Unsupported tools: ${unsupported.join(', ')}. Supported tools: ${defaultTools.join(', ')}`);
-    }
-    return Array.from(new Set(tools));
-}
-function parseToolArgs(args, optionValue) {
-    if (args === null || args === void 0 ? void 0 : args.length)
-        return parseTools(args.join(','));
-    return parseTools(optionValue);
-}
-function parseIntegrationName(value) {
-    if (!value || !integrationNames.includes(value)) {
-        throw new Error(`Unsupported integration: ${value !== null && value !== void 0 ? value : ''}. Supported integrations: ${integrationNames.join(', ')}`);
-    }
-    return value;
-}
-function parseIntegrationMode(value) {
-    if (!value || !integrationModes.includes(value)) {
-        throw new Error(`Unsupported integration mode: ${value !== null && value !== void 0 ? value : ''}. Supported modes: ${integrationModes.join(', ')}`);
-    }
-    return value;
-}
-function defaultIntegrationConfig(name) {
-    return {
-        name,
-        mode: 'lightweight',
-        officialInstalled: false,
-        officialPath: `harness/integrations/${name}/official`,
-        cachePath: `harness/integrations/${name}/cache`,
-        updatedAt: new Date().toISOString(),
-    };
-}
-function integrationConfigPath(name) {
-    return `harness/integrations/${name}/config.json`;
-}
-function loadIntegrationConfig(name) {
-    const relativePath = integrationConfigPath(name);
-    if (!exists(relativePath))
-        return defaultIntegrationConfig(name);
-    try {
-        return {
-            ...defaultIntegrationConfig(name),
-            ...JSON.parse(readText(relativePath)),
-            name,
-        };
-    }
-    catch (error) {
-        console.error(`Invalid ${relativePath}: ${error.message}`);
-        return defaultIntegrationConfig(name);
-    }
-}
-function saveIntegrationConfig(config) {
-    writeGeneratedFile(integrationConfigPath(config.name), `${JSON.stringify({
-        ...config,
-        updatedAt: new Date().toISOString(),
-    }, null, 2)}\n`);
-}
-function loadIntegrations() {
-    return Object.fromEntries(integrationNames.map((name) => [name, loadIntegrationConfig(name)]));
-}
-function integrationSummary() {
-    return integrationNames.map((name) => {
-        const config = loadIntegrationConfig(name);
-        const installed = config.officialInstalled ? 'installed' : 'not installed';
-        const health = inspectIntegrationHealth(name, config);
-        return `- ${name}: ${config.mode} (${installed}, health=${health.health}, repo-local only: ${config.officialPath})`;
-    }).join('\n');
-}
-function inspectIntegrationHealth(name, config = loadIntegrationConfig(name)) {
-    const officialPath = resolvePath(config.officialPath);
-    if (!config.officialInstalled) {
-        return {
-            health: 'not_installed',
-            usable: false,
-            reason: 'officialInstalled is false',
-            evidence: [],
-            missing: [],
-        };
-    }
-    if (!fs_1.default.existsSync(officialPath)) {
-        return {
-            health: 'missing',
-            usable: false,
-            reason: `Missing ${config.officialPath}`,
-            evidence: [],
-            missing: [config.officialPath],
-        };
-    }
-    const evidence = [];
-    const missing = [];
-    const has = (relativePath) => {
-        const fullPath = path_1.default.join(officialPath, relativePath);
-        if (fs_1.default.existsSync(fullPath)) {
-            evidence.push(`${config.officialPath}/${relativePath}`);
-            return true;
-        }
-        missing.push(`${config.officialPath}/${relativePath}`);
-        return false;
-    };
-    if (name === 'openspec') {
-        has('README.md');
-        has('package.json');
-    }
-    else {
-        has('README.md');
-        if (fs_1.default.existsSync(path_1.default.join(officialPath, 'skills'))
-            || fs_1.default.existsSync(path_1.default.join(officialPath, 'commands'))
-            || fs_1.default.existsSync(path_1.default.join(officialPath, 'superpowers'))) {
-            evidence.push(`${config.officialPath}/skills|commands|superpowers`);
-        }
-        else {
-            missing.push(`${config.officialPath}/skills or commands or superpowers`);
-        }
-    }
-    const usable = evidence.length > 0 && (name === 'superpowers' ? evidence.length >= 2 : true);
-    return {
-        health: usable ? 'usable' : 'incomplete',
-        usable,
-        reason: usable ? 'Repo-local official resources look usable.' : `Repo-local official resources are incomplete: ${missing.join(', ')}`,
-        evidence,
-        missing,
-    };
-}
-function resolveInsideRoot(relativePath) {
-    const fullPath = path_1.default.resolve(root, relativePath);
-    const rootPath = path_1.default.resolve(root);
-    if (fullPath !== rootPath && !fullPath.startsWith(`${rootPath}${path_1.default.sep}`)) {
-        throw new Error(`Refusing path outside repository: ${relativePath}`);
-    }
-    return fullPath;
-}
-function assertIntegrationTargetPath(name, relativePath) {
-    const expectedPrefix = path_1.default.resolve(root, 'harness', 'integrations', name);
-    const fullPath = resolveInsideRoot(relativePath);
-    if (fullPath !== expectedPrefix && !fullPath.startsWith(`${expectedPrefix}${path_1.default.sep}`)) {
-        throw new Error(`Refusing integration path outside harness/integrations/${name}: ${relativePath}`);
-    }
-    return fullPath;
-}
-function parseIntegrationSource(source) {
-    if (!source)
-        return null;
-    if (!source.startsWith('local:')) {
-        throw new Error('Only local:<path> sources are supported in v0.8. Network and global installs are intentionally unsupported.');
-    }
-    const sourcePath = source.slice('local:'.length).trim();
-    if (!sourcePath)
-        throw new Error('local:<path> source is required.');
-    const fullPath = path_1.default.resolve(sourcePath);
-    if (!fs_1.default.existsSync(fullPath))
-        throw new Error(`Local source does not exist: ${sourcePath}`);
-    if (!fs_1.default.statSync(fullPath).isDirectory())
-        throw new Error(`Local source must be a directory: ${sourcePath}`);
-    return fullPath;
-}
-function quoteShellArg(value) {
-    if (/^[A-Za-z0-9_./:@\\-]+$/.test(value))
-        return value;
-    return `"${value.replace(/"/g, '\\"')}"`;
-}
-function defaultIntegrationDownloadBase() {
-    return path_1.default.resolve(root, '..', '_ai-official-sources');
-}
-function resolveDownloadTarget(name, to) {
-    const base = to ? path_1.default.resolve(to) : defaultIntegrationDownloadBase();
-    return path_1.default.join(base, name);
-}
-function assertDownloadOutsideRepo(target, allowInsideRepo) {
-    const rootPath = path_1.default.resolve(root);
-    if (!allowInsideRepo && (target === rootPath || target.startsWith(`${rootPath}${path_1.default.sep}`))) {
-        throw new Error('Refusing to download official sources inside the repository. Use --allow-inside-repo only if you know what you are doing.');
-    }
-}
-function clearDirectoryContents(directory) {
-    fs_1.default.mkdirSync(directory, { recursive: true });
-    for (const item of fs_1.default.readdirSync(directory)) {
-        fs_1.default.rmSync(path_1.default.join(directory, item), { recursive: true, force: true });
-    }
-}
-function copyDirectoryRecursive(source, target) {
-    fs_1.default.mkdirSync(target, { recursive: true });
-    for (const entry of fs_1.default.readdirSync(source, { withFileTypes: true })) {
-        const sourcePath = path_1.default.join(source, entry.name);
-        const targetPath = path_1.default.join(target, entry.name);
-        if (entry.isDirectory()) {
-            copyDirectoryRecursive(sourcePath, targetPath);
-        }
-        else if (entry.isFile()) {
-            fs_1.default.copyFileSync(sourcePath, targetPath);
-        }
-    }
-}
 function listTargetFiles(tool) {
     const targetFiles = {
-        codex: ['AGENTS.md', '.codex/skills/msgfi-ai/SKILL.md', ...flowNames.map((flow) => `.codex/skills/msgfi-ai-${flow}/SKILL.md`)],
-        trae: ['.trae/rules.md', '.trae/commands/ai.md', ...flowNames.map((flow) => `.trae/commands/ai-${flow}.md`)],
-        qoder: ['.qoder/rules.md', '.qoder/commands/ai.md', ...flowNames.map((flow) => `.qoder/commands/ai/${flow}.md`)],
+        codex: ['AGENTS.md', '.codex/skills/msgfi-ai/SKILL.md', ...utils_1.flowNames.map((flow) => `.codex/skills/msgfi-ai-${flow}/SKILL.md`)],
+        trae: ['.trae/rules.md', '.trae/commands/ai.md', ...utils_1.flowNames.map((flow) => `.trae/commands/ai-${flow}.md`)],
+        qoder: ['.qoder/rules.md', '.qoder/commands/ai.md', ...utils_1.flowNames.map((flow) => `.qoder/commands/ai/${flow}.md`)],
         cursor: ['.cursor/rules/msgfi-ai.mdc', '.cursor/rules/msgfi-frontend.mdc'],
     };
     return targetFiles[tool];
 }
 function applyToolSkip(tools, skipValue) {
-    const skipped = parseTools(skipValue);
+    const skipped = (0, utils_1.parseTools)(skipValue);
     if (!skipValue)
         return tools;
     return tools.filter((tool) => !skipped.includes(tool));
@@ -352,86 +91,18 @@ function applyToolSkip(tools, skipValue) {
 function normalizeTools(value) {
     if (!Array.isArray(value))
         return [];
-    return value.filter((tool) => defaultTools.includes(tool));
-}
-function loadHarnessConfig() {
-    const configPath = resolvePath('harness', 'config.json');
-    if (!fs_1.default.existsSync(configPath)) {
-        return { currentChange: null, tools: defaultTools };
-    }
-    try {
-        return JSON.parse(fs_1.default.readFileSync(configPath, 'utf8'));
-    }
-    catch (error) {
-        console.error(`Invalid harness/config.json: ${error.message}`);
-        return { currentChange: null, tools: defaultTools };
-    }
-}
-function saveHarnessConfig(config) {
-    writeGeneratedFile('harness/config.json', `${JSON.stringify(config, null, 2)}\n`);
+    return value.filter((tool) => utils_1.defaultTools.includes(tool));
 }
 function setCurrentChange(change) {
     var _a, _b, _c, _d, _e;
-    const config = loadHarnessConfig();
-    saveHarnessConfig({
+    const config = (0, state_1.loadHarnessConfig)();
+    (0, state_1.saveHarnessConfig)({
         version: (_a = config.version) !== null && _a !== void 0 ? _a : 1,
         profile: (_b = config.profile) !== null && _b !== void 0 ? _b : 'lightweight',
         currentChange: change,
-        tools: (_c = config.tools) !== null && _c !== void 0 ? _c : defaultTools,
+        tools: (_c = config.tools) !== null && _c !== void 0 ? _c : utils_1.defaultTools,
         checks: (_d = config.checks) !== null && _d !== void 0 ? _d : ['ai:validate', 'ai:report'],
         strictChecks: (_e = config.strictChecks) !== null && _e !== void 0 ? _e : ['eslint', 'ai:validate', 'ai:report'],
-    });
-}
-function loadHarnessState() {
-    const statePath = resolvePath('harness', 'state.json');
-    if (!fs_1.default.existsSync(statePath)) {
-        return {
-            version: 1,
-            activeChange: null,
-            activeFlow: null,
-            status: 'not_started',
-            phase: null,
-            lastStep: null,
-            nextStep: null,
-            lastReport: null,
-            nextSuggestedFlow: null,
-            blockedBy: [],
-            decisions: [],
-            context: {},
-            updatedAt: null,
-        };
-    }
-    try {
-        return JSON.parse(fs_1.default.readFileSync(statePath, 'utf8'));
-    }
-    catch (error) {
-        console.error(`Invalid harness/state.json: ${error.message}`);
-        return {
-            version: 1,
-            activeChange: null,
-            activeFlow: null,
-            status: 'not_started',
-            phase: null,
-            lastStep: null,
-            nextStep: null,
-            lastReport: null,
-            nextSuggestedFlow: null,
-            blockedBy: [],
-            decisions: [],
-            context: {},
-            updatedAt: null,
-        };
-    }
-}
-function saveHarnessState(state) {
-    writeGeneratedFile('harness/state.json', `${JSON.stringify(state, null, 2)}\n`);
-}
-function updateHarnessState(patch) {
-    const state = loadHarnessState();
-    saveHarnessState({
-        ...state,
-        ...patch,
-        updatedAt: new Date().toISOString(),
     });
 }
 function buildChangeContext(change) {
@@ -442,12 +113,9 @@ function buildChangeContext(change) {
         notes: `openspec/changes/${change}/notes.md`,
     };
 }
-function timestampForFile(date = new Date()) {
-    return date.toISOString().replace(/[:.]/g, '-');
-}
 function writeRunEvent(kind, payload) {
     var _a, _b, _c;
-    const state = loadHarnessState();
+    const state = (0, state_1.loadHarnessState)();
     const createdAt = new Date().toISOString();
     const event = {
         createdAt,
@@ -457,32 +125,32 @@ function writeRunEvent(kind, payload) {
         status: (_c = state.status) !== null && _c !== void 0 ? _c : null,
         ...payload,
     };
-    ensureDir('harness', 'runs');
-    writeGeneratedFile(`harness/runs/${timestampForFile(new Date(createdAt))}-${kind}.json`, `${JSON.stringify(event, null, 2)}\n`);
+    (0, utils_1.ensureDir)('harness', 'runs');
+    (0, utils_1.writeGeneratedFile)(`harness/runs/${(0, utils_1.timestampForFile)(new Date(createdAt))}-${kind}.json`, `${JSON.stringify(event, null, 2)}\n`);
     return event;
 }
 function writeTimestampedMarkdown(directory, basename, content) {
     const createdAt = new Date().toISOString();
-    const filePath = `${directory}/${timestampForFile(new Date(createdAt))}-${basename}.md`;
-    ensureDir(...directory.split('/'));
-    writeGeneratedFile(filePath, content);
+    const filePath = `${directory}/${(0, utils_1.timestampForFile)(new Date(createdAt))}-${basename}.md`;
+    (0, utils_1.ensureDir)(...directory.split('/'));
+    (0, utils_1.writeGeneratedFile)(filePath, content);
     return filePath;
 }
 function taskBoardPath(change) {
     return `harness/tasks/${change}.json`;
 }
 function loadTaskBoard(change) {
-    const filePath = resolvePath(taskBoardPath(change));
+    const filePath = (0, utils_1.resolvePath)(taskBoardPath(change));
     if (!fs_1.default.existsSync(filePath))
         return null;
     return JSON.parse(fs_1.default.readFileSync(filePath, 'utf8'));
 }
 function saveTaskBoard(board) {
-    ensureDir('harness', 'tasks');
-    writeGeneratedFile(taskBoardPath(board.change), `${JSON.stringify(board, null, 2)}\n`);
+    (0, utils_1.ensureDir)('harness', 'tasks');
+    (0, utils_1.writeGeneratedFile)(taskBoardPath(board.change), `${JSON.stringify(board, null, 2)}\n`);
 }
 function parseMarkdownTasks(change) {
-    const tasksPath = resolvePath('openspec', 'changes', change, 'tasks.md');
+    const tasksPath = (0, utils_1.resolvePath)('openspec', 'changes', change, 'tasks.md');
     if (!fs_1.default.existsSync(tasksPath))
         return [];
     return fs_1.default
@@ -535,7 +203,7 @@ function findTask(board, taskId) {
     return (_b = (_a = board.tasks.find((task) => task.id.toLowerCase() === normalized)) !== null && _a !== void 0 ? _a : board.tasks.find((task) => task.id.toLowerCase() === `t${normalized.padStart(3, '0')}`)) !== null && _b !== void 0 ? _b : board.tasks.find((task) => task.title.toLowerCase().includes(normalized));
 }
 function updateMarkdownTaskCheck(change, task, checked) {
-    const tasksPath = resolvePath('openspec', 'changes', change, 'tasks.md');
+    const tasksPath = (0, utils_1.resolvePath)('openspec', 'changes', change, 'tasks.md');
     if (!fs_1.default.existsSync(tasksPath))
         return;
     const lines = fs_1.default.readFileSync(tasksPath, 'utf8').split(/\r?\n/);
@@ -558,7 +226,7 @@ function selectNextTask(board) {
 }
 function buildAgentPrompt(change, task, mode) {
     var _a, _b, _c, _d;
-    const state = loadHarnessState();
+    const state = (0, state_1.loadHarnessState)();
     const context = buildChangeContext(change);
     const taskLine = task
         ? `${task.id} [${task.status}] ${task.title}${task.blockedBy ? `\nBlocked by: ${task.blockedBy}` : ''}`
@@ -604,131 +272,72 @@ function buildAgentPrompt(change, task, mode) {
 function getChangeName(input) {
     if (input)
         return input;
-    const config = loadHarnessConfig();
+    const config = (0, state_1.loadHarnessConfig)();
     return typeof config.currentChange === 'string' ? config.currentChange : null;
 }
-function kebabName(value) {
-    return value.trim().replace(/[^a-zA-Z0-9\u4e00-\u9fa5]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase();
-}
-function parseChangeType(value) {
-    if (!value)
-        return 'default';
-    if (!changeTypes.includes(value)) {
-        throw new Error(`Unsupported change type: ${value}. Supported types: ${changeTypes.join(', ')}`);
-    }
-    return value;
-}
-function templateChangeFile(change, kind, type = 'default') {
-    if (kind === 'proposal.md') {
-        if (type === 'bugfix') {
-            return `# ${change}\n\n## Type\n\nbugfix\n\n## Bug\n\nDescribe the observed incorrect behavior.\n\n## Expected Behavior\n\nDescribe the correct behavior.\n\n## Root Cause\n\nDescribe the suspected or confirmed cause.\n\n## Scope\n\n- In scope:\n- Out of scope:\n\n## Impact\n\nList affected routes, components, APIs, data fields, or user flows.\n`;
-        }
-        if (type === 'feature') {
-            return `# ${change}\n\n## Type\n\nfeature\n\n## Background\n\nDescribe the user need or business goal.\n\n## Goal\n\nDescribe the intended capability.\n\n## User Flow\n\nDescribe the target workflow.\n\n## Scope\n\n- In scope:\n- Out of scope:\n\n## Impact\n\nList affected apps, pages, APIs, permissions, states, or data models.\n`;
-        }
-        if (type === 'ui-change') {
-            return `# ${change}\n\n## Type\n\nui-change\n\n## Background\n\nDescribe the UI problem or requested adjustment.\n\n## Goal\n\nDescribe the desired UI behavior.\n\n## States\n\n- Default:\n- Loading:\n- Empty:\n- Error:\n- Disabled:\n\n## Scope\n\n- In scope:\n- Out of scope:\n\n## Impact\n\nList affected components, routes, responsive states, and visual risks.\n`;
-        }
-        if (type === 'refactor') {
-            return `# ${change}\n\n## Type\n\nrefactor\n\n## Background\n\nDescribe the maintainability problem.\n\n## Goal\n\nDescribe the intended internal improvement.\n\n## Behavior Contract\n\nDescribe behavior that must remain unchanged.\n\n## Scope\n\n- In scope:\n- Out of scope:\n\n## Impact\n\nList affected modules, exports, tests, and migration risks.\n`;
-        }
-        return `# ${change}\n\n## Background\n\nDescribe the problem or opportunity.\n\n## Goal\n\nDescribe the intended outcome.\n\n## Scope\n\n- In scope:\n- Out of scope:\n\n## Impact\n\nList affected apps, packages, routes, APIs, or UI states.\n`;
-    }
-    if (kind === 'tasks.md') {
-        if (type === 'bugfix') {
-            return `# Tasks\n\n- [ ] Reproduce or inspect the reported bug path.\n- [ ] Locate the smallest affected code path.\n- [ ] Confirm root cause.\n- [ ] Implement the scoped fix.\n- [ ] Verify the expected behavior.\n- [ ] Check related regression paths.\n- [ ] Run \`pnpm ai check\`.\n`;
-        }
-        if (type === 'feature') {
-            return `# Tasks\n\n- [ ] Confirm affected app/package scope.\n- [ ] Confirm data, API, permission, and UI contracts.\n- [ ] Implement the requested capability.\n- [ ] Handle loading, empty, error, and disabled states where applicable.\n- [ ] Update or add focused verification.\n- [ ] Run \`pnpm ai check\`.\n`;
-        }
-        if (type === 'ui-change') {
-            return `# Tasks\n\n- [ ] Inspect the existing component and design conventions.\n- [ ] Implement the UI adjustment within existing patterns.\n- [ ] Verify responsive layout and text fit.\n- [ ] Verify loading, empty, error, and disabled states where applicable.\n- [ ] Run focused lint or visual checks.\n- [ ] Run \`pnpm ai check\`.\n`;
-        }
-        if (type === 'refactor') {
-            return `# Tasks\n\n- [ ] Document current behavior before changing code.\n- [ ] Identify safe refactor boundaries.\n- [ ] Refactor without changing user-visible behavior.\n- [ ] Update imports/usages if needed.\n- [ ] Run focused regression checks.\n- [ ] Run \`pnpm ai check\`.\n`;
-        }
-        return `# Tasks\n\n- [ ] Confirm affected app/package scope.\n- [ ] Implement the requested behavior.\n- [ ] Update or add verification where appropriate.\n- [ ] Run \`pnpm ai check\`.\n`;
-    }
-    if (kind === 'acceptance.md') {
-        if (type === 'bugfix') {
-            return `# Acceptance Criteria\n\n- [ ] The reported incorrect behavior is fixed.\n- [ ] The expected behavior is verified on the affected path.\n- [ ] Related behavior outside the bug scope is not regressed.\n- [ ] The fix is scoped and does not alter shared helpers unless explicitly justified.\n- [ ] \`pnpm ai check\` passes or unrelated failures are documented.\n`;
-        }
-        if (type === 'feature') {
-            return `# Acceptance Criteria\n\n- [ ] The requested capability works for the primary user flow.\n- [ ] Required UI states are handled where applicable.\n- [ ] Data/API/permission behavior matches the proposal.\n- [ ] Existing related behavior is not regressed.\n- [ ] \`pnpm ai check\` passes or unrelated failures are documented.\n`;
-        }
-        if (type === 'ui-change') {
-            return `# Acceptance Criteria\n\n- [ ] The UI matches the requested behavior and existing design conventions.\n- [ ] Text, spacing, and controls fit at relevant viewport sizes.\n- [ ] Required states are visually and functionally handled.\n- [ ] Existing interactions are not regressed.\n- [ ] \`pnpm ai check\` passes or unrelated failures are documented.\n`;
-        }
-        if (type === 'refactor') {
-            return `# Acceptance Criteria\n\n- [ ] User-visible behavior remains unchanged.\n- [ ] Public contracts, routes, APIs, and data formats remain compatible unless explicitly proposed.\n- [ ] The refactor reduces meaningful complexity or duplication.\n- [ ] Focused regression checks pass.\n- [ ] \`pnpm ai check\` passes or unrelated failures are documented.\n`;
-        }
-        return `# Acceptance Criteria\n\n- [ ] Behavior matches the proposal.\n- [ ] UI states are handled when applicable.\n- [ ] Existing related behavior is not regressed.\n- [ ] \`pnpm ai check\` passes.\n`;
-    }
-    return `# Notes\n\nChange type: ${type}\n\nRecord implementation and verification notes here.\n`;
-}
 function collectCoreSummary() {
-    return coreFiles.map((file) => `- .ai/core/${file}`).join('\n');
+    return utils_1.coreFiles.map((file) => `- .ai/core/${file}`).join('\n');
 }
 function collectFlowSummary() {
-    return [`- /ai: .ai/flows/${dispatcherFlow}.md`, ...flowNames.map((flow) => `- /ai:${flow}: .ai/flows/${flow}.md`)].join('\n');
+    return [`- /ai: .ai/flows/${utils_1.dispatcherFlow}.md`, ...utils_1.flowNames.map((flow) => `- /ai:${flow}: .ai/flows/${flow}.md`)].join('\n');
 }
 function collectSkillSummary() {
-    return skillFiles.map((file) => `- superpowers/skills/${file}`).join('\n');
+    return utils_1.skillFiles.map((file) => `- superpowers/skills/${file}`).join('\n');
 }
 function buildRulesDocument(tool) {
-    return `# MsgFi AI Rules for ${tool}\n\n<!-- Generated by pnpm ai sync. Edit .ai/core, .ai/flows, and superpowers/skills instead. -->\n\n## Required Workflow\n\n1. Read .ai/core/workflow.md before starting AI-assisted work.\n2. For normal guided work, accept /ai <change> and dispatch to the next suitable flow.\n3. Read the active change under openspec/changes/<change>.\n4. Use the relevant /ai flow.\n5. Search Knowledge Memory with pnpm ai knowledge:search before propose/plan/apply when relevant.\n6. Keep edits scoped to the active change.\n7. Run pnpm ai check before finishing.\n\n## Integration Modes\n\n${integrationSummary()}\n\n- lightweight: use MsgFi built-in compatible rules.\n- official: prefer repo-local official integration only when installed; never use global installs implicitly.\n- hybrid: combine MsgFi rules with repo-local official integration when installed.\n\n## Knowledge Memory\n\n- Use pnpm ai knowledge:search <keywords> --limit 10.\n- Read only returned summaries, not the full harness/memory/knowledge JSONL files.\n- During finish, run pnpm ai knowledge:suggest <change> --write when tool access is available.\n- Add only confirmed reusable knowledge during finish with pnpm ai knowledge:add.\n- Final reports must say what Knowledge Memory was searched, suggested, added, or why it was skipped.\n\n## Core Rules\n\n${collectCoreSummary()}\n\n## Conversation Flows\n\n${collectFlowSummary()}\n\n## Skills\n\n${collectSkillSummary()}\n`;
+    return `# MsgFi AI Rules for ${tool}\n\n<!-- Generated by pnpm ai sync. Edit .ai/core, .ai/flows, and superpowers/skills instead. -->\n\n## Required Workflow\n\n1. Read .ai/core/workflow.md before starting AI-assisted work.\n2. For normal guided work, accept /ai <change> and dispatch to the next suitable flow.\n3. Read the active change under openspec/changes/<change>.\n4. Use the relevant /ai flow.\n5. Search Knowledge Memory with pnpm ai knowledge:search before propose/plan/apply when relevant.\n6. Keep edits scoped to the active change.\n7. Run pnpm ai check before finishing.\n\n## Integration Modes\n\n${(0, integrations_1.integrationSummary)()}\n\n- lightweight: use MsgFi built-in compatible rules.\n- official: prefer repo-local official integration only when installed; never use global installs implicitly.\n- hybrid: combine MsgFi rules with repo-local official integration when installed.\n\n## Knowledge Memory\n\n- Use pnpm ai knowledge:search <keywords> --limit 10.\n- Read only returned summaries, not the full harness/memory/knowledge JSONL files.\n- During finish, run pnpm ai knowledge:suggest <change> --write when tool access is available.\n- Add only confirmed reusable knowledge during finish with pnpm ai knowledge:add.\n- Final reports must say what Knowledge Memory was searched, suggested, added, or why it was skipped.\n\n## Core Rules\n\n${collectCoreSummary()}\n\n## Conversation Flows\n\n${collectFlowSummary()}\n\n## Skills\n\n${collectSkillSummary()}\n`;
 }
 function buildDispatcherDocument() {
-    const flowText = readText(`.ai/flows/${dispatcherFlow}.md`);
-    return `# /ai\n\n<!-- Generated by pnpm ai sync. Edit .ai/flows/${dispatcherFlow}.md instead. -->\n\n${flowText}\n\n## Shared Context\n\nBefore acting, read:\n\n- .ai/core/workflow.md\n- harness/state.json when present\n- openspec/changes/<change>/proposal.md when present\n- openspec/changes/<change>/tasks.md when present\n- openspec/changes/<change>/acceptance.md when present\n\nUse the specific /ai:* flow selected by the dispatcher.\n`;
+    const flowText = (0, utils_1.readText)(`.ai/flows/${utils_1.dispatcherFlow}.md`);
+    return `# /ai\n\n<!-- Generated by pnpm ai sync. Edit .ai/flows/${utils_1.dispatcherFlow}.md instead. -->\n\n${flowText}\n\n## Shared Context\n\nBefore acting, read:\n\n- .ai/core/workflow.md\n- harness/state.json when present\n- openspec/changes/<change>/proposal.md when present\n- openspec/changes/<change>/tasks.md when present\n- openspec/changes/<change>/acceptance.md when present\n\nUse the specific /ai:* flow selected by the dispatcher.\n`;
 }
 function buildCommandDocument(flow) {
-    const flowText = readText(`.ai/flows/${flow}.md`);
+    const flowText = (0, utils_1.readText)(`.ai/flows/${flow}.md`);
     return `# /ai:${flow}\n\n<!-- Generated by pnpm ai sync. Edit .ai/flows/${flow}.md instead. -->\n\n${flowText}\n\n## Shared Context\n\nBefore acting, read:\n\n- .ai/core/workflow.md\n- openspec/changes/<change>/proposal.md\n- openspec/changes/<change>/tasks.md\n- openspec/changes/<change>/acceptance.md\n\nFinish with \`pnpm ai check\` when the flow changes code.\n`;
 }
 function initCommand(options) {
     var _a;
-    const tools = parseToolArgs(options.toolArgs, options.tools);
-    const existingConfigExisted = exists('harness/config.json');
-    ensureDir('.ai', 'core');
-    ensureDir('.ai', 'flows');
-    ensureDir('.ai', 'registry');
-    ensureDir('openspec', 'changes');
-    ensureDir('openspec', 'specs');
-    ensureDir('superpowers', 'skills');
-    ensureDir('harness', 'reports');
-    ensureDir('harness', 'runs');
-    ensureDir('harness', 'tasks');
-    ensureDir('harness', 'memory', 'knowledge');
-    ensureDir('harness', 'memory', 'index');
-    for (const name of integrationNames) {
-        ensureDir('harness', 'integrations', name);
-        ensureDir('harness', 'integrations', name, 'official');
-        ensureDir('harness', 'integrations', name, 'cache');
+    const tools = (0, utils_1.parseToolArgs)(options.toolArgs, options.tools);
+    const existingConfigExisted = (0, utils_1.exists)('harness/config.json');
+    (0, utils_1.ensureDir)('.ai', 'core');
+    (0, utils_1.ensureDir)('.ai', 'flows');
+    (0, utils_1.ensureDir)('.ai', 'registry');
+    (0, utils_1.ensureDir)('openspec', 'changes');
+    (0, utils_1.ensureDir)('openspec', 'specs');
+    (0, utils_1.ensureDir)('superpowers', 'skills');
+    (0, utils_1.ensureDir)('harness', 'reports');
+    (0, utils_1.ensureDir)('harness', 'runs');
+    (0, utils_1.ensureDir)('harness', 'tasks');
+    (0, utils_1.ensureDir)('harness', 'memory', 'knowledge');
+    (0, utils_1.ensureDir)('harness', 'memory', 'index');
+    for (const name of utils_1.integrationNames) {
+        (0, utils_1.ensureDir)('harness', 'integrations', name);
+        (0, utils_1.ensureDir)('harness', 'integrations', name, 'official');
+        (0, utils_1.ensureDir)('harness', 'integrations', name, 'cache');
     }
     const templateWarnings = seedProjectTemplates();
-    writeFileIfMissing('openspec/changes/.gitkeep', '\n');
-    writeFileIfMissing('openspec/specs/.gitkeep', '\n');
-    writeFileIfMissing('harness/reports/.gitkeep', '\n');
-    writeFileIfMissing('harness/runs/.gitkeep', '\n');
-    writeFileIfMissing('harness/tasks/.gitkeep', '\n');
-    writeFileIfMissing('harness/memory/knowledge/.gitkeep', '\n');
-    writeFileIfMissing('harness/memory/index/.gitkeep', '\n');
-    for (const name of integrationNames) {
-        writeFileIfMissing(`harness/integrations/${name}/official/.gitkeep`, '\n');
-        writeFileIfMissing(`harness/integrations/${name}/cache/.gitkeep`, '\n');
-        if (!exists(integrationConfigPath(name)))
-            saveIntegrationConfig(defaultIntegrationConfig(name));
+    (0, utils_1.writeFileIfMissing)('openspec/changes/.gitkeep', '\n');
+    (0, utils_1.writeFileIfMissing)('openspec/specs/.gitkeep', '\n');
+    (0, utils_1.writeFileIfMissing)('harness/reports/.gitkeep', '\n');
+    (0, utils_1.writeFileIfMissing)('harness/runs/.gitkeep', '\n');
+    (0, utils_1.writeFileIfMissing)('harness/tasks/.gitkeep', '\n');
+    (0, utils_1.writeFileIfMissing)('harness/memory/knowledge/.gitkeep', '\n');
+    (0, utils_1.writeFileIfMissing)('harness/memory/index/.gitkeep', '\n');
+    for (const name of utils_1.integrationNames) {
+        (0, utils_1.writeFileIfMissing)(`harness/integrations/${name}/official/.gitkeep`, '\n');
+        (0, utils_1.writeFileIfMissing)(`harness/integrations/${name}/cache/.gitkeep`, '\n');
+        if (!(0, utils_1.exists)((0, integrations_1.integrationConfigPath)(name)))
+            (0, integrations_1.saveIntegrationConfig)((0, integrations_1.defaultIntegrationConfig)(name));
     }
-    for (const file of Object.values(knowledgeFiles)) {
-        writeFileIfMissing(`harness/memory/knowledge/${file}`, '');
+    for (const file of Object.values(utils_1.knowledgeFiles)) {
+        (0, utils_1.writeFileIfMissing)(`harness/memory/knowledge/${file}`, '');
     }
-    buildKnowledgeIndex();
-    const config = loadHarnessConfig();
+    (0, knowledge_1.buildKnowledgeIndex)();
+    const config = (0, state_1.loadHarnessConfig)();
     const configuredTools = existingConfigExisted
         ? Array.from(new Set([...normalizeTools(config.tools), ...tools]))
         : tools;
-    saveHarnessConfig({
+    (0, state_1.saveHarnessConfig)({
         version: 1,
         profile: 'lightweight',
         currentChange: existingConfigExisted ? (_a = config.currentChange) !== null && _a !== void 0 ? _a : null : null,
@@ -746,7 +355,7 @@ function initCommand(options) {
 }
 function syncCommand(options) {
     var _a;
-    const selectedTools = parseToolArgs(options.toolArgs, (_a = options.tools) !== null && _a !== void 0 ? _a : (loadHarnessConfig().tools || defaultTools).join(','));
+    const selectedTools = (0, utils_1.parseToolArgs)(options.toolArgs, (_a = options.tools) !== null && _a !== void 0 ? _a : ((0, state_1.loadHarnessConfig)().tools || utils_1.defaultTools).join(','));
     const tools = applyToolSkip(selectedTools, options.skip);
     const errors = [];
     const syncTool = (tool, action) => {
@@ -759,35 +368,35 @@ function syncCommand(options) {
     };
     if (tools.includes('codex')) {
         syncTool('codex', () => {
-            writeGeneratedFile('AGENTS.md', buildRulesDocument('codex'));
-            writeGeneratedFile('.codex/skills/msgfi-ai/SKILL.md', buildDispatcherDocument());
-            for (const flow of flowNames) {
-                writeGeneratedFile(`.codex/skills/msgfi-ai-${flow}/SKILL.md`, buildCommandDocument(flow));
+            (0, utils_1.writeGeneratedFile)('AGENTS.md', buildRulesDocument('codex'));
+            (0, utils_1.writeGeneratedFile)('.codex/skills/msgfi-ai/SKILL.md', buildDispatcherDocument());
+            for (const flow of utils_1.flowNames) {
+                (0, utils_1.writeGeneratedFile)(`.codex/skills/msgfi-ai-${flow}/SKILL.md`, buildCommandDocument(flow));
             }
         });
     }
     if (tools.includes('trae')) {
         syncTool('trae', () => {
-            writeGeneratedFile('.trae/rules.md', buildRulesDocument('trae'));
-            writeGeneratedFile('.trae/commands/ai.md', buildDispatcherDocument());
-            for (const flow of flowNames) {
-                writeGeneratedFile(`.trae/commands/ai-${flow}.md`, buildCommandDocument(flow));
+            (0, utils_1.writeGeneratedFile)('.trae/rules.md', buildRulesDocument('trae'));
+            (0, utils_1.writeGeneratedFile)('.trae/commands/ai.md', buildDispatcherDocument());
+            for (const flow of utils_1.flowNames) {
+                (0, utils_1.writeGeneratedFile)(`.trae/commands/ai-${flow}.md`, buildCommandDocument(flow));
             }
         });
     }
     if (tools.includes('qoder')) {
         syncTool('qoder', () => {
-            writeGeneratedFile('.qoder/rules.md', buildRulesDocument('qoder'));
-            writeGeneratedFile('.qoder/commands/ai.md', buildDispatcherDocument());
-            for (const flow of flowNames) {
-                writeGeneratedFile(`.qoder/commands/ai/${flow}.md`, buildCommandDocument(flow));
+            (0, utils_1.writeGeneratedFile)('.qoder/rules.md', buildRulesDocument('qoder'));
+            (0, utils_1.writeGeneratedFile)('.qoder/commands/ai.md', buildDispatcherDocument());
+            for (const flow of utils_1.flowNames) {
+                (0, utils_1.writeGeneratedFile)(`.qoder/commands/ai/${flow}.md`, buildCommandDocument(flow));
             }
         });
     }
     if (tools.includes('cursor')) {
         syncTool('cursor', () => {
-            writeGeneratedFile('.cursor/rules/msgfi-ai.mdc', buildRulesDocument('cursor'));
-            writeGeneratedFile('.cursor/rules/msgfi-frontend.mdc', `${readText('.ai/core/frontend.md')}\n\n${readText('.ai/core/ui.md')}`);
+            (0, utils_1.writeGeneratedFile)('.cursor/rules/msgfi-ai.mdc', buildRulesDocument('cursor'));
+            (0, utils_1.writeGeneratedFile)('.cursor/rules/msgfi-frontend.mdc', `${(0, utils_1.readText)('.ai/core/frontend.md')}\n\n${(0, utils_1.readText)('.ai/core/ui.md')}`);
         });
     }
     if (errors.length) {
@@ -811,30 +420,30 @@ function prompt(question) {
 }
 async function newCommand(changeInput, options = {}) {
     var _a, _b, _c, _d;
-    let change = changeInput ? kebabName(changeInput) : '';
-    let type = parseChangeType(options.type);
+    let change = changeInput ? (0, utils_1.kebabName)(changeInput) : '';
+    let type = (0, utils_1.parseChangeType)(options.type);
     if (options.interactive) {
-        change = kebabName(await prompt('Enter change name: '));
+        change = (0, utils_1.kebabName)(await prompt('Enter change name: '));
         while (!change) {
-            change = kebabName(await prompt('Change name is required. Enter change name: '));
+            change = (0, utils_1.kebabName)(await prompt('Change name is required. Enter change name: '));
         }
-        type = parseChangeType(await prompt('Select change type (default/bugfix/feature/ui-change/refactor): ') || 'default');
+        type = (0, utils_1.parseChangeType)(await prompt('Select change type (default/bugfix/feature/ui-change/refactor): ') || 'default');
     }
     if (!change) {
         throw new Error('Change name is required.');
     }
-    for (const file of [...requiredChangeFiles, 'notes.md']) {
-        writeFileIfMissing(`openspec/changes/${change}/${file}`, templateChangeFile(change, file, type));
+    for (const file of [...utils_1.requiredChangeFiles, 'notes.md']) {
+        (0, utils_1.writeFileIfMissing)(`openspec/changes/${change}/${file}`, (0, templates_1.templateChangeFile)(change, file, type));
     }
-    const config = loadHarnessConfig();
-    saveHarnessConfig({
+    const config = (0, state_1.loadHarnessConfig)();
+    (0, state_1.saveHarnessConfig)({
         version: (_a = config.version) !== null && _a !== void 0 ? _a : 1,
         profile: (_b = config.profile) !== null && _b !== void 0 ? _b : 'lightweight',
         currentChange: change,
-        tools: (_c = config.tools) !== null && _c !== void 0 ? _c : defaultTools,
+        tools: (_c = config.tools) !== null && _c !== void 0 ? _c : utils_1.defaultTools,
         checks: (_d = config.checks) !== null && _d !== void 0 ? _d : ['eslint', 'ai:validate', 'ai:report'],
     });
-    updateHarnessState({
+    (0, state_1.updateHarnessState)({
         activeChange: change,
         activeFlow: 'propose',
         status: 'in_progress',
@@ -848,44 +457,25 @@ async function newCommand(changeInput, options = {}) {
     writeRunEvent('change-created', { change, type });
     console.log(`Created OpenSpec-compatible ${type} change: ${change}`);
 }
-function textCorruptionScore(text) {
-    var _a;
-    const patternScore = mojibakePatterns.reduce((score, pattern) => {
-        const matches = text.split(pattern).length - 1;
-        return score + matches * 10;
-    }, 0);
-    const controlScore = ((_a = text.match(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g)) !== null && _a !== void 0 ? _a : []).length * 20;
-    return patternScore + controlScore;
-}
-function hasMojibake(text) {
-    return textCorruptionScore(text) > 0;
-}
 function collectEncodingIssues(change) {
     const issues = [];
     const changes = change
         ? [change]
-        : fs_1.default.existsSync(resolvePath('openspec', 'changes'))
-            ? fs_1.default.readdirSync(resolvePath('openspec', 'changes')).filter((item) => {
-                const fullPath = resolvePath('openspec', 'changes', item);
+        : fs_1.default.existsSync((0, utils_1.resolvePath)('openspec', 'changes'))
+            ? fs_1.default.readdirSync((0, utils_1.resolvePath)('openspec', 'changes')).filter((item) => {
+                const fullPath = (0, utils_1.resolvePath)('openspec', 'changes', item);
                 return fs_1.default.statSync(fullPath).isDirectory();
             })
             : [];
     for (const item of changes) {
-        for (const file of textFilesToCheck) {
+        for (const file of utils_1.textFilesToCheck) {
             const relativePath = `openspec/changes/${item}/${file}`;
-            if (exists(relativePath) && hasMojibake(readText(relativePath))) {
+            if ((0, utils_1.exists)(relativePath) && (0, utils_1.hasMojibake)((0, utils_1.readText)(relativePath))) {
                 issues.push(relativePath);
             }
         }
     }
     return issues;
-}
-function fixMojibakeText(text) {
-    const buffer = Buffer.from(text, 'latin1');
-    const decoded = buffer.toString('utf8');
-    const beforeScore = textCorruptionScore(text);
-    const afterScore = textCorruptionScore(decoded);
-    return afterScore < beforeScore ? decoded : text;
 }
 function encodingCommand(changeInput, options = {}) {
     var _a;
@@ -904,10 +494,10 @@ function encodingCommand(changeInput, options = {}) {
     const fixed = [];
     const unchanged = [];
     for (const relativePath of issues) {
-        const current = readText(relativePath);
-        const next = fixMojibakeText(current);
+        const current = (0, utils_1.readText)(relativePath);
+        const next = (0, utils_1.fixMojibakeText)(current);
         if (next !== current) {
-            writeGeneratedFile(relativePath, next);
+            (0, utils_1.writeGeneratedFile)(relativePath, next);
             fixed.push(relativePath);
         }
         else {
@@ -922,223 +512,39 @@ function encodingCommand(changeInput, options = {}) {
         process.exitCode = 1;
 }
 function knowledgeDir() {
-    return resolvePath('harness', 'memory', 'knowledge');
+    return (0, utils_1.resolvePath)('harness', 'memory', 'knowledge');
 }
 function knowledgeIndexDir() {
-    return resolvePath('harness', 'memory', 'index');
-}
-function knowledgeFilePath(type) {
-    return resolvePath('harness', 'memory', 'knowledge', knowledgeFiles[type]);
-}
-function parseKnowledgeType(value) {
-    if (!value || !knowledgeTypes.includes(value)) {
-        throw new Error(`Unsupported knowledge type: ${value !== null && value !== void 0 ? value : ''}. Supported types: ${knowledgeTypes.join(', ')}`);
-    }
-    return value;
-}
-function splitList(value) {
-    if (!value)
-        return [];
-    return value
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean);
-}
-function uniqueValues(values) {
-    return Array.from(new Set(values.map((item) => item.trim()).filter(Boolean)));
-}
-function normalizeKnowledgeRecord(record) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
-    const now = new Date().toISOString().slice(0, 10);
-    const type = parseKnowledgeType(record.type);
-    const name = String((_a = record.name) !== null && _a !== void 0 ? _a : '').trim();
-    const summary = String((_b = record.summary) !== null && _b !== void 0 ? _b : '').trim();
-    if (!name)
-        throw new Error('Knowledge name is required.');
-    if (!summary)
-        throw new Error('Knowledge summary is required.');
-    const source = String((_c = record.source) !== null && _c !== void 0 ? _c : 'repo').trim();
-    const scope = String((_d = record.scope) !== null && _d !== void 0 ? _d : 'global').trim();
-    const id = String((_e = record.id) !== null && _e !== void 0 ? _e : `${type}:${kebabName(name)}:${kebabName(source || scope)}`).trim();
-    return {
-        id,
-        type,
-        name,
-        scope,
-        source,
-        summary,
-        keywords: uniqueValues((_f = record.keywords) !== null && _f !== void 0 ? _f : []),
-        usedIn: uniqueValues((_g = record.usedIn) !== null && _g !== void 0 ? _g : []),
-        status: ((_h = record.status) !== null && _h !== void 0 ? _h : 'active'),
-        confidence: ((_j = record.confidence) !== null && _j !== void 0 ? _j : 'confirmed'),
-        createdAt: (_k = record.createdAt) !== null && _k !== void 0 ? _k : now,
-        updatedAt: now,
-    };
-}
-function readKnowledgeFile(type) {
-    const filePath = knowledgeFilePath(type);
-    if (!fs_1.default.existsSync(filePath))
-        return [];
-    return fs_1.default
-        .readFileSync(filePath, 'utf8')
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter(Boolean)
-        .map((line, index) => {
-        try {
-            return normalizeKnowledgeRecord(JSON.parse(line));
-        }
-        catch (error) {
-            throw new Error(`${path_1.default.relative(root, filePath)}:${index + 1} ${error.message}`);
-        }
-    });
-}
-function writeKnowledgeFile(type, records) {
-    ensureDir('harness', 'memory', 'knowledge');
-    const lines = records
-        .sort((a, b) => a.id.localeCompare(b.id))
-        .map((record) => JSON.stringify(record));
-    fs_1.default.writeFileSync(knowledgeFilePath(type), `${lines.join('\n')}${lines.length ? '\n' : ''}`, 'utf8');
-}
-function readAllKnowledgeRecords() {
-    const records = [];
-    for (const type of knowledgeTypes) {
-        const file = `harness/memory/knowledge/${knowledgeFiles[type]}`;
-        for (const record of readKnowledgeFile(type)) {
-            records.push({
-                ...record,
-                file,
-                searchText: buildKnowledgeSearchText(record),
-            });
-        }
-    }
-    return records;
-}
-function mergeKnowledgeRecords(existing, incoming) {
-    return {
-        ...existing,
-        ...incoming,
-        createdAt: existing.createdAt || incoming.createdAt,
-        updatedAt: new Date().toISOString().slice(0, 10),
-        keywords: uniqueValues([...existing.keywords, ...incoming.keywords]),
-        usedIn: uniqueValues([...existing.usedIn, ...incoming.usedIn]),
-    };
-}
-function dedupeKnowledgeRecords(records) {
-    const byId = new Map();
-    for (const record of records) {
-        const previous = byId.get(record.id);
-        byId.set(record.id, previous ? mergeKnowledgeRecords(previous, record) : record);
-    }
-    return Array.from(byId.values());
-}
-function tokenizeKnowledgeText(text) {
-    var _a;
-    const normalized = text.toLowerCase();
-    const tokens = (_a = normalized.match(/[a-z0-9_.:/@-]+|[\u4e00-\u9fa5]{2,}/g)) !== null && _a !== void 0 ? _a : [];
-    return uniqueValues(tokens);
-}
-function buildKnowledgeSearchText(record) {
-    return [
-        record.id,
-        record.type,
-        record.name,
-        record.scope,
-        record.source,
-        record.summary,
-        ...record.keywords,
-        ...record.usedIn,
-    ].join(' ').toLowerCase();
-}
-function buildKnowledgeIndex() {
-    var _a;
-    ensureDir('harness', 'memory', 'index');
-    const records = readAllKnowledgeRecords();
-    const keywords = {};
-    const indexRecords = {};
-    const stats = {
-        updatedAt: new Date().toISOString(),
-        total: records.length,
-        byType: Object.fromEntries(knowledgeTypes.map((type) => [type, 0])),
-        byStatus: { active: 0, deprecated: 0 },
-        byConfidence: { confirmed: 0, uncertain: 0 },
-    };
-    for (const record of records) {
-        stats.byType[record.type] += 1;
-        stats.byStatus[record.status] += 1;
-        stats.byConfidence[record.confidence] += 1;
-        const { searchText, ...indexRecord } = record;
-        indexRecords[record.id] = indexRecord;
-        for (const token of tokenizeKnowledgeText(searchText)) {
-            keywords[token] = uniqueValues([...((_a = keywords[token]) !== null && _a !== void 0 ? _a : []), record.id]);
-        }
-    }
-    writeGeneratedFile('harness/memory/index/keywords.json', `${JSON.stringify(keywords, null, 2)}\n`);
-    writeGeneratedFile('harness/memory/index/records.json', `${JSON.stringify(indexRecords, null, 2)}\n`);
-    writeGeneratedFile('harness/memory/index/stats.json', `${JSON.stringify(stats, null, 2)}\n`);
-    return stats;
-}
-function loadKnowledgeIndex() {
-    const recordsPath = resolvePath('harness', 'memory', 'index', 'records.json');
-    if (!fs_1.default.existsSync(recordsPath))
-        buildKnowledgeIndex();
-    const records = JSON.parse(fs_1.default.readFileSync(recordsPath, 'utf8'));
-    return Object.values(records).map((record) => ({
-        ...record,
-        searchText: buildKnowledgeSearchText(record),
-    }));
-}
-function scoreKnowledgeRecord(record, terms) {
-    let score = 0;
-    for (const term of terms) {
-        const normalized = term.toLowerCase();
-        if (!normalized)
-            continue;
-        if (record.id.toLowerCase().includes(normalized))
-            score += 8;
-        if (record.name.toLowerCase().includes(normalized))
-            score += 6;
-        if (record.keywords.some((keyword) => keyword.toLowerCase().includes(normalized)))
-            score += 5;
-        if (record.summary.toLowerCase().includes(normalized))
-            score += 3;
-        if (record.searchText.includes(normalized))
-            score += 1;
-    }
-    if (record.status === 'active')
-        score += 1;
-    if (record.confidence === 'confirmed')
-        score += 1;
-    return score;
+    return (0, utils_1.resolvePath)('harness', 'memory', 'index');
 }
 function knowledgeAddCommand(options) {
     var _a, _b, _c, _d, _e, _f, _g, _h, _j;
     const fromRecord = options.from
-        ? JSON.parse(fs_1.default.readFileSync(resolvePath(options.from), 'utf8'))
+        ? JSON.parse(fs_1.default.readFileSync((0, utils_1.resolvePath)(options.from), 'utf8'))
         : {};
-    const record = normalizeKnowledgeRecord({
+    const record = (0, knowledge_1.normalizeKnowledgeRecord)({
         ...fromRecord,
         id: (_a = options.id) !== null && _a !== void 0 ? _a : fromRecord.id,
-        type: options.type ? parseKnowledgeType(options.type) : fromRecord.type,
+        type: options.type ? (0, utils_1.parseKnowledgeType)(options.type) : fromRecord.type,
         name: (_b = options.name) !== null && _b !== void 0 ? _b : fromRecord.name,
         summary: (_c = options.summary) !== null && _c !== void 0 ? _c : fromRecord.summary,
         scope: (_d = options.scope) !== null && _d !== void 0 ? _d : fromRecord.scope,
         source: (_e = options.source) !== null && _e !== void 0 ? _e : fromRecord.source,
-        keywords: options.keywords ? splitList(options.keywords) : fromRecord.keywords,
-        usedIn: options.usedIn ? splitList(options.usedIn) : fromRecord.usedIn,
+        keywords: options.keywords ? (0, utils_1.splitList)(options.keywords) : fromRecord.keywords,
+        usedIn: options.usedIn ? (0, utils_1.splitList)(options.usedIn) : fromRecord.usedIn,
         status: (_g = (_f = options.status) !== null && _f !== void 0 ? _f : fromRecord.status) !== null && _g !== void 0 ? _g : 'active',
         confidence: (_j = (_h = options.confidence) !== null && _h !== void 0 ? _h : fromRecord.confidence) !== null && _j !== void 0 ? _j : 'confirmed',
     });
-    const records = readKnowledgeFile(record.type);
+    const records = (0, knowledge_1.readKnowledgeFile)(record.type);
     const existingIndex = records.findIndex((item) => item.id === record.id);
     if (existingIndex >= 0) {
-        records[existingIndex] = mergeKnowledgeRecords(records[existingIndex], record);
+        records[existingIndex] = (0, knowledge_1.mergeKnowledgeRecords)(records[existingIndex], record);
     }
     else {
         records.push(record);
     }
-    writeKnowledgeFile(record.type, dedupeKnowledgeRecords(records));
-    const stats = buildKnowledgeIndex();
+    (0, knowledge_1.writeKnowledgeFile)(record.type, (0, knowledge_1.dedupeKnowledgeRecords)(records));
+    const stats = (0, knowledge_1.buildKnowledgeIndex)();
     writeRunEvent('knowledge-add', { id: record.id, type: record.type });
     console.log(JSON.stringify({ status: existingIndex >= 0 ? 'merged' : 'added', record, stats }, null, 2));
 }
@@ -1148,11 +554,11 @@ function knowledgeSearchCommand(termsInput, options = {}) {
     if (!terms.length)
         throw new Error('At least one search keyword is required.');
     const limit = Number.parseInt((_a = options.limit) !== null && _a !== void 0 ? _a : '10', 10);
-    const type = options.type ? parseKnowledgeType(options.type) : null;
-    const records = loadKnowledgeIndex()
+    const type = options.type ? (0, utils_1.parseKnowledgeType)(options.type) : null;
+    const records = (0, knowledge_1.loadKnowledgeIndex)()
         .filter((record) => options.all || (record.status === 'active' && record.confidence === 'confirmed'))
         .filter((record) => !type || record.type === type)
-        .map((record) => ({ record, score: scoreKnowledgeRecord(record, terms) }))
+        .map((record) => ({ record, score: (0, knowledge_1.scoreKnowledgeRecord)(record, terms) }))
         .filter((item) => item.score > 0)
         .sort((a, b) => b.score - a.score || a.record.id.localeCompare(b.record.id))
         .slice(0, Number.isFinite(limit) && limit > 0 ? limit : 10);
@@ -1174,8 +580,8 @@ function knowledgeSearchCommand(termsInput, options = {}) {
 function knowledgeListCommand(options = {}) {
     var _a;
     const limit = Number.parseInt((_a = options.limit) !== null && _a !== void 0 ? _a : '50', 10);
-    const type = options.type ? parseKnowledgeType(options.type) : null;
-    const records = loadKnowledgeIndex()
+    const type = options.type ? (0, utils_1.parseKnowledgeType)(options.type) : null;
+    const records = (0, knowledge_1.loadKnowledgeIndex)()
         .filter((record) => options.all || record.status === 'active')
         .filter((record) => !type || record.type === type)
         .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id))
@@ -1194,25 +600,25 @@ function knowledgeListCommand(options = {}) {
     }, null, 2));
 }
 function knowledgeIndexCommand() {
-    const stats = buildKnowledgeIndex();
+    const stats = (0, knowledge_1.buildKnowledgeIndex)();
     console.log(JSON.stringify({ status: 'indexed', stats }, null, 2));
 }
 function knowledgeDedupeCommand() {
     const results = {};
-    for (const type of knowledgeTypes) {
-        const before = readKnowledgeFile(type);
-        const after = dedupeKnowledgeRecords(before);
-        writeKnowledgeFile(type, after);
+    for (const type of utils_1.knowledgeTypes) {
+        const before = (0, knowledge_1.readKnowledgeFile)(type);
+        const after = (0, knowledge_1.dedupeKnowledgeRecords)(before);
+        (0, knowledge_1.writeKnowledgeFile)(type, after);
         results[type] = { before: before.length, after: after.length };
     }
-    const stats = buildKnowledgeIndex();
+    const stats = (0, knowledge_1.buildKnowledgeIndex)();
     console.log(JSON.stringify({ status: 'deduped', results, stats }, null, 2));
 }
 function knowledgeAnalyzeCommand(options = {}) {
     var _a, _b, _c;
-    const records = readAllKnowledgeRecords();
+    const records = (0, knowledge_1.readAllKnowledgeRecords)();
     const limit = Number.parseInt((_a = options.limit) !== null && _a !== void 0 ? _a : '10', 10);
-    const byType = Object.fromEntries(knowledgeTypes.map((type) => [type, records.filter((record) => record.type === type).length]));
+    const byType = Object.fromEntries(utils_1.knowledgeTypes.map((type) => [type, records.filter((record) => record.type === type).length]));
     const uncertain = records.filter((record) => record.confidence === 'uncertain');
     const deprecated = records.filter((record) => record.status === 'deprecated');
     const keywordCounts = new Map();
@@ -1242,8 +648,8 @@ function knowledgeAnalyzeCommand(options = {}) {
     }, null, 2));
 }
 function integrationListCommand() {
-    const integrations = loadIntegrations();
-    const health = Object.fromEntries(integrationNames.map((name) => [name, inspectIntegrationHealth(name, integrations[name])]));
+    const integrations = (0, integrations_1.loadIntegrations)();
+    const health = Object.fromEntries(utils_1.integrationNames.map((name) => [name, (0, integrations_1.inspectIntegrationHealth)(name, integrations[name])]));
     console.log(JSON.stringify({
         integrations,
         health,
@@ -1251,14 +657,14 @@ function integrationListCommand() {
     }, null, 2));
 }
 function integrationUseCommand(nameInput, modeInput) {
-    const name = parseIntegrationName(nameInput);
-    const mode = parseIntegrationMode(modeInput);
-    const current = loadIntegrationConfig(name);
+    const name = (0, utils_1.parseIntegrationName)(nameInput);
+    const mode = (0, utils_1.parseIntegrationMode)(modeInput);
+    const current = (0, integrations_1.loadIntegrationConfig)(name);
     const next = {
         ...current,
         mode,
     };
-    saveIntegrationConfig(next);
+    (0, integrations_1.saveIntegrationConfig)(next);
     writeRunEvent('integration-use', {
         integration: name,
         mode,
@@ -1278,14 +684,14 @@ function integrationUseCommand(nameInput, modeInput) {
 }
 function integrationInstallCommand(nameInput, options = {}) {
     var _a;
-    const name = parseIntegrationName(nameInput);
-    const current = loadIntegrationConfig(name);
-    const officialPath = assertIntegrationTargetPath(name, current.officialPath);
-    const cachePath = assertIntegrationTargetPath(name, current.cachePath);
-    const sourcePath = options.source ? parseIntegrationSource(options.source) : null;
+    const name = (0, utils_1.parseIntegrationName)(nameInput);
+    const current = (0, integrations_1.loadIntegrationConfig)(name);
+    const officialPath = (0, integrations_1.assertIntegrationTargetPath)(name, current.officialPath);
+    const cachePath = (0, integrations_1.assertIntegrationTargetPath)(name, current.cachePath);
+    const sourcePath = options.source ? (0, integrations_1.parseIntegrationSource)(options.source) : null;
     const now = new Date().toISOString();
     if (options.dryRun) {
-        saveIntegrationConfig({
+        (0, integrations_1.saveIntegrationConfig)({
             ...current,
             lastInstallDryRunAt: now,
         });
@@ -1305,11 +711,11 @@ function integrationInstallCommand(nameInput, options = {}) {
     if (sourcePath === officialPath || sourcePath.startsWith(`${officialPath}${path_1.default.sep}`) || sourcePath === cachePath || sourcePath.startsWith(`${cachePath}${path_1.default.sep}`)) {
         throw new Error('Local source cannot be inside the target official/cache directories.');
     }
-    clearDirectoryContents(officialPath);
-    clearDirectoryContents(cachePath);
-    copyDirectoryRecursive(sourcePath, officialPath);
-    writeFileIfMissing(`${current.officialPath}/.gitkeep`, '\n');
-    saveIntegrationConfig({
+    (0, integrations_1.clearDirectoryContents)(officialPath);
+    (0, integrations_1.clearDirectoryContents)(cachePath);
+    (0, integrations_1.copyDirectoryRecursive)(sourcePath, officialPath);
+    (0, utils_1.writeFileIfMissing)(`${current.officialPath}/.gitkeep`, '\n');
+    (0, integrations_1.saveIntegrationConfig)({
         ...current,
         officialInstalled: true,
         officialPath: current.officialPath,
@@ -1333,10 +739,10 @@ function integrationInstallCommand(nameInput, options = {}) {
     }, null, 2));
 }
 function integrationRemoveCommand(nameInput, options = {}) {
-    const name = parseIntegrationName(nameInput);
-    const current = loadIntegrationConfig(name);
-    const officialPath = assertIntegrationTargetPath(name, current.officialPath);
-    const cachePath = assertIntegrationTargetPath(name, current.cachePath);
+    const name = (0, utils_1.parseIntegrationName)(nameInput);
+    const current = (0, integrations_1.loadIntegrationConfig)(name);
+    const officialPath = (0, integrations_1.assertIntegrationTargetPath)(name, current.officialPath);
+    const cachePath = (0, integrations_1.assertIntegrationTargetPath)(name, current.cachePath);
     const now = new Date().toISOString();
     if (options.dryRun) {
         console.log(JSON.stringify({
@@ -1347,11 +753,11 @@ function integrationRemoveCommand(nameInput, options = {}) {
         }, null, 2));
         return;
     }
-    clearDirectoryContents(officialPath);
-    clearDirectoryContents(cachePath);
-    writeFileIfMissing(`${current.officialPath}/.gitkeep`, '\n');
-    writeFileIfMissing(`${current.cachePath}/.gitkeep`, '\n');
-    saveIntegrationConfig({
+    (0, integrations_1.clearDirectoryContents)(officialPath);
+    (0, integrations_1.clearDirectoryContents)(cachePath);
+    (0, utils_1.writeFileIfMissing)(`${current.officialPath}/.gitkeep`, '\n');
+    (0, utils_1.writeFileIfMissing)(`${current.cachePath}/.gitkeep`, '\n');
+    (0, integrations_1.saveIntegrationConfig)({
         ...current,
         mode: 'lightweight',
         officialInstalled: false,
@@ -1373,12 +779,12 @@ function integrationRemoveCommand(nameInput, options = {}) {
     }, null, 2));
 }
 function integrationDownloadCommand(nameInput, options = {}) {
-    const name = parseIntegrationName(nameInput);
-    const repo = integrationGitSources[name];
-    const target = resolveDownloadTarget(name, options.to);
-    assertDownloadOutsideRepo(target, options.allowInsideRepo);
+    const name = (0, utils_1.parseIntegrationName)(nameInput);
+    const repo = utils_1.integrationGitSources[name];
+    const target = (0, integrations_1.resolveDownloadTarget)(name, options.to);
+    (0, integrations_1.assertDownloadOutsideRepo)(target, options.allowInsideRepo);
     const parent = path_1.default.dirname(target);
-    const nextInstallCommand = `node ./scripts/ai/run-ai.cjs integration:install ${name} --source ${quoteShellArg(`local:${target}`)}`;
+    const nextInstallCommand = `node ./scripts/ai/run-ai.cjs integration:install ${name} --source ${(0, utils_1.quoteShellArg)(`local:${target}`)}`;
     if (options.dryRun) {
         console.log(JSON.stringify({
             status: 'dry-run',
@@ -1395,8 +801,8 @@ function integrationDownloadCommand(nameInput, options = {}) {
         if (!options.force) {
             throw new Error(`Download target already exists: ${target}. Use --force to replace it.`);
         }
-        assertDownloadOutsideRepo(target, options.allowInsideRepo);
-        clearDirectoryContents(target);
+        (0, integrations_1.assertDownloadOutsideRepo)(target, options.allowInsideRepo);
+        (0, integrations_1.clearDirectoryContents)(target);
         fs_1.default.rmSync(target, { recursive: true, force: true });
     }
     fs_1.default.mkdirSync(parent, { recursive: true });
@@ -1456,10 +862,10 @@ function detectOfficialValidateCommand(name, officialPath) {
 }
 function integrationValidateCommand(nameInput, options = {}) {
     var _a;
-    const name = parseIntegrationName(nameInput);
-    const config = loadIntegrationConfig(name);
-    const health = inspectIntegrationHealth(name, config);
-    const officialPath = assertIntegrationTargetPath(name, config.officialPath);
+    const name = (0, utils_1.parseIntegrationName)(nameInput);
+    const config = (0, integrations_1.loadIntegrationConfig)(name);
+    const health = (0, integrations_1.inspectIntegrationHealth)(name, config);
+    const officialPath = (0, integrations_1.assertIntegrationTargetPath)(name, config.officialPath);
     const validateCommand = detectOfficialValidateCommand(name, officialPath);
     const base = {
         integration: name,
@@ -1526,16 +932,16 @@ function integrationValidateCommand(nameInput, options = {}) {
         process.exitCode = exitCode;
 }
 function readChangeText(change) {
-    return textFilesToCheck
+    return utils_1.textFilesToCheck
         .map((file) => {
         const relativePath = `openspec/changes/${change}/${file}`;
-        return exists(relativePath) ? `\n# ${file}\n${readText(relativePath)}` : '';
+        return (0, utils_1.exists)(relativePath) ? `\n# ${file}\n${(0, utils_1.readText)(relativePath)}` : '';
     })
         .join('\n');
 }
 function collectChangedFilesForKnowledge() {
-    const result = (0, child_process_1.spawnSync)('git', ['-c', `safe.directory=${root.replace(/\\/g, '/')}`, 'status', '--short', '--', 'apps', 'packages'], {
-        cwd: root,
+    const result = (0, child_process_1.spawnSync)('git', ['-c', `safe.directory=${utils_1.root.replace(/\\/g, '/')}`, 'status', '--short', '--', 'apps', 'packages'], {
+        cwd: utils_1.root,
         shell: false,
         encoding: 'utf8',
     });
@@ -1588,24 +994,24 @@ function extractKnowledgeNames(text) {
 function extractReferencedFiles(text) {
     var _a;
     const matches = (_a = text.match(/\b(?:apps|packages)\/[^\s)`"'，。；,]+/g)) !== null && _a !== void 0 ? _a : [];
-    return uniqueValues(matches.map((item) => item.replace(/[:：]\d+$/, '').replace(/[.,;，。；]+$/, '')));
+    return (0, utils_1.uniqueValues)(matches.map((item) => item.replace(/[:：]\d+$/, '').replace(/[.,;，。；]+$/, '')));
 }
 function buildKnowledgeAddCommand(record) {
     var _a, _b, _c, _d;
     const args = [
         'pnpm ai knowledge:add --',
         `--type ${record.type}`,
-        `--name ${quoteShellArg(String((_a = record.name) !== null && _a !== void 0 ? _a : ''))}`,
-        `--summary ${quoteShellArg(String((_b = record.summary) !== null && _b !== void 0 ? _b : ''))}`,
+        `--name ${(0, utils_1.quoteShellArg)(String((_a = record.name) !== null && _a !== void 0 ? _a : ''))}`,
+        `--summary ${(0, utils_1.quoteShellArg)(String((_b = record.summary) !== null && _b !== void 0 ? _b : ''))}`,
     ];
     if (record.scope)
-        args.push(`--scope ${quoteShellArg(record.scope)}`);
+        args.push(`--scope ${(0, utils_1.quoteShellArg)(record.scope)}`);
     if (record.source)
-        args.push(`--source ${quoteShellArg(record.source)}`);
+        args.push(`--source ${(0, utils_1.quoteShellArg)(record.source)}`);
     if ((_c = record.keywords) === null || _c === void 0 ? void 0 : _c.length)
-        args.push(`--keywords ${quoteShellArg(record.keywords.join(','))}`);
+        args.push(`--keywords ${(0, utils_1.quoteShellArg)(record.keywords.join(','))}`);
     if ((_d = record.usedIn) === null || _d === void 0 ? void 0 : _d.length)
-        args.push(`--used-in ${quoteShellArg(record.usedIn.join(','))}`);
+        args.push(`--used-in ${(0, utils_1.quoteShellArg)(record.usedIn.join(','))}`);
     if (record.confidence)
         args.push(`--confidence ${record.confidence}`);
     return args.join(' ');
@@ -1616,7 +1022,7 @@ function knowledgeSuggestCommand(changeInput, options = {}) {
     if (!change)
         throw new Error('Change name is required.');
     const text = readChangeText(change);
-    const board = fs_1.default.existsSync(resolvePath('openspec', 'changes', change, 'tasks.md')) ? syncTaskBoard(change) : null;
+    const board = fs_1.default.existsSync((0, utils_1.resolvePath)('openspec', 'changes', change, 'tasks.md')) ? syncTaskBoard(change) : null;
     const changedFiles = extractReferencedFiles(text).length ? extractReferencedFiles(text) : collectChangedFilesForKnowledge();
     const names = extractKnowledgeNames(text);
     const limit = Number.parseInt((_a = options.limit) !== null && _a !== void 0 ? _a : '8', 10);
@@ -1629,7 +1035,7 @@ function knowledgeSuggestCommand(changeInput, options = {}) {
             scope: (_c = (_b = changedFiles[0]) === null || _b === void 0 ? void 0 : _b.split('/').slice(0, 4).join('/')) !== null && _c !== void 0 ? _c : 'repo',
             source: change,
             summary: `Candidate from ${change}: confirm reusable usage or behavior for ${name} before adding.`,
-            keywords: uniqueValues([change, name, ...tokenizeKnowledgeText(text).slice(0, 5)]),
+            keywords: (0, utils_1.uniqueValues)([change, name, ...(0, knowledge_1.tokenizeKnowledgeText)(text).slice(0, 5)]),
             usedIn: changedFiles.slice(0, 5),
             status: 'active',
             confidence: 'uncertain',
@@ -1643,7 +1049,7 @@ function knowledgeSuggestCommand(changeInput, options = {}) {
             scope: (_e = (_d = changedFiles[0]) === null || _d === void 0 ? void 0 : _d.split('/').slice(0, 4).join('/')) !== null && _e !== void 0 ? _e : 'repo',
             source: change,
             summary: `Candidate from ${change}: confirm the reusable failure cause, trigger condition, and prevention rule before adding.`,
-            keywords: uniqueValues([change, 'failure', 'bug', '风险']),
+            keywords: (0, utils_1.uniqueValues)([change, 'failure', 'bug', '风险']),
             usedIn: changedFiles.slice(0, 5),
             status: 'active',
             confidence: 'uncertain',
@@ -1657,7 +1063,7 @@ function knowledgeSuggestCommand(changeInput, options = {}) {
             scope: (_g = (_f = changedFiles[0]) === null || _f === void 0 ? void 0 : _f.split('/').slice(0, 4).join('/')) !== null && _g !== void 0 ? _g : 'repo',
             source: change,
             summary: `Candidate from ${change}: confirm the final product or technical decision before adding.`,
-            keywords: uniqueValues([change, 'decision', '确认']),
+            keywords: (0, utils_1.uniqueValues)([change, 'decision', '确认']),
             usedIn: changedFiles.slice(0, 5),
             status: 'active',
             confidence: 'uncertain',
@@ -1710,7 +1116,7 @@ function knowledgeSuggestCommand(changeInput, options = {}) {
     }, null, 2));
 }
 function collectUncheckedTasks(change) {
-    const tasksPath = resolvePath('openspec', 'changes', change, 'tasks.md');
+    const tasksPath = (0, utils_1.resolvePath)('openspec', 'changes', change, 'tasks.md');
     if (!fs_1.default.existsSync(tasksPath))
         return [];
     return fs_1.default
@@ -1719,7 +1125,7 @@ function collectUncheckedTasks(change) {
         .filter((line) => /^\s*-\s\[\s\]\s+/.test(line));
 }
 function collectUncheckedAcceptance(change) {
-    const acceptancePath = resolvePath('openspec', 'changes', change, 'acceptance.md');
+    const acceptancePath = (0, utils_1.resolvePath)('openspec', 'changes', change, 'acceptance.md');
     if (!fs_1.default.existsSync(acceptancePath))
         return [];
     return fs_1.default
@@ -1730,7 +1136,7 @@ function collectUncheckedAcceptance(change) {
 function appendUncheckedTasks(change, tasks) {
     if (!tasks.length)
         return;
-    const tasksPath = resolvePath('openspec', 'changes', change, 'tasks.md');
+    const tasksPath = (0, utils_1.resolvePath)('openspec', 'changes', change, 'tasks.md');
     const existing = fs_1.default.existsSync(tasksPath) ? fs_1.default.readFileSync(tasksPath, 'utf8') : '# Tasks\n';
     const existingLines = new Set(existing.split(/\r?\n/).map((line) => line.trim()));
     const additions = tasks
@@ -1745,21 +1151,21 @@ function appendUncheckedTasks(change, tasks) {
 function validateCommand(changeInput, options = {}) {
     const errors = [];
     const checkFile = (relativePath) => {
-        if (!exists(relativePath))
+        if (!(0, utils_1.exists)(relativePath))
             errors.push(`Missing ${relativePath}`);
     };
-    for (const file of coreFiles)
+    for (const file of utils_1.coreFiles)
         checkFile(`.ai/core/${file}`);
-    for (const flow of flowNames)
+    for (const flow of utils_1.flowNames)
         checkFile(`.ai/flows/${flow}.md`);
-    for (const file of skillFiles)
+    for (const file of utils_1.skillFiles)
         checkFile(`superpowers/skills/${file}`);
     checkFile('openspec/project.md');
     checkFile('harness/config.json');
     checkFile('harness/state.json');
     checkFile('.ai/registry/tools.json');
     try {
-        loadHarnessConfig();
+        (0, state_1.loadHarnessConfig)();
     }
     catch (error) {
         errors.push(`Invalid harness/config.json: ${error.message}`);
@@ -1769,23 +1175,23 @@ function validateCommand(changeInput, options = {}) {
         setCurrentChange(change);
     }
     if (change) {
-        for (const file of requiredChangeFiles) {
+        for (const file of utils_1.requiredChangeFiles) {
             checkFile(`openspec/changes/${change}/${file}`);
         }
-        for (const file of textFilesToCheck) {
+        for (const file of utils_1.textFilesToCheck) {
             const relativePath = `openspec/changes/${change}/${file}`;
-            if (exists(relativePath) && hasMojibake(readText(relativePath))) {
+            if ((0, utils_1.exists)(relativePath) && (0, utils_1.hasMojibake)((0, utils_1.readText)(relativePath))) {
                 errors.push(`Possible mojibake detected in ${relativePath}. Ensure UTF-8 output in Windows/Codex/PowerShell.`);
             }
         }
     }
-    let tools = defaultTools;
+    let tools = utils_1.defaultTools;
     try {
-        const config = loadHarnessConfig();
-        tools = (config.tools || defaultTools);
+        const config = (0, state_1.loadHarnessConfig)();
+        tools = (config.tools || utils_1.defaultTools);
     }
     catch {
-        tools = defaultTools;
+        tools = utils_1.defaultTools;
     }
     for (const tool of tools) {
         for (const file of listTargetFiles(tool) || []) {
@@ -1805,7 +1211,7 @@ function validateCommand(changeInput, options = {}) {
 }
 function runCommand(command, args) {
     const startedAt = Date.now();
-    const result = (0, child_process_1.spawnSync)(command, args, { cwd: root, shell: false, stdio: 'inherit' });
+    const result = (0, child_process_1.spawnSync)(command, args, { cwd: utils_1.root, shell: false, stdio: 'inherit' });
     const exitCode = typeof result.status === 'number' ? result.status : 1;
     return {
         command: [command, ...args].join(' '),
@@ -1816,7 +1222,7 @@ function runCommand(command, args) {
 }
 function runEslintCommand() {
     var _a;
-    const eslintPath = resolvePath('node_modules', 'eslint', 'bin', 'eslint.js');
+    const eslintPath = (0, utils_1.resolvePath)('node_modules', 'eslint', 'bin', 'eslint.js');
     const startedAt = Date.now();
     if (!fs_1.default.existsSync(eslintPath)) {
         return {
@@ -1828,7 +1234,7 @@ function runEslintCommand() {
         };
     }
     const result = (0, child_process_1.spawnSync)(process.execPath, [eslintPath, '--ext', '.tsx,.ts', './apps'], {
-        cwd: root,
+        cwd: utils_1.root,
         shell: false,
         stdio: 'inherit',
     });
@@ -1843,7 +1249,7 @@ function runEslintCommand() {
 }
 function writeReport(changeInput, results, status) {
     var _a, _b;
-    const config = loadHarnessConfig();
+    const config = (0, state_1.loadHarnessConfig)();
     const change = getChangeName(changeInput);
     if (changeInput && change) {
         setCurrentChange(change);
@@ -1858,11 +1264,11 @@ function writeReport(changeInput, results, status) {
         change,
         dryRun: false,
         status: finalStatus,
-        tools: (_b = config.tools) !== null && _b !== void 0 ? _b : defaultTools,
+        tools: (_b = config.tools) !== null && _b !== void 0 ? _b : utils_1.defaultTools,
         results,
     };
-    writeGeneratedFile(`harness/reports/${fileTimestamp}.json`, `${JSON.stringify(report, null, 2)}\n`);
-    updateHarnessState({
+    (0, utils_1.writeGeneratedFile)(`harness/reports/${fileTimestamp}.json`, `${JSON.stringify(report, null, 2)}\n`);
+    (0, state_1.updateHarnessState)({
         activeChange: change !== null && change !== void 0 ? change : null,
         status: finalStatus === 'passed' ? 'accepted' : 'blocked',
         phase: finalStatus === 'passed' ? 'finishing' : 'blocked',
@@ -1911,25 +1317,25 @@ function checkCommand(changeInput, options = {}) {
     }
 }
 function statusCommand() {
-    const state = loadHarnessState();
+    const state = (0, state_1.loadHarnessState)();
     console.log(JSON.stringify(state, null, 2));
 }
 function currentCommand(changeInput) {
     var _a, _b, _c, _d, _e, _f;
     if (changeInput) {
-        const change = kebabName(changeInput);
+        const change = (0, utils_1.kebabName)(changeInput);
         if (!change)
             throw new Error('Change name is required.');
         setCurrentChange(change);
-        updateHarnessState({
+        (0, state_1.updateHarnessState)({
             activeChange: change,
             context: buildChangeContext(change),
         });
         console.log(`Current change set: ${change}`);
         return;
     }
-    const config = loadHarnessConfig();
-    const state = loadHarnessState();
+    const config = (0, state_1.loadHarnessConfig)();
+    const state = (0, state_1.loadHarnessState)();
     console.log(JSON.stringify({
         currentChange: (_a = config.currentChange) !== null && _a !== void 0 ? _a : null,
         activeChange: (_b = state.activeChange) !== null && _b !== void 0 ? _b : null,
@@ -1941,7 +1347,7 @@ function currentCommand(changeInput) {
 }
 function resumeCommand() {
     var _a, _b, _c, _d, _e;
-    const state = loadHarnessState();
+    const state = (0, state_1.loadHarnessState)();
     const change = state.activeChange;
     const nextFlow = state.nextSuggestedFlow || 'propose';
     if (!change) {
@@ -1988,7 +1394,7 @@ function verifyCommand(changeInput, options = {}) {
     appendUncheckedTasks(change, parseTasks(options.task));
     const uncheckedTasks = collectUncheckedTasks(change);
     const status = (_a = options.status) !== null && _a !== void 0 ? _a : (uncheckedTasks.length ? 'partially_accepted' : 'accepted');
-    updateHarnessState({
+    (0, state_1.updateHarnessState)({
         activeChange: change,
         activeFlow: 'verify',
         status,
@@ -2013,7 +1419,7 @@ function finishStateCommand(changeInput) {
         setCurrentChange(change);
     const uncheckedTasks = collectUncheckedTasks(change);
     const status = uncheckedTasks.length ? 'partially_accepted' : 'accepted';
-    updateHarnessState({
+    (0, state_1.updateHarnessState)({
         activeChange: change,
         activeFlow: 'finish',
         status,
@@ -2034,27 +1440,27 @@ function finishStateCommand(changeInput) {
 function stepCommand(note, options = {}) {
     var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
     const change = getChangeName(options.change);
-    const flow = (_b = (_a = options.flow) !== null && _a !== void 0 ? _a : loadHarnessState().activeFlow) !== null && _b !== void 0 ? _b : null;
-    updateHarnessState({
+    const flow = (_b = (_a = options.flow) !== null && _a !== void 0 ? _a : (0, state_1.loadHarnessState)().activeFlow) !== null && _b !== void 0 ? _b : null;
+    (0, state_1.updateHarnessState)({
         activeChange: change,
         activeFlow: flow,
         status: (_c = options.status) !== null && _c !== void 0 ? _c : 'in_progress',
-        phase: flow ? (_d = phaseByFlow[flow]) !== null && _d !== void 0 ? _d : 'implementation' : (_e = loadHarnessState().phase) !== null && _e !== void 0 ? _e : 'implementation',
+        phase: flow ? (_d = utils_1.phaseByFlow[flow]) !== null && _d !== void 0 ? _d : 'implementation' : (_e = (0, state_1.loadHarnessState)().phase) !== null && _e !== void 0 ? _e : 'implementation',
         lastStep: note,
-        nextStep: (_g = (_f = options.next) !== null && _f !== void 0 ? _f : loadHarnessState().nextStep) !== null && _g !== void 0 ? _g : null,
-        nextSuggestedFlow: (_h = flow !== null && flow !== void 0 ? flow : loadHarnessState().nextSuggestedFlow) !== null && _h !== void 0 ? _h : null,
-        context: change ? buildChangeContext(change) : (_j = loadHarnessState().context) !== null && _j !== void 0 ? _j : {},
+        nextStep: (_g = (_f = options.next) !== null && _f !== void 0 ? _f : (0, state_1.loadHarnessState)().nextStep) !== null && _g !== void 0 ? _g : null,
+        nextSuggestedFlow: (_h = flow !== null && flow !== void 0 ? flow : (0, state_1.loadHarnessState)().nextSuggestedFlow) !== null && _h !== void 0 ? _h : null,
+        context: change ? buildChangeContext(change) : (_j = (0, state_1.loadHarnessState)().context) !== null && _j !== void 0 ? _j : {},
     });
     writeRunEvent('step', { change, flow, note, nextStep: (_k = options.next) !== null && _k !== void 0 ? _k : null });
     console.log(`Step recorded: ${note}`);
 }
 function decisionCommand(text, options = {}) {
     var _a, _b, _c, _d, _e, _f;
-    const state = loadHarnessState();
+    const state = (0, state_1.loadHarnessState)();
     const change = getChangeName(options.change);
     const decision = { text, createdAt: new Date().toISOString(), change: change !== null && change !== void 0 ? change : null, flow: (_b = (_a = options.flow) !== null && _a !== void 0 ? _a : state.activeFlow) !== null && _b !== void 0 ? _b : null };
     const decisions = Array.isArray(state.decisions) ? state.decisions.concat(decision) : [decision];
-    updateHarnessState({
+    (0, state_1.updateHarnessState)({
         activeChange: (_c = change !== null && change !== void 0 ? change : state.activeChange) !== null && _c !== void 0 ? _c : null,
         activeFlow: (_e = (_d = options.flow) !== null && _d !== void 0 ? _d : state.activeFlow) !== null && _e !== void 0 ? _e : null,
         decisions,
@@ -2067,7 +1473,7 @@ function decisionCommand(text, options = {}) {
 function runLogCommand(options = {}) {
     var _a, _b, _c;
     const limit = Number((_a = options.limit) !== null && _a !== void 0 ? _a : 10);
-    const runsDir = resolvePath('harness', 'runs');
+    const runsDir = (0, utils_1.resolvePath)('harness', 'runs');
     if (!fs_1.default.existsSync(runsDir)) {
         console.log('No run log directory found.');
         return;
@@ -2148,7 +1554,7 @@ function updateTaskCommand(action, taskId, options = {}) {
         updateMarkdownTaskCheck(change, task, false);
     }
     saveTaskBoard(board);
-    updateHarnessState({
+    (0, state_1.updateHarnessState)({
         activeChange: change,
         activeFlow: action === 'done' ? 'verify' : 'apply',
         status: action === 'blocked' ? 'blocked' : 'in_progress',
@@ -2180,7 +1586,7 @@ function agentRunCommand(changeInput, options = {}) {
     }
     const prompt = buildAgentPrompt(change, task, mode);
     const promptPath = writeTimestampedMarkdown('harness/prompts', `${change}-agent-run`, prompt);
-    updateHarnessState({
+    (0, state_1.updateHarnessState)({
         activeChange: change,
         activeFlow: 'apply',
         status: task ? 'in_progress' : 'accepted',
@@ -2263,12 +1669,12 @@ function agentFinishCommand(changeInput, options = {}) {
     }
     const reportStatus = status === 'blocked' ? 'failed' : 'passed';
     writeReport(change, results, reportStatus);
-    const stateAfterReport = loadHarnessState();
+    const stateAfterReport = (0, state_1.loadHarnessState)();
     const remaining = [
         ...remainingTasks.map((task) => `${task.id}: ${task.title}`),
         ...uncheckedAcceptance.map((item) => `acceptance: ${item.replace(/^\s*-\s\[\s\]\s+/, '')}`),
     ];
-    updateHarnessState({
+    (0, state_1.updateHarnessState)({
         activeChange: change,
         activeFlow: 'finish',
         status,
@@ -2317,7 +1723,7 @@ function agentFinishCommand(changeInput, options = {}) {
         process.exitCode = 1;
 }
 function checkWritable(relativePath) {
-    const filePath = resolvePath(relativePath);
+    const filePath = (0, utils_1.resolvePath)(relativePath);
     try {
         if (fs_1.default.existsSync(filePath)) {
             const handle = fs_1.default.openSync(filePath, 'r+');
@@ -2351,17 +1757,17 @@ function doctorCommand(options = {}) {
         });
     };
     pushCheck('node', /^v?(\d+)\./.test(process.version), `version ${process.version}`, startedAt);
-    const hasTsNode = exists('node_modules/ts-node/register/transpile-only.js');
+    const hasTsNode = (0, utils_1.exists)('node_modules/ts-node/register/transpile-only.js');
     pushCheck('ts-node/register/transpile-only', hasTsNode, hasTsNode ? undefined : 'Missing local ts-node dependency.');
-    const hasLauncher = exists('scripts/ai/run-ai.cjs');
+    const hasLauncher = (0, utils_1.exists)('scripts/ai/run-ai.cjs');
     pushCheck('scripts/ai/run-ai.cjs', hasLauncher, hasLauncher ? undefined : 'Missing stable AI launcher.');
-    const hasConfig = exists('harness/config.json');
+    const hasConfig = (0, utils_1.exists)('harness/config.json');
     pushCheck('harness/config.json', hasConfig, hasConfig ? undefined : 'Missing harness config.');
-    const hasState = exists('harness/state.json');
+    const hasState = (0, utils_1.exists)('harness/state.json');
     pushCheck('harness/state.json', hasState, hasState ? undefined : 'Missing harness state.');
     const configStartedAt = Date.now();
     try {
-        loadHarnessConfig();
+        (0, state_1.loadHarnessConfig)();
         pushCheck('parse harness/config.json', true, undefined, configStartedAt);
     }
     catch (error) {
@@ -2372,23 +1778,23 @@ function doctorCommand(options = {}) {
     pushCheck('ai validate', validation.status === 'passed', validation.errors.join('; ') || undefined, validationStartedAt);
     const knowledgeStartedAt = Date.now();
     try {
-        const stats = buildKnowledgeIndex();
+        const stats = (0, knowledge_1.buildKnowledgeIndex)();
         pushCheck('knowledge index', true, `records ${stats.total}`, knowledgeStartedAt);
     }
     catch (error) {
         pushCheck('knowledge index', false, error.message, knowledgeStartedAt);
     }
-    for (const name of integrationNames) {
+    for (const name of utils_1.integrationNames) {
         const integrationStartedAt = Date.now();
-        const config = loadIntegrationConfig(name);
-        const health = inspectIntegrationHealth(name, config);
+        const config = (0, integrations_1.loadIntegrationConfig)(name);
+        const health = (0, integrations_1.inspectIntegrationHealth)(name, config);
         const requiresOfficial = config.mode === 'official' || config.mode === 'hybrid';
         const passed = !requiresOfficial || health.usable;
         const reason = `${config.mode}; health=${health.health}; official ${config.officialInstalled ? 'installed' : 'not installed'}; ${health.reason}`;
         pushCheck(`integration ${name}`, passed, reason, integrationStartedAt);
     }
-    const config = loadHarnessConfig();
-    const tools = (config.tools || defaultTools);
+    const config = (0, state_1.loadHarnessConfig)();
+    const tools = (config.tools || utils_1.defaultTools);
     for (const tool of tools) {
         for (const file of listTargetFiles(tool)) {
             const writable = checkWritable(file);
@@ -2427,7 +1833,7 @@ program.name('msgfi-ai').description('MsgFi AI Engineering Kit');
 program
     .command('init')
     .argument('[tools...]', 'Optional AI tools to initialize, e.g. codex cursor')
-    .option('--tools <tools>', 'Comma-separated AI tools', defaultTools.join(','))
+    .option('--tools <tools>', 'Comma-separated AI tools', utils_1.defaultTools.join(','))
     .option('--no-setup-script', 'Do not add scripts.ai to package.json')
     .action((toolArgs, options) => initCommand({ ...options, toolArgs }));
 program

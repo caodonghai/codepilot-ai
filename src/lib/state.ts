@@ -145,7 +145,7 @@ export function loadHarnessState(): HarnessState {
   }
 }
 
-export function saveHarnessState(state: Record<string, unknown>) {
+export function saveHarnessState(state: HarnessState | Record<string, unknown>) {
   writeGeneratedFile('harness/state.json', `${JSON.stringify(state, null, 2)}\n`);
 }
 
@@ -173,6 +173,20 @@ export function getChangeName(input?: string): string | null {
   if (input) return input;
   const config = loadHarnessConfig();
   return typeof config.currentChange === 'string' ? config.currentChange : null;
+}
+
+export function initHarness() {
+  ensureDir('harness');
+  const config = loadHarnessConfig();
+  saveHarnessConfig({
+    version: config.version ?? 1,
+    profile: config.profile ?? 'lightweight',
+    currentChange: config.currentChange ?? null,
+    tools: config.tools ?? defaultTools,
+    checks: config.checks ?? ['eslint', 'ai:validate', 'ai:report'],
+  });
+  const state = loadHarnessState();
+  saveHarnessState(state);
 }
 
 export function writeRunEvent(kind: string, payload: Record<string, unknown>) {

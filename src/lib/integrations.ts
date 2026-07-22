@@ -1,22 +1,10 @@
 import fs from 'fs';
 import path from 'path';
 import { spawnSync } from 'child_process';
+import type { IntegrationConfig, IntegrationName, IntegrationMode } from '../types';
 import { resolvePath, writeGeneratedFile, ensureDir, exists, readText, integrationNames, integrationModes, integrationGitSources, quoteShellArg } from './utils';
 
-export interface IntegrationConfig {
-  name: string;
-  mode: string;
-  officialInstalled: boolean;
-  officialPath: string;
-  cachePath: string;
-  source?: string | null;
-  installedAt?: string | null;
-  removedAt?: string | null;
-  lastInstallDryRunAt?: string | null;
-  updatedAt: string;
-}
-
-export function defaultIntegrationConfig(name: string): IntegrationConfig {
+export function defaultIntegrationConfig(name: IntegrationName): IntegrationConfig {
   return {
     name,
     mode: 'lightweight',
@@ -27,11 +15,11 @@ export function defaultIntegrationConfig(name: string): IntegrationConfig {
   };
 }
 
-export function integrationConfigPath(name: string) {
+export function integrationConfigPath(name: IntegrationName) {
   return `harness/integrations/${name}/config.json`;
 }
 
-export function loadIntegrationConfig(name: string): IntegrationConfig {
+export function loadIntegrationConfig(name: IntegrationName): IntegrationConfig {
   const relativePath = integrationConfigPath(name);
   if (!exists(relativePath)) return defaultIntegrationConfig(name);
   try {
@@ -54,10 +42,10 @@ export function saveIntegrationConfig(config: IntegrationConfig) {
 }
 
 export function loadIntegrations() {
-  return Object.fromEntries(integrationNames.map((name) => [name, loadIntegrationConfig(name)])) as Record<string, IntegrationConfig>;
+  return Object.fromEntries(integrationNames.map((name) => [name, loadIntegrationConfig(name)])) as Record<IntegrationName, IntegrationConfig>;
 }
 
-export function inspectIntegrationHealth(name: string, config?: IntegrationConfig) {
+export function inspectIntegrationHealth(name: IntegrationName, config?: IntegrationConfig) {
   if (!config) config = loadIntegrationConfig(name);
   const officialPath = resolvePath(config.officialPath);
   if (!config.officialInstalled) {
@@ -126,7 +114,7 @@ export function integrationSummary() {
   }).join('\n');
 }
 
-export function assertIntegrationTargetPath(name: string, relativePath: string) {
+export function assertIntegrationTargetPath(name: IntegrationName, relativePath: string) {
   const expectedPrefix = path.resolve(resolvePath('.'), 'harness', 'integrations', name);
   const fullPath = path.resolve(resolvePath('.'), relativePath);
   if (fullPath !== expectedPrefix && !fullPath.startsWith(`${expectedPrefix}${path.sep}`)) {
@@ -152,7 +140,7 @@ export function defaultIntegrationDownloadBase() {
   return path.resolve(resolvePath('.'), '..', '_ai-official-sources');
 }
 
-export function resolveDownloadTarget(name: string, to?: string) {
+export function resolveDownloadTarget(name: IntegrationName, to?: string) {
   const base = to ? path.resolve(to) : defaultIntegrationDownloadBase();
   return path.join(base, name);
 }
@@ -184,7 +172,7 @@ export function copyDirectoryRecursive(source: string, target: string) {
   }
 }
 
-export function detectOfficialValidateCommand(name: string, officialPath: string) {
+export function detectOfficialValidateCommand(name: IntegrationName, officialPath: string) {
   const packageJsonPath = path.join(officialPath, 'package.json');
   if (!fs.existsSync(packageJsonPath)) return null;
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));

@@ -1,26 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { resolvePath, writeGeneratedFile, ensureDir, readText, knowledgeFiles, knowledgeTypes, kebabName, uniqueValues } from './utils';
-
-export interface KnowledgeRecord {
-  id: string;
-  type: string;
-  name: string;
-  scope: string;
-  source: string;
-  summary: string;
-  keywords: string[];
-  usedIn: string[];
-  status: string;
-  confidence: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface KnowledgeIndexRecord extends KnowledgeRecord {
-  file: string;
-  searchText: string;
-}
+import type { KnowledgeRecord, KnowledgeIndexRecord, KnowledgeType, KnowledgeStatus, KnowledgeConfidence } from '../types';
+import { resolvePath, writeGeneratedFile, ensureDir, readText, knowledgeFiles, knowledgeTypes, kebabName, uniqueValues, parseKnowledgeType } from './utils';
 
 export function normalizeKnowledgeRecord(record: Partial<KnowledgeRecord>): KnowledgeRecord {
   const now = new Date().toISOString().slice(0, 10);
@@ -41,25 +22,18 @@ export function normalizeKnowledgeRecord(record: Partial<KnowledgeRecord>): Know
     summary,
     keywords: uniqueValues(record.keywords ?? []),
     usedIn: uniqueValues(record.usedIn ?? []),
-    status: (record.status ?? 'active') as string,
-    confidence: (record.confidence ?? 'confirmed') as string,
+    status: (record.status ?? 'active') as KnowledgeStatus,
+    confidence: (record.confidence ?? 'confirmed') as KnowledgeConfidence,
     createdAt: record.createdAt ?? now,
     updatedAt: now,
   };
 }
 
-export function parseKnowledgeType(value?: string): string {
-  if (!value || !knowledgeTypes.includes(value)) {
-    throw new Error(`Unsupported knowledge type: ${value ?? ''}. Supported types: ${knowledgeTypes.join(', ')}`);
-  }
-  return value;
-}
-
-export function knowledgeFilePath(type: string) {
+export function knowledgeFilePath(type: KnowledgeType) {
   return resolvePath('harness', 'memory', 'knowledge', knowledgeFiles[type]);
 }
 
-export function readKnowledgeFile(type: string): KnowledgeRecord[] {
+export function readKnowledgeFile(type: KnowledgeType): KnowledgeRecord[] {
   const filePath = knowledgeFilePath(type);
   if (!fs.existsSync(filePath)) return [];
   return fs
@@ -76,7 +50,7 @@ export function readKnowledgeFile(type: string): KnowledgeRecord[] {
     });
 }
 
-export function writeKnowledgeFile(type: string, records: KnowledgeRecord[]) {
+export function writeKnowledgeFile(type: KnowledgeType, records: KnowledgeRecord[]) {
   ensureDir('harness', 'memory', 'knowledge');
   const lines = records
     .sort((a, b) => a.id.localeCompare(b.id))
@@ -176,9 +150,9 @@ export function buildKnowledgeIndex() {
   const stats = {
     updatedAt: new Date().toISOString(),
     total: records.length,
-    byType: Object.fromEntries(knowledgeTypes.map((type) => [type, 0])) as Record<string, number>,
-    byStatus: { active: 0, deprecated: 0 } as Record<string, number>,
-    byConfidence: { confirmed: 0, uncertain: 0 } as Record<string, number>,
+    byType: Object.fromEntries(knowledgeTypes.map((type) => [type, 0])) as Record<KnowledgeType, number>,
+    byStatus: { active: 0, deprecated: 0 } as Record<KnowledgeStatus, number>,
+    byConfidence: { confirmed: 0, uncertain: 0 } as Record<KnowledgeConfidence, number>,
   };
 
   for (const record of records) {

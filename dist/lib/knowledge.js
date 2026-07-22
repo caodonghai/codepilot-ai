@@ -3,14 +3,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.searchKnowledge = exports.scoreKnowledgeRecord = exports.loadKnowledgeIndex = exports.buildKnowledgeIndex = exports.buildKnowledgeSearchText = exports.tokenizeKnowledgeText = exports.dedupeKnowledgeRecords = exports.mergeKnowledgeRecords = exports.readAllKnowledgeRecords = exports.writeKnowledgeFile = exports.readKnowledgeFile = exports.knowledgeFilePath = exports.parseKnowledgeType = exports.normalizeKnowledgeRecord = void 0;
+exports.searchKnowledge = exports.scoreKnowledgeRecord = exports.loadKnowledgeIndex = exports.buildKnowledgeIndex = exports.buildKnowledgeSearchText = exports.tokenizeKnowledgeText = exports.dedupeKnowledgeRecords = exports.mergeKnowledgeRecords = exports.readAllKnowledgeRecords = exports.writeKnowledgeFile = exports.readKnowledgeFile = exports.knowledgeFilePath = exports.normalizeKnowledgeRecord = void 0;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const utils_1 = require("./utils");
 function normalizeKnowledgeRecord(record) {
     var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
     const now = new Date().toISOString().slice(0, 10);
-    const type = parseKnowledgeType(record.type);
+    const type = (0, utils_1.parseKnowledgeType)(record.type);
     const name = String((_a = record.name) !== null && _a !== void 0 ? _a : '').trim();
     const summary = String((_b = record.summary) !== null && _b !== void 0 ? _b : '').trim();
     if (!name)
@@ -36,13 +36,6 @@ function normalizeKnowledgeRecord(record) {
     };
 }
 exports.normalizeKnowledgeRecord = normalizeKnowledgeRecord;
-function parseKnowledgeType(value) {
-    if (!value || !utils_1.knowledgeTypes.includes(value)) {
-        throw new Error(`Unsupported knowledge type: ${value !== null && value !== void 0 ? value : ''}. Supported types: ${utils_1.knowledgeTypes.join(', ')}`);
-    }
-    return value;
-}
-exports.parseKnowledgeType = parseKnowledgeType;
 function knowledgeFilePath(type) {
     return (0, utils_1.resolvePath)('harness', 'memory', 'knowledge', utils_1.knowledgeFiles[type]);
 }

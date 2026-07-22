@@ -1,8 +1,16 @@
 import fs from 'fs';
 import path from 'path';
+import type {
+  ToolName,
+  HarnessPhase,
+  ChangeType,
+  KnowledgeType,
+  IntegrationName,
+  IntegrationMode,
+} from '../types';
 
 export const root = process.cwd();
-export const defaultTools: string[] = ['codex', 'trae', 'qoder', 'cursor'];
+export const defaultTools: ToolName[] = ['codex', 'trae', 'qoder', 'cursor'];
 export const coreFiles = ['project.md', 'frontend.md', 'api.md', 'ui.md', 'testing.md', 'review.md', 'workflow.md'];
 export const dispatcherFlow = 'ai';
 export const flowNames = ['explore', 'propose', 'plan', 'apply', 'verify', 'review', 'finish'];
@@ -22,22 +30,22 @@ export const mojibakePatterns = [
   '\ufffd',
 ];
 export const textFilesToCheck = ['proposal.md', 'tasks.md', 'acceptance.md', 'notes.md', 'conversation-report.txt'];
-export const changeTypes: string[] = ['default', 'bugfix', 'feature', 'ui-change', 'refactor'];
-export const knowledgeTypes: string[] = ['component', 'function', 'pattern', 'decision', 'failure'];
-export const integrationNames: string[] = ['openspec', 'superpowers'];
-export const integrationModes: string[] = ['lightweight', 'official', 'hybrid'];
-export const integrationGitSources: Record<string, string> = {
+export const changeTypes: ChangeType[] = ['default', 'bugfix', 'feature', 'ui-change', 'refactor'];
+export const knowledgeTypes: KnowledgeType[] = ['component', 'function', 'pattern', 'decision', 'failure'];
+export const integrationNames: IntegrationName[] = ['openspec', 'superpowers'];
+export const integrationModes: IntegrationMode[] = ['lightweight', 'official', 'hybrid'];
+export const integrationGitSources: Record<IntegrationName, string> = {
   openspec: 'https://github.com/Fission-AI/OpenSpec.git',
   superpowers: 'https://github.com/obra/superpowers.git',
 };
-export const knowledgeFiles: Record<string, string> = {
+export const knowledgeFiles: Record<KnowledgeType, string> = {
   component: 'components.jsonl',
   function: 'functions.jsonl',
   pattern: 'patterns.jsonl',
   decision: 'decisions.jsonl',
   failure: 'failures.jsonl',
 };
-export const phaseByFlow: Record<string, string> = {
+export const phaseByFlow: Record<string, HarnessPhase> = {
   explore: 'exploration',
   propose: 'proposal',
   plan: 'planning',
@@ -77,9 +85,9 @@ export function readText(relativePath: string) {
   return fs.readFileSync(resolvePath(relativePath), 'utf8');
 }
 
-export function parseTools(value?: string): string[] {
+export function parseTools(value?: string): ToolName[] {
   if (!value) return defaultTools;
-  const tools = value.split(',').map((item) => item.trim()).filter(Boolean);
+  const tools = value.split(',').map((item) => item.trim()).filter(Boolean) as ToolName[];
   const unsupported = tools.filter((tool) => !defaultTools.includes(tool));
   if (unsupported.length) {
     throw new Error(`Unsupported tools: ${unsupported.join(', ')}. Supported tools: ${defaultTools.join(', ')}`);
@@ -92,33 +100,33 @@ export function parseToolArgs(args?: string[], optionValue?: string) {
   return parseTools(optionValue);
 }
 
-export function parseIntegrationName(value?: string): string {
-  if (!value || !integrationNames.includes(value)) {
+export function parseIntegrationName(value?: string): IntegrationName {
+  if (!value || !integrationNames.includes(value as IntegrationName)) {
     throw new Error(`Unsupported integration: ${value ?? ''}. Supported integrations: ${integrationNames.join(', ')}`);
   }
-  return value;
+  return value as IntegrationName;
 }
 
-export function parseIntegrationMode(value?: string): string {
-  if (!value || !integrationModes.includes(value)) {
+export function parseIntegrationMode(value?: string): IntegrationMode {
+  if (!value || !integrationModes.includes(value as IntegrationMode)) {
     throw new Error(`Unsupported integration mode: ${value ?? ''}. Supported modes: ${integrationModes.join(', ')}`);
   }
-  return value;
+  return value as IntegrationMode;
 }
 
-export function parseChangeType(value?: string): string {
+export function parseChangeType(value?: string): ChangeType {
   if (!value) return 'default';
-  if (!changeTypes.includes(value)) {
+  if (!changeTypes.includes(value as ChangeType)) {
     throw new Error(`Unsupported change type: ${value}. Supported types: ${changeTypes.join(', ')}`);
   }
-  return value;
+  return value as ChangeType;
 }
 
-export function parseKnowledgeType(value?: string): string {
-  if (!value || !knowledgeTypes.includes(value)) {
+export function parseKnowledgeType(value?: string): KnowledgeType {
+  if (!value || !knowledgeTypes.includes(value as KnowledgeType)) {
     throw new Error(`Unsupported knowledge type: ${value ?? ''}. Supported types: ${knowledgeTypes.join(', ')}`);
   }
-  return value;
+  return value as KnowledgeType;
 }
 
 export function splitList(value?: string): string[] {

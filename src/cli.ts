@@ -3,155 +3,66 @@ import path from 'path';
 import { spawnSync } from 'child_process';
 import { Command } from 'commander';
 import { archiveChange, restoreChange, deleteArchivedChange, listChanges, listArchivedChanges, validateChangeStructure } from './lib/change';
-
-type ToolName = 'codex' | 'trae' | 'qoder' | 'cursor';
-type HarnessStatus = 'not_started' | 'in_progress' | 'accepted' | 'partially_accepted' | 'rejected' | 'blocked';
-type HarnessPhase = 'exploration' | 'proposal' | 'planning' | 'implementation' | 'verification' | 'finishing' | 'blocked';
-
-type HarnessResult = {
-  command: string;
-  status: 'passed' | 'failed';
-  exitCode: number;
-  durationMs: number;
-  reason?: string;
-};
-
-type HarnessTaskStatus = 'todo' | 'doing' | 'done' | 'blocked';
-
-type HarnessTask = {
-  id: string;
-  title: string;
-  status: HarnessTaskStatus;
-  checked: boolean;
-  sourceLine: number;
-  owner: string | null;
-  blockedBy: string | null;
-  updatedAt: string;
-};
-
-type HarnessTaskBoard = {
-  version: number;
-  change: string;
-  source: string;
-  updatedAt: string;
-  tasks: HarnessTask[];
-};
-
-type ChangeType = 'default' | 'bugfix' | 'feature' | 'ui-change' | 'refactor';
-type KnowledgeType = 'component' | 'function' | 'pattern' | 'decision' | 'failure';
-type KnowledgeStatus = 'active' | 'deprecated';
-type KnowledgeConfidence = 'confirmed' | 'uncertain';
-type IntegrationName = 'openspec' | 'superpowers';
-type IntegrationMode = 'lightweight' | 'official' | 'hybrid';
-
-type IntegrationConfig = {
-  name: IntegrationName;
-  mode: IntegrationMode;
-  officialInstalled: boolean;
-  officialPath: string;
-  cachePath: string;
-  source?: string | null;
-  installedAt?: string | null;
-  removedAt?: string | null;
-  lastInstallDryRunAt?: string | null;
-  updatedAt: string;
-};
-
-type KnowledgeRecord = {
-  id: string;
-  type: KnowledgeType;
-  name: string;
-  scope: string;
-  source: string;
-  summary: string;
-  keywords: string[];
-  usedIn: string[];
-  status: KnowledgeStatus;
-  confidence: KnowledgeConfidence;
-  createdAt: string;
-  updatedAt: string;
-};
-
-type KnowledgeIndexRecord = KnowledgeRecord & {
-  file: string;
-  searchText: string;
-};
-
-const root = process.cwd();
-const defaultTools: ToolName[] = ['codex', 'trae', 'qoder', 'cursor'];
-const coreFiles = ['project.md', 'frontend.md', 'api.md', 'ui.md', 'testing.md', 'review.md', 'workflow.md'];
-const dispatcherFlow = 'ai';
-const flowNames = ['explore', 'propose', 'plan', 'apply', 'verify', 'review', 'finish'];
-const skillFiles = ['planning.md', 'tdd.md', 'debugging.md', 'code-review.md', 'finishing.md'];
-const requiredChangeFiles = ['proposal.md', 'tasks.md', 'acceptance.md'];
-const mojibakePatterns = [
-  '\u7ead',
-  '\u93c4',
-  '\u95be\u6735',
-  '\u7035\u7858',
-  '\u8dfa\u5ba0',
-  '\u7a0b\u5b2a',
-  '\u9286?',
-  '\u9225?',
-  '\u20ac?',
-  '\u951f',
-  '\ufffd',
-];
-const textFilesToCheck = ['proposal.md', 'tasks.md', 'acceptance.md', 'notes.md', 'conversation-report.txt'];
-const changeTypes: ChangeType[] = ['default', 'bugfix', 'feature', 'ui-change', 'refactor'];
-const knowledgeTypes: KnowledgeType[] = ['component', 'function', 'pattern', 'decision', 'failure'];
-const integrationNames: IntegrationName[] = ['openspec', 'superpowers'];
-const integrationModes: IntegrationMode[] = ['lightweight', 'official', 'hybrid'];
-const integrationGitSources: Record<IntegrationName, string> = {
-  openspec: 'https://github.com/Fission-AI/OpenSpec.git',
-  superpowers: 'https://github.com/obra/superpowers.git',
-};
-const knowledgeFiles: Record<KnowledgeType, string> = {
-  component: 'components.jsonl',
-  function: 'functions.jsonl',
-  pattern: 'patterns.jsonl',
-  decision: 'decisions.jsonl',
-  failure: 'failures.jsonl',
-};
-const phaseByFlow: Record<string, HarnessPhase> = {
-  explore: 'exploration',
-  propose: 'proposal',
-  plan: 'planning',
-  apply: 'implementation',
-  verify: 'verification',
-  review: 'verification',
-  finish: 'finishing',
-};
-
-function resolvePath(...segments: string[]) {
-  return path.join(root, ...segments);
-}
-
-function exists(...segments: string[]) {
-  return fs.existsSync(resolvePath(...segments));
-}
-
-function ensureDir(...segments: string[]) {
-  fs.mkdirSync(resolvePath(...segments), { recursive: true });
-}
-
-function writeFileIfMissing(relativePath: string, content: string) {
-  const filePath = resolvePath(relativePath);
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  if (!fs.existsSync(filePath)) {
-    fs.writeFileSync(filePath, content, 'utf8');
-  }
-}
-
-function writeGeneratedFile(relativePath: string, content: string) {
-  const filePath = resolvePath(relativePath);
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, content, 'utf8');
-}
-
-function readText(relativePath: string) {
-  return fs.readFileSync(resolvePath(relativePath), 'utf8');
-}
+import { loadHarnessConfig, saveHarnessConfig, loadHarnessState, saveHarnessState, updateHarnessState, initHarness } from './lib/state';
+import { normalizeKnowledgeRecord, knowledgeFilePath, readKnowledgeFile, writeKnowledgeFile, readAllKnowledgeRecords, mergeKnowledgeRecords, dedupeKnowledgeRecords, tokenizeKnowledgeText, buildKnowledgeSearchText, buildKnowledgeIndex, loadKnowledgeIndex, scoreKnowledgeRecord, searchKnowledge } from './lib/knowledge';
+import { templateChangeFile } from './lib/templates';
+import type {
+  ToolName,
+  HarnessStatus,
+  HarnessPhase,
+  HarnessResult,
+  HarnessTaskStatus,
+  HarnessTask,
+  HarnessTaskBoard,
+  ChangeType,
+  KnowledgeType,
+  KnowledgeStatus,
+  KnowledgeConfidence,
+  IntegrationName,
+  IntegrationMode,
+  IntegrationConfig,
+  KnowledgeRecord,
+  KnowledgeIndexRecord,
+} from './types';
+import {
+  root,
+  defaultTools,
+  coreFiles,
+  dispatcherFlow,
+  flowNames,
+  skillFiles,
+  requiredChangeFiles,
+  mojibakePatterns,
+  textFilesToCheck,
+  changeTypes,
+  knowledgeTypes,
+  integrationNames,
+  integrationModes,
+  integrationGitSources,
+  knowledgeFiles,
+  phaseByFlow,
+  resolvePath,
+  exists,
+  ensureDir,
+  writeFileIfMissing,
+  writeGeneratedFile,
+  readText,
+  parseTools,
+  parseToolArgs,
+  parseIntegrationName,
+  parseIntegrationMode,
+  parseChangeType,
+  parseKnowledgeType,
+  splitList,
+  uniqueValues,
+  kebabName,
+  quoteShellArg,
+  timestampForFile,
+  textCorruptionScore,
+  hasMojibake,
+  fixMojibakeText,
+} from './lib/utils';
+import { defaultIntegrationConfig, integrationConfigPath, loadIntegrationConfig, saveIntegrationConfig, loadIntegrations, integrationSummary, inspectIntegrationHealth, assertIntegrationTargetPath, parseIntegrationSource, defaultIntegrationDownloadBase, resolveDownloadTarget, assertDownloadOutsideRepo, clearDirectoryContents, copyDirectoryRecursive } from './lib/integrations';
 
 function setupPackageScript(options: { enabled?: boolean } = {}) {
   if (options.enabled === false) return 'Skipped package.json script setup by option.';
@@ -220,216 +131,6 @@ function seedProjectTemplates() {
   return missing.map((file) => `Missing package template: ${file}`);
 }
 
-function parseTools(value?: string): ToolName[] {
-  if (!value) return defaultTools;
-  const tools = value.split(',').map((item) => item.trim()).filter(Boolean) as ToolName[];
-  const unsupported = tools.filter((tool) => !defaultTools.includes(tool));
-  if (unsupported.length) {
-    throw new Error(`Unsupported tools: ${unsupported.join(', ')}. Supported tools: ${defaultTools.join(', ')}`);
-  }
-  return Array.from(new Set(tools));
-}
-
-function parseToolArgs(args?: string[], optionValue?: string) {
-  if (args?.length) return parseTools(args.join(','));
-  return parseTools(optionValue);
-}
-
-function parseIntegrationName(value?: string): IntegrationName {
-  if (!value || !integrationNames.includes(value as IntegrationName)) {
-    throw new Error(`Unsupported integration: ${value ?? ''}. Supported integrations: ${integrationNames.join(', ')}`);
-  }
-  return value as IntegrationName;
-}
-
-function parseIntegrationMode(value?: string): IntegrationMode {
-  if (!value || !integrationModes.includes(value as IntegrationMode)) {
-    throw new Error(`Unsupported integration mode: ${value ?? ''}. Supported modes: ${integrationModes.join(', ')}`);
-  }
-  return value as IntegrationMode;
-}
-
-function defaultIntegrationConfig(name: IntegrationName): IntegrationConfig {
-  return {
-    name,
-    mode: 'lightweight',
-    officialInstalled: false,
-    officialPath: `harness/integrations/${name}/official`,
-    cachePath: `harness/integrations/${name}/cache`,
-    updatedAt: new Date().toISOString(),
-  };
-}
-
-function integrationConfigPath(name: IntegrationName) {
-  return `harness/integrations/${name}/config.json`;
-}
-
-function loadIntegrationConfig(name: IntegrationName): IntegrationConfig {
-  const relativePath = integrationConfigPath(name);
-  if (!exists(relativePath)) return defaultIntegrationConfig(name);
-  try {
-    return {
-      ...defaultIntegrationConfig(name),
-      ...JSON.parse(readText(relativePath)),
-      name,
-    };
-  } catch (error) {
-    console.error(`Invalid ${relativePath}: ${(error as Error).message}`);
-    return defaultIntegrationConfig(name);
-  }
-}
-
-function saveIntegrationConfig(config: IntegrationConfig) {
-  writeGeneratedFile(integrationConfigPath(config.name), `${JSON.stringify({
-    ...config,
-    updatedAt: new Date().toISOString(),
-  }, null, 2)}\n`);
-}
-
-function loadIntegrations() {
-  return Object.fromEntries(integrationNames.map((name) => [name, loadIntegrationConfig(name)])) as Record<IntegrationName, IntegrationConfig>;
-}
-
-function integrationSummary() {
-  return integrationNames.map((name) => {
-    const config = loadIntegrationConfig(name);
-    const installed = config.officialInstalled ? 'installed' : 'not installed';
-    const health = inspectIntegrationHealth(name, config);
-    return `- ${name}: ${config.mode} (${installed}, health=${health.health}, repo-local only: ${config.officialPath})`;
-  }).join('\n');
-}
-
-function inspectIntegrationHealth(name: IntegrationName, config = loadIntegrationConfig(name)) {
-  const officialPath = resolvePath(config.officialPath);
-  if (!config.officialInstalled) {
-    return {
-      health: 'not_installed' as const,
-      usable: false,
-      reason: 'officialInstalled is false',
-      evidence: [] as string[],
-      missing: [] as string[],
-    };
-  }
-  if (!fs.existsSync(officialPath)) {
-    return {
-      health: 'missing' as const,
-      usable: false,
-      reason: `Missing ${config.officialPath}`,
-      evidence: [] as string[],
-      missing: [config.officialPath],
-    };
-  }
-
-  const evidence: string[] = [];
-  const missing: string[] = [];
-  const has = (relativePath: string) => {
-    const fullPath = path.join(officialPath, relativePath);
-    if (fs.existsSync(fullPath)) {
-      evidence.push(`${config.officialPath}/${relativePath}`);
-      return true;
-    }
-    missing.push(`${config.officialPath}/${relativePath}`);
-    return false;
-  };
-
-  if (name === 'openspec') {
-    has('README.md');
-    has('package.json');
-  } else {
-    has('README.md');
-    if (
-      fs.existsSync(path.join(officialPath, 'skills'))
-      || fs.existsSync(path.join(officialPath, 'commands'))
-      || fs.existsSync(path.join(officialPath, 'superpowers'))
-    ) {
-      evidence.push(`${config.officialPath}/skills|commands|superpowers`);
-    } else {
-      missing.push(`${config.officialPath}/skills or commands or superpowers`);
-    }
-  }
-
-  const usable = evidence.length > 0 && (name === 'superpowers' ? evidence.length >= 2 : true);
-  return {
-    health: usable ? 'usable' as const : 'incomplete' as const,
-    usable,
-    reason: usable ? 'Repo-local official resources look usable.' : `Repo-local official resources are incomplete: ${missing.join(', ')}`,
-    evidence,
-    missing,
-  };
-}
-
-function resolveInsideRoot(relativePath: string) {
-  const fullPath = path.resolve(root, relativePath);
-  const rootPath = path.resolve(root);
-  if (fullPath !== rootPath && !fullPath.startsWith(`${rootPath}${path.sep}`)) {
-    throw new Error(`Refusing path outside repository: ${relativePath}`);
-  }
-  return fullPath;
-}
-
-function assertIntegrationTargetPath(name: IntegrationName, relativePath: string) {
-  const expectedPrefix = path.resolve(root, 'harness', 'integrations', name);
-  const fullPath = resolveInsideRoot(relativePath);
-  if (fullPath !== expectedPrefix && !fullPath.startsWith(`${expectedPrefix}${path.sep}`)) {
-    throw new Error(`Refusing integration path outside harness/integrations/${name}: ${relativePath}`);
-  }
-  return fullPath;
-}
-
-function parseIntegrationSource(source?: string) {
-  if (!source) return null;
-  if (!source.startsWith('local:')) {
-    throw new Error('Only local:<path> sources are supported in v0.8. Network and global installs are intentionally unsupported.');
-  }
-  const sourcePath = source.slice('local:'.length).trim();
-  if (!sourcePath) throw new Error('local:<path> source is required.');
-  const fullPath = path.resolve(sourcePath);
-  if (!fs.existsSync(fullPath)) throw new Error(`Local source does not exist: ${sourcePath}`);
-  if (!fs.statSync(fullPath).isDirectory()) throw new Error(`Local source must be a directory: ${sourcePath}`);
-  return fullPath;
-}
-
-function quoteShellArg(value: string) {
-  if (/^[A-Za-z0-9_./:@\\-]+$/.test(value)) return value;
-  return `"${value.replace(/"/g, '\\"')}"`;
-}
-
-function defaultIntegrationDownloadBase() {
-  return path.resolve(root, '..', '_ai-official-sources');
-}
-
-function resolveDownloadTarget(name: IntegrationName, to?: string) {
-  const base = to ? path.resolve(to) : defaultIntegrationDownloadBase();
-  return path.join(base, name);
-}
-
-function assertDownloadOutsideRepo(target: string, allowInsideRepo?: boolean) {
-  const rootPath = path.resolve(root);
-  if (!allowInsideRepo && (target === rootPath || target.startsWith(`${rootPath}${path.sep}`))) {
-    throw new Error('Refusing to download official sources inside the repository. Use --allow-inside-repo only if you know what you are doing.');
-  }
-}
-
-function clearDirectoryContents(directory: string) {
-  fs.mkdirSync(directory, { recursive: true });
-  for (const item of fs.readdirSync(directory)) {
-    fs.rmSync(path.join(directory, item), { recursive: true, force: true });
-  }
-}
-
-function copyDirectoryRecursive(source: string, target: string) {
-  fs.mkdirSync(target, { recursive: true });
-  for (const entry of fs.readdirSync(source, { withFileTypes: true })) {
-    const sourcePath = path.join(source, entry.name);
-    const targetPath = path.join(target, entry.name);
-    if (entry.isDirectory()) {
-      copyDirectoryRecursive(sourcePath, targetPath);
-    } else if (entry.isFile()) {
-      fs.copyFileSync(sourcePath, targetPath);
-    }
-  }
-}
-
 function listTargetFiles(tool: ToolName) {
   const targetFiles: Record<ToolName, string[]> = {
     codex: ['AGENTS.md', '.codex/skills/msgfi-ai/SKILL.md', ...flowNames.map((flow) => `.codex/skills/msgfi-ai-${flow}/SKILL.md`)],
@@ -451,23 +152,6 @@ function normalizeTools(value: unknown): ToolName[] {
   return value.filter((tool): tool is ToolName => defaultTools.includes(tool as ToolName));
 }
 
-function loadHarnessConfig() {
-  const configPath = resolvePath('harness', 'config.json');
-  if (!fs.existsSync(configPath)) {
-    return { currentChange: null, tools: defaultTools };
-  }
-  try {
-    return JSON.parse(fs.readFileSync(configPath, 'utf8'));
-  } catch (error) {
-    console.error(`Invalid harness/config.json: ${(error as Error).message}`);
-    return { currentChange: null, tools: defaultTools };
-  }
-}
-
-function saveHarnessConfig(config: Record<string, unknown>) {
-  writeGeneratedFile('harness/config.json', `${JSON.stringify(config, null, 2)}\n`);
-}
-
 function setCurrentChange(change: string) {
   const config = loadHarnessConfig();
   saveHarnessConfig({
@@ -480,60 +164,6 @@ function setCurrentChange(change: string) {
   });
 }
 
-function loadHarnessState() {
-  const statePath = resolvePath('harness', 'state.json');
-  if (!fs.existsSync(statePath)) {
-    return {
-      version: 1,
-      activeChange: null,
-      activeFlow: null,
-      status: 'not_started' as HarnessStatus,
-      phase: null,
-      lastStep: null,
-      nextStep: null,
-      lastReport: null,
-      nextSuggestedFlow: null,
-      blockedBy: [],
-      decisions: [],
-      context: {},
-      updatedAt: null,
-    };
-  }
-  try {
-    return JSON.parse(fs.readFileSync(statePath, 'utf8'));
-  } catch (error) {
-    console.error(`Invalid harness/state.json: ${(error as Error).message}`);
-    return {
-      version: 1,
-      activeChange: null,
-      activeFlow: null,
-      status: 'not_started' as HarnessStatus,
-      phase: null,
-      lastStep: null,
-      nextStep: null,
-      lastReport: null,
-      nextSuggestedFlow: null,
-      blockedBy: [],
-      decisions: [],
-      context: {},
-      updatedAt: null,
-    };
-  }
-}
-
-function saveHarnessState(state: Record<string, unknown>) {
-  writeGeneratedFile('harness/state.json', `${JSON.stringify(state, null, 2)}\n`);
-}
-
-function updateHarnessState(patch: Record<string, unknown>) {
-  const state = loadHarnessState();
-  saveHarnessState({
-    ...state,
-    ...patch,
-    updatedAt: new Date().toISOString(),
-  });
-}
-
 function buildChangeContext(change: string) {
   return {
     proposal: `openspec/changes/${change}/proposal.md`,
@@ -541,10 +171,6 @@ function buildChangeContext(change: string) {
     acceptance: `openspec/changes/${change}/acceptance.md`,
     notes: `openspec/changes/${change}/notes.md`,
   };
-}
-
-function timestampForFile(date = new Date()) {
-  return date.toISOString().replace(/[:.]/g, '-');
 }
 
 function writeRunEvent(kind: string, payload: Record<string, unknown>) {
@@ -716,67 +342,6 @@ function getChangeName(input?: string): string | null {
   if (input) return input;
   const config = loadHarnessConfig();
   return typeof config.currentChange === 'string' ? config.currentChange : null;
-}
-
-function kebabName(value: string) {
-  return value.trim().replace(/[^a-zA-Z0-9\u4e00-\u9fa5]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase();
-}
-
-function parseChangeType(value?: string): ChangeType {
-  if (!value) return 'default';
-  if (!changeTypes.includes(value as ChangeType)) {
-    throw new Error(`Unsupported change type: ${value}. Supported types: ${changeTypes.join(', ')}`);
-  }
-  return value as ChangeType;
-}
-
-function templateChangeFile(change: string, kind: string, type: ChangeType = 'default') {
-  if (kind === 'proposal.md') {
-    if (type === 'bugfix') {
-      return `# ${change}\n\n## Type\n\nbugfix\n\n## Bug\n\nDescribe the observed incorrect behavior.\n\n## Expected Behavior\n\nDescribe the correct behavior.\n\n## Root Cause\n\nDescribe the suspected or confirmed cause.\n\n## Scope\n\n- In scope:\n- Out of scope:\n\n## Impact\n\nList affected routes, components, APIs, data fields, or user flows.\n`;
-    }
-    if (type === 'feature') {
-      return `# ${change}\n\n## Type\n\nfeature\n\n## Background\n\nDescribe the user need or business goal.\n\n## Goal\n\nDescribe the intended capability.\n\n## User Flow\n\nDescribe the target workflow.\n\n## Scope\n\n- In scope:\n- Out of scope:\n\n## Impact\n\nList affected apps, pages, APIs, permissions, states, or data models.\n`;
-    }
-    if (type === 'ui-change') {
-      return `# ${change}\n\n## Type\n\nui-change\n\n## Background\n\nDescribe the UI problem or requested adjustment.\n\n## Goal\n\nDescribe the desired UI behavior.\n\n## States\n\n- Default:\n- Loading:\n- Empty:\n- Error:\n- Disabled:\n\n## Scope\n\n- In scope:\n- Out of scope:\n\n## Impact\n\nList affected components, routes, responsive states, and visual risks.\n`;
-    }
-    if (type === 'refactor') {
-      return `# ${change}\n\n## Type\n\nrefactor\n\n## Background\n\nDescribe the maintainability problem.\n\n## Goal\n\nDescribe the intended internal improvement.\n\n## Behavior Contract\n\nDescribe behavior that must remain unchanged.\n\n## Scope\n\n- In scope:\n- Out of scope:\n\n## Impact\n\nList affected modules, exports, tests, and migration risks.\n`;
-    }
-    return `# ${change}\n\n## Background\n\nDescribe the problem or opportunity.\n\n## Goal\n\nDescribe the intended outcome.\n\n## Scope\n\n- In scope:\n- Out of scope:\n\n## Impact\n\nList affected apps, packages, routes, APIs, or UI states.\n`;
-  }
-  if (kind === 'tasks.md') {
-    if (type === 'bugfix') {
-      return `# Tasks\n\n- [ ] Reproduce or inspect the reported bug path.\n- [ ] Locate the smallest affected code path.\n- [ ] Confirm root cause.\n- [ ] Implement the scoped fix.\n- [ ] Verify the expected behavior.\n- [ ] Check related regression paths.\n- [ ] Run \`pnpm ai check\`.\n`;
-    }
-    if (type === 'feature') {
-      return `# Tasks\n\n- [ ] Confirm affected app/package scope.\n- [ ] Confirm data, API, permission, and UI contracts.\n- [ ] Implement the requested capability.\n- [ ] Handle loading, empty, error, and disabled states where applicable.\n- [ ] Update or add focused verification.\n- [ ] Run \`pnpm ai check\`.\n`;
-    }
-    if (type === 'ui-change') {
-      return `# Tasks\n\n- [ ] Inspect the existing component and design conventions.\n- [ ] Implement the UI adjustment within existing patterns.\n- [ ] Verify responsive layout and text fit.\n- [ ] Verify loading, empty, error, and disabled states where applicable.\n- [ ] Run focused lint or visual checks.\n- [ ] Run \`pnpm ai check\`.\n`;
-    }
-    if (type === 'refactor') {
-      return `# Tasks\n\n- [ ] Document current behavior before changing code.\n- [ ] Identify safe refactor boundaries.\n- [ ] Refactor without changing user-visible behavior.\n- [ ] Update imports/usages if needed.\n- [ ] Run focused regression checks.\n- [ ] Run \`pnpm ai check\`.\n`;
-    }
-    return `# Tasks\n\n- [ ] Confirm affected app/package scope.\n- [ ] Implement the requested behavior.\n- [ ] Update or add verification where appropriate.\n- [ ] Run \`pnpm ai check\`.\n`;
-  }
-  if (kind === 'acceptance.md') {
-    if (type === 'bugfix') {
-      return `# Acceptance Criteria\n\n- [ ] The reported incorrect behavior is fixed.\n- [ ] The expected behavior is verified on the affected path.\n- [ ] Related behavior outside the bug scope is not regressed.\n- [ ] The fix is scoped and does not alter shared helpers unless explicitly justified.\n- [ ] \`pnpm ai check\` passes or unrelated failures are documented.\n`;
-    }
-    if (type === 'feature') {
-      return `# Acceptance Criteria\n\n- [ ] The requested capability works for the primary user flow.\n- [ ] Required UI states are handled where applicable.\n- [ ] Data/API/permission behavior matches the proposal.\n- [ ] Existing related behavior is not regressed.\n- [ ] \`pnpm ai check\` passes or unrelated failures are documented.\n`;
-    }
-    if (type === 'ui-change') {
-      return `# Acceptance Criteria\n\n- [ ] The UI matches the requested behavior and existing design conventions.\n- [ ] Text, spacing, and controls fit at relevant viewport sizes.\n- [ ] Required states are visually and functionally handled.\n- [ ] Existing interactions are not regressed.\n- [ ] \`pnpm ai check\` passes or unrelated failures are documented.\n`;
-    }
-    if (type === 'refactor') {
-      return `# Acceptance Criteria\n\n- [ ] User-visible behavior remains unchanged.\n- [ ] Public contracts, routes, APIs, and data formats remain compatible unless explicitly proposed.\n- [ ] The refactor reduces meaningful complexity or duplication.\n- [ ] Focused regression checks pass.\n- [ ] \`pnpm ai check\` passes or unrelated failures are documented.\n`;
-    }
-    return `# Acceptance Criteria\n\n- [ ] Behavior matches the proposal.\n- [ ] UI states are handled when applicable.\n- [ ] Existing related behavior is not regressed.\n- [ ] \`pnpm ai check\` passes.\n`;
-  }
-  return `# Notes\n\nChange type: ${type}\n\nRecord implementation and verification notes here.\n`;
 }
 
 function collectCoreSummary() {
@@ -983,19 +548,6 @@ async function newCommand(changeInput: string | undefined, options: { type?: str
   console.log(`Created OpenSpec-compatible ${type} change: ${change}`);
 }
 
-function textCorruptionScore(text: string) {
-  const patternScore = mojibakePatterns.reduce((score, pattern) => {
-    const matches = text.split(pattern).length - 1;
-    return score + matches * 10;
-  }, 0);
-  const controlScore = (text.match(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g) ?? []).length * 20;
-  return patternScore + controlScore;
-}
-
-function hasMojibake(text: string) {
-  return textCorruptionScore(text) > 0;
-}
-
 function collectEncodingIssues(change?: string) {
   const issues: string[] = [];
   const changes = change
@@ -1015,14 +567,6 @@ function collectEncodingIssues(change?: string) {
     }
   }
   return issues;
-}
-
-function fixMojibakeText(text: string) {
-  const buffer = Buffer.from(text, 'latin1');
-  const decoded = buffer.toString('utf8');
-  const beforeScore = textCorruptionScore(text);
-  const afterScore = textCorruptionScore(decoded);
-  return afterScore < beforeScore ? decoded : text;
 }
 
 function encodingCommand(changeInput?: string, options: { fix?: boolean } = {}) {
@@ -1063,189 +607,6 @@ function knowledgeIndexDir() {
   return resolvePath('harness', 'memory', 'index');
 }
 
-function knowledgeFilePath(type: KnowledgeType) {
-  return resolvePath('harness', 'memory', 'knowledge', knowledgeFiles[type]);
-}
-
-function parseKnowledgeType(value?: string): KnowledgeType {
-  if (!value || !knowledgeTypes.includes(value as KnowledgeType)) {
-    throw new Error(`Unsupported knowledge type: ${value ?? ''}. Supported types: ${knowledgeTypes.join(', ')}`);
-  }
-  return value as KnowledgeType;
-}
-
-function splitList(value?: string): string[] {
-  if (!value) return [];
-  return value
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function uniqueValues(values: string[]) {
-  return Array.from(new Set(values.map((item) => item.trim()).filter(Boolean)));
-}
-
-function normalizeKnowledgeRecord(record: Partial<KnowledgeRecord>) {
-  const now = new Date().toISOString().slice(0, 10);
-  const type = parseKnowledgeType(record.type);
-  const name = String(record.name ?? '').trim();
-  const summary = String(record.summary ?? '').trim();
-  if (!name) throw new Error('Knowledge name is required.');
-  if (!summary) throw new Error('Knowledge summary is required.');
-  const source = String(record.source ?? 'repo').trim();
-  const scope = String(record.scope ?? 'global').trim();
-  const id = String(record.id ?? `${type}:${kebabName(name)}:${kebabName(source || scope)}`).trim();
-  return {
-    id,
-    type,
-    name,
-    scope,
-    source,
-    summary,
-    keywords: uniqueValues(record.keywords ?? []),
-    usedIn: uniqueValues(record.usedIn ?? []),
-    status: (record.status ?? 'active') as KnowledgeStatus,
-    confidence: (record.confidence ?? 'confirmed') as KnowledgeConfidence,
-    createdAt: record.createdAt ?? now,
-    updatedAt: now,
-  } satisfies KnowledgeRecord;
-}
-
-function readKnowledgeFile(type: KnowledgeType) {
-  const filePath = knowledgeFilePath(type);
-  if (!fs.existsSync(filePath)) return [] as KnowledgeRecord[];
-  return fs
-    .readFileSync(filePath, 'utf8')
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line, index) => {
-      try {
-        return normalizeKnowledgeRecord(JSON.parse(line));
-      } catch (error) {
-        throw new Error(`${path.relative(root, filePath)}:${index + 1} ${(error as Error).message}`);
-      }
-    });
-}
-
-function writeKnowledgeFile(type: KnowledgeType, records: KnowledgeRecord[]) {
-  ensureDir('harness', 'memory', 'knowledge');
-  const lines = records
-    .sort((a, b) => a.id.localeCompare(b.id))
-    .map((record) => JSON.stringify(record));
-  fs.writeFileSync(knowledgeFilePath(type), `${lines.join('\n')}${lines.length ? '\n' : ''}`, 'utf8');
-}
-
-function readAllKnowledgeRecords(): KnowledgeIndexRecord[] {
-  const records: KnowledgeIndexRecord[] = [];
-  for (const type of knowledgeTypes) {
-    const file = `harness/memory/knowledge/${knowledgeFiles[type]}`;
-    for (const record of readKnowledgeFile(type)) {
-      records.push({
-        ...record,
-        file,
-        searchText: buildKnowledgeSearchText(record),
-      });
-    }
-  }
-  return records;
-}
-
-function mergeKnowledgeRecords(existing: KnowledgeRecord, incoming: KnowledgeRecord): KnowledgeRecord {
-  return {
-    ...existing,
-    ...incoming,
-    createdAt: existing.createdAt || incoming.createdAt,
-    updatedAt: new Date().toISOString().slice(0, 10),
-    keywords: uniqueValues([...existing.keywords, ...incoming.keywords]),
-    usedIn: uniqueValues([...existing.usedIn, ...incoming.usedIn]),
-  };
-}
-
-function dedupeKnowledgeRecords(records: KnowledgeRecord[]) {
-  const byId = new Map<string, KnowledgeRecord>();
-  for (const record of records) {
-    const previous = byId.get(record.id);
-    byId.set(record.id, previous ? mergeKnowledgeRecords(previous, record) : record);
-  }
-  return Array.from(byId.values());
-}
-
-function tokenizeKnowledgeText(text: string) {
-  const normalized = text.toLowerCase();
-  const tokens = normalized.match(/[a-z0-9_.:/@-]+|[\u4e00-\u9fa5]{2,}/g) ?? [];
-  return uniqueValues(tokens);
-}
-
-function buildKnowledgeSearchText(record: KnowledgeRecord) {
-  return [
-    record.id,
-    record.type,
-    record.name,
-    record.scope,
-    record.source,
-    record.summary,
-    ...record.keywords,
-    ...record.usedIn,
-  ].join(' ').toLowerCase();
-}
-
-function buildKnowledgeIndex() {
-  ensureDir('harness', 'memory', 'index');
-  const records = readAllKnowledgeRecords();
-  const keywords: Record<string, string[]> = {};
-  const indexRecords: Record<string, Omit<KnowledgeIndexRecord, 'searchText'>> = {};
-  const stats = {
-    updatedAt: new Date().toISOString(),
-    total: records.length,
-    byType: Object.fromEntries(knowledgeTypes.map((type) => [type, 0])) as Record<KnowledgeType, number>,
-    byStatus: { active: 0, deprecated: 0 } as Record<KnowledgeStatus, number>,
-    byConfidence: { confirmed: 0, uncertain: 0 } as Record<KnowledgeConfidence, number>,
-  };
-
-  for (const record of records) {
-    stats.byType[record.type] += 1;
-    stats.byStatus[record.status] += 1;
-    stats.byConfidence[record.confidence] += 1;
-    const { searchText, ...indexRecord } = record;
-    indexRecords[record.id] = indexRecord;
-    for (const token of tokenizeKnowledgeText(searchText)) {
-      keywords[token] = uniqueValues([...(keywords[token] ?? []), record.id]);
-    }
-  }
-
-  writeGeneratedFile('harness/memory/index/keywords.json', `${JSON.stringify(keywords, null, 2)}\n`);
-  writeGeneratedFile('harness/memory/index/records.json', `${JSON.stringify(indexRecords, null, 2)}\n`);
-  writeGeneratedFile('harness/memory/index/stats.json', `${JSON.stringify(stats, null, 2)}\n`);
-  return stats;
-}
-
-function loadKnowledgeIndex() {
-  const recordsPath = resolvePath('harness', 'memory', 'index', 'records.json');
-  if (!fs.existsSync(recordsPath)) buildKnowledgeIndex();
-  const records = JSON.parse(fs.readFileSync(recordsPath, 'utf8')) as Record<string, Omit<KnowledgeIndexRecord, 'searchText'>>;
-  return Object.values(records).map((record) => ({
-    ...record,
-    searchText: buildKnowledgeSearchText(record),
-  }));
-}
-
-function scoreKnowledgeRecord(record: KnowledgeIndexRecord, terms: string[]) {
-  let score = 0;
-  for (const term of terms) {
-    const normalized = term.toLowerCase();
-    if (!normalized) continue;
-    if (record.id.toLowerCase().includes(normalized)) score += 8;
-    if (record.name.toLowerCase().includes(normalized)) score += 6;
-    if (record.keywords.some((keyword) => keyword.toLowerCase().includes(normalized))) score += 5;
-    if (record.summary.toLowerCase().includes(normalized)) score += 3;
-    if (record.searchText.includes(normalized)) score += 1;
-  }
-  if (record.status === 'active') score += 1;
-  if (record.confidence === 'confirmed') score += 1;
-  return score;
-}
 
 function knowledgeAddCommand(options: {
   type?: string;

@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.taskBoardPath = exports.writeTimestampedMarkdown = exports.writeRunEvent = exports.getChangeName = exports.buildChangeContext = exports.updateHarnessState = exports.saveHarnessState = exports.loadHarnessState = exports.setCurrentChange = exports.saveHarnessConfig = exports.loadHarnessConfig = void 0;
+exports.taskBoardPath = exports.writeTimestampedMarkdown = exports.writeRunEvent = exports.initHarness = exports.getChangeName = exports.buildChangeContext = exports.updateHarnessState = exports.saveHarnessState = exports.loadHarnessState = exports.setCurrentChange = exports.saveHarnessConfig = exports.loadHarnessConfig = void 0;
 const fs_1 = __importDefault(require("fs"));
 const utils_1 = require("./utils");
 const LOCK_FILE = (0, utils_1.resolvePath)('harness', '.state.lock');
@@ -158,6 +158,21 @@ function getChangeName(input) {
     return typeof config.currentChange === 'string' ? config.currentChange : null;
 }
 exports.getChangeName = getChangeName;
+function initHarness() {
+    var _a, _b, _c, _d, _e;
+    (0, utils_1.ensureDir)('harness');
+    const config = loadHarnessConfig();
+    saveHarnessConfig({
+        version: (_a = config.version) !== null && _a !== void 0 ? _a : 1,
+        profile: (_b = config.profile) !== null && _b !== void 0 ? _b : 'lightweight',
+        currentChange: (_c = config.currentChange) !== null && _c !== void 0 ? _c : null,
+        tools: (_d = config.tools) !== null && _d !== void 0 ? _d : utils_1.defaultTools,
+        checks: (_e = config.checks) !== null && _e !== void 0 ? _e : ['eslint', 'ai:validate', 'ai:report'],
+    });
+    const state = loadHarnessState();
+    saveHarnessState(state);
+}
+exports.initHarness = initHarness;
 function writeRunEvent(kind, payload) {
     var _a, _b, _c;
     const state = loadHarnessState();

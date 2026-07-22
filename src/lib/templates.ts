@@ -149,7 +149,7 @@ export function listTargetFiles(tool: string): string[] {
 
 export function applyToolSkip(tools: string[], skipValue?: string) {
   if (!skipValue) return tools;
-  const skipped = skipValue.split(',').map((item) => item.trim()).filter((tool) => defaultTools.includes(tool));
+  const skipped = skipValue.split(',').map((item) => item.trim()).filter((tool) => (defaultTools as string[]).includes(tool));
   return tools.filter((tool) => !skipped.includes(tool));
 }
 
